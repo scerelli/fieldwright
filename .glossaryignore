@@ -3,3 +3,7 @@
 server/pnpm-lock.yaml
 server/package.json
 server/tsconfig.json
+# Flutter client scaffold: generated platform files and tool-owned manifests.
+app/.metadata  # glossary:allow Flutter's generated tool manifest, not domain metadata
+app/android/*
+app/ios/*
