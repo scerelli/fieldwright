@@ -16,6 +16,7 @@
 ### `app/` (Flutter client)
 
 - **Flutter 3.47.5** — one UI codebase for Android and iOS.
+- **flex_color_scheme 9.0** — generates the Material 3 light/dark colour schemes (harmonized primary/secondary/tertiary, surface blends) from a seed colour; the seed and final palette are settled at `/design`.
 - **flutter_riverpod 3.4** — state management and dependency injection.
 - **drift 2.35** — offline SQLite store with forward-only migrations (ADR-0002).
 - **flutter_map 8.3** + **latlong2 0.10** — map rendering over OpenStreetMap tiles, offline-friendly.
