@@ -122,7 +122,7 @@ GitHub Actions, one job per package running the check-only commands above.
 - **Maps** — flutter_map + OSM; MapLibre (heavier), Google Maps (API key, conflicts with self-host) lost.
 - **State management** — Riverpod; Bloc (boilerplate), Provider (scales worst) lost.
 - **Server test runner** — Vitest; Jest (slower on TS), `node:test` (fewer features) lost.
-- **Repo layout** — `app/` + `server/` + `infra/`; separate repositories (cross-repo overhead) lost.
+- **Repo layout** — `app/` + `server/` + `packages/protocol/` + `infra/` (the shared protocol package is added by ARCHITECTURE.md); separate repositories (cross-repo overhead) lost.
 - **Package manager** — pnpm; npm/yarn (slower, less strict) lost.
 
 ## Revisit triggers
