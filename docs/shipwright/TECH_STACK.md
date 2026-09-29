@@ -16,7 +16,8 @@
 ### `app/` (Flutter client)
 
 - **Flutter 3.47.5** — one UI codebase for Android and iOS.
-- **flex_color_scheme 9.0** — generates the Material 3 light/dark colour schemes (harmonized primary/secondary/tertiary, surface blends) from a seed colour; the seed and final palette are settled at `/design`.
+- **material_ui 1.5** + **cupertino_ui 1.1** — the Material and Cupertino widgets and themes for Flutter 3.47 (decoupled from the SDK); all app UI imports these instead of `package:flutter/material.dart`.
+- **flex_color_scheme 9.0** — generates the Material 3 light/dark colour schemes (built on `material_ui`) from a seed colour; the seed and final palette are settled at `/design`.
 - **flutter_riverpod 3.4** — state management and dependency injection.
 - **drift 2.35** — offline SQLite store with forward-only migrations (ADR-0002).
 - **flutter_map 8.3** + **latlong2 0.10** — map rendering over OpenStreetMap tiles, offline-friendly.
@@ -122,6 +123,7 @@ GitHub Actions, one job per package running the check-only commands above.
 - **Server framework** — NestJS; Express/Fastify (less structure), a second language (solo dev), GraphQL (complexity) lost (ADR-0005).
 - **Hosting** — Docker Compose + GHCR; Kubernetes, managed PaaS, per-OS installers lost (ADR-0006).
 - **Media storage** — volume default + optional S3; S3-only and database blobs lost (ADR-0007).
+- **UI widgets/themes** — `material_ui`/`cupertino_ui`; Flutter 3.47 decoupled Material and Cupertino out of the SDK, so `package:flutter/material.dart` is the legacy path.
 - **Maps** — flutter_map + OSM; MapLibre (heavier), Google Maps (API key, conflicts with self-host) lost.
 - **State management** — Riverpod; Bloc (boilerplate), Provider (scales worst) lost.
 - **Server test runner** — Vitest; Jest (slower on TS), `node:test` (fewer features) lost.
