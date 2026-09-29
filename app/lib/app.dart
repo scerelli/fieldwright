@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'router/app_router.dart';
+
 final appTitleProvider = Provider<String>((ref) => 'IBIS');
 
 class IbisApp extends ConsumerWidget {
@@ -9,13 +11,8 @@ class IbisApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final title = ref.watch(appTitleProvider);
+    final router = ref.watch(goRouterProvider);
 
-    return MaterialApp(
-      title: title,
-      home: Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: const Center(child: Text('IBIS')),
-      ),
-    );
+    return MaterialApp.router(title: title, routerConfig: router);
   }
 }

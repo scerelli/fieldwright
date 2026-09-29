@@ -12,7 +12,9 @@ void main() {
         child: const IbisApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Overridden IBIS'), findsOneWidget);
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.title, 'Overridden IBIS');
   });
 }
