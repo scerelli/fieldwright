@@ -2,13 +2,38 @@ name: ci
 
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
-  bootstrap:
+  server:
+    name: server
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
     steps:
       - uses: actions/checkout@v4
-      - name: Bootstrap check
-        run: 'echo "CI bootstrap placeholder: real per-package checks land with the CI task."'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      # --config.strict-dep-builds=false is a stopgap until the repo-level fix
+      # in #69 lands; drop the flag then.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.strict-dep-builds=false
+
+      - name: Lint (type-aware)
+        run: pnpm exec oxlint --type-aware .
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: pnpm exec vitest run
