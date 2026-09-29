@@ -24,10 +24,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
-      # --config.strict-dep-builds=false is a stopgap until the repo-level fix
-      # in #69 lands; drop the flag then.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --config.strict-dep-builds=false
+        run: pnpm install --frozen-lockfile
 
       - name: Lint (type-aware)
         run: pnpm exec oxlint --type-aware .

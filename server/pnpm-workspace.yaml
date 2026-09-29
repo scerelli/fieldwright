@@ -1,0 +1,4 @@
+# pnpm 12 treats unapproved dependency build scripts as an error. The project
+# intentionally does not run transitive native/optional build scripts, so the
+# strict check is disabled here rather than by a flag on every install.
+strictDepBuilds: false
