@@ -35,6 +35,7 @@
 - **better-auth 1.7** — authentication on the Drizzle adapter (ADR-0003).
 - **class-validator 0.15** + **class-transformer 0.5** — request validation (NestJS default).
 - **@nestjs/swagger 12.0** — OpenAPI document for the client.
+- **oxlint 1.86** + **oxlint-tsgolint 7.0.2003** — the server linter (type-aware rules), matching NestJS 12's TypeScript 7 default.
 
 ## Data layer
 
@@ -75,8 +76,9 @@ Self-hosted via **docker-compose**: API + PostgreSQL/PostGIS + media volume
 
 - test (all): `pnpm exec vitest run`
 - test (one file): `pnpm exec vitest run <path>`
-- lint (fix): `pnpm exec eslint --fix <paths>`
-- lint (check): `pnpm exec eslint <paths>`
+- lint (fix): `pnpm exec oxlint --fix <paths>`
+- lint (check): `pnpm exec oxlint <paths>`
+- lint (type-aware, CI): `pnpm exec oxlint --type-aware <paths>`
 - format (fix): `pnpm exec prettier --write <paths>`
 - format (check): `pnpm exec prettier --check <paths>`
 - typecheck: `pnpm exec tsc --noEmit`
@@ -123,6 +125,7 @@ GitHub Actions, one job per package running the check-only commands above.
 - **Maps** — flutter_map + OSM; MapLibre (heavier), Google Maps (API key, conflicts with self-host) lost.
 - **State management** — Riverpod; Bloc (boilerplate), Provider (scales worst) lost.
 - **Server test runner** — Vitest; Jest (slower on TS), `node:test` (fewer features) lost.
+- **Server linter** — oxlint; ESLint (cannot lint TypeScript 7 — no compatible parser exists) lost.
 - **Repo layout** — `app/` + `server/` + `packages/protocol/` + `infra/` (the shared protocol package is added by ARCHITECTURE.md); separate repositories (cross-repo overhead) lost.
 - **Package manager** — pnpm; npm/yarn (slower, less strict) lost.
 
