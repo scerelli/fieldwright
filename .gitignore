@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# Dart / Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# Node
+node_modules/
+dist/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Note: local pipeline state lives in .shipwright/, excluded via
+# .git/info/exclude (not here), so the tracked tree stays clean for /build.
