@@ -1,0 +1,30 @@
+name: audit
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  osv-scanner:
+    name: osv-scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osv-scanner
+        env:
+          OSV_SCANNER_VERSION: v2.6.0
+        run: |
+          base="https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}"
+          curl -sSfL -o osv-scanner_linux_amd64 "${base}/osv-scanner_linux_amd64"
+          curl -sSfL -o SHA256SUMS "${base}/osv-scanner_SHA256SUMS"
+          grep 'osv-scanner_linux_amd64$' SHA256SUMS | sha256sum -c -
+          install -m 0755 osv-scanner_linux_amd64 /usr/local/bin/osv-scanner
+
+      - name: Run osv-scanner
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        run: osv-scanner -r .
