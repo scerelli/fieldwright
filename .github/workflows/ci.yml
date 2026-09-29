@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Bootstrap check
-        run: echo "CI bootstrap — real per-package checks land with issue #19."
+        run: 'echo "CI bootstrap placeholder: real per-package checks land with the CI task."'
