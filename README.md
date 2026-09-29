@@ -31,5 +31,6 @@ needs CI on the repo (add a workflow once `/discover` has pinned the stack).
 
 ## Updating the skills
 
-`.claude/skills` and `.claude/commands` are a copy of the Fieldwright plugin.
-To update, replace both folders from a newer Fieldwright and commit.
+`.agents/skills` (the canonical, vendor-neutral copy; `.claude/skills` is a
+symlink to it) and `.claude/commands` are a copy of the Fieldwright plugin.
+To update, replace both from a newer Fieldwright and commit.

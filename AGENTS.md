@@ -8,21 +8,28 @@ file tree.
 
 - **No application code, manifests, build, test, lint, or CI exist yet.** Do
   not invent scripts or commands; there is nothing to build or test.
-- The only authored artifact is `docs/brief.md` (see below).
-- **No git commits and no `origin` remote.** `/init` preflight requires a
-  GitHub repo behind this directory; create it first, or `/init` runs all its
-  interviews then fails at the first push:
-  `gh repo create field-app --private --source=. --push`
-- HEAD is on branch `master` while `README.md` says `main`. Never hardcode the
-  production branch — `scripts/pr.sh production-branch` resolves it and honours
+- The only authored artifact is `docs/brief.md` (see below). `/init` has not
+  run: there is no `docs/shipwright/` and no local `.shipwright/` state.
+- Git exists and is pushed: one commit on `main`, `main` == `origin/main`. The
+  README "First run" block (`git init`, `gh repo create`) is already done — do
+  not re-run it.
+- The backing GitHub repo is **`scerelli/fieldwright` (public), default branch
+  `main`** — not the private `field-app` the README and brief describe. Note
+  the name mismatch before any push.
+- The `.agents/skills/` migration is uncommitted: tracked `.claude/skills/*`
+  files show as deleted while `.claude/skills` is now a symlink to
+  `.agents/skills/`, and `.agents/`, `.opencode/`, `CLAUDE.md` are untracked.
+  Commit it before a step that needs a clean tree (`/build` preflight).
+- Never hardcode the production branch — `/build` and `/release` resolve it via
+  `.agents/skills/gh-pr-merge/scripts/pr.sh production-branch`, which honours
   `SHIPWRIGHT_MAIN`.
 
 ## Work happens through the Fieldwright pipeline
 
-Planning/delivery runs on **Fieldwright**, a Shipwright fork vendored under
-`.claude/` (skills, commands, scripts). Do not hand-write a plan, a
-decomposition, or a build step that a pipeline command already covers; invoke
-the matching skill instead.
+Planning/delivery runs on **Fieldwright**, a Shipwright fork vendored as
+`.agents/skills/` (skills + scripts) and `.claude/commands/` (slash commands).
+Do not hand-write a plan, a decomposition, or a build step that a pipeline
+command already covers; invoke the matching skill instead.
 
 Start here:
 
@@ -49,10 +56,11 @@ greenfield vs. in-flight.
 | mark work done | `ship` (`--force-close` to close an item with sub-tasks descoped) |
 | cut a release | `release <version>` |
 
-`preflight.sh <init|decompose|build>` gates the pipeline and fails fast. Never
-set `SHIPWRIGHT_NO_CI=1` mid-run to get past the CI gate — that declaration is
-a one-time human call. Scripts are deterministic mechanism: call them by path,
-never transcribe them.
+`.agents/skills/preflight/scripts/preflight.sh <init|decompose|build>` gates
+the pipeline and fails fast. Never set `SHIPWRIGHT_NO_CI=1` mid-run to get past
+the CI gate — that declaration is a one-time human call. Scripts are
+deterministic mechanism: call them by their real path under
+`.agents/skills/<skill>/scripts/`, never transcribe them.
 
 ## `docs/brief.md` is the product source of truth
 
@@ -72,10 +80,13 @@ never transcribe them.
 ## Repo conventions
 
 - Docs and code in English; owner is a solo developer.
-- `.claude/skills/` and `.claude/commands/` are a vendored copy of the
-  Fieldwright plugin. To update, replace both folders from a newer Fieldwright
-  and commit — do not hand-edit them.
-- `.shipwright/` local state is added to `.git/info/exclude`, **not**
+- Skills live in the vendor-neutral `.agents/skills/` (open Agent Skills
+  format, readable by Claude, OpenCode, and other agents); `.claude/skills` is
+  a symlink to it, and `.opencode/command` symlinks `.claude/commands`.
+  `.agents/skills/` and `.claude/commands/` are a vendored copy of the
+  Fieldwright plugin. To update, replace both from a newer Fieldwright and
+  commit — do not hand-edit them.
+- `/build` preflight writes `.shipwright/` into `.git/info/exclude`, **not**
   `.gitignore` (a tracked ignore would dirty the tree `/build` requires clean).
 - One commit per sub-task, conventional-commit format; stage exactly the files
   touched — never `git add -A`.
