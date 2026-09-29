@@ -56,3 +56,34 @@ starting. Validate the file without starting anything with:
 ```bash
 docker compose -f infra/docker-compose.yml config
 ```
+
+## Smoke test
+
+`scripts/smoke.sh` verifies `docker compose up` end to end: it brings the stack
+up, polls `GET /readyz` until the API reports ready (HTTP 200), then tears the
+stack back down.
+
+```bash
+infra/scripts/smoke.sh
+```
+
+It exits non-zero if a required service fails to become healthy — either
+`/readyz` never returns 200 before the timeout, or a Compose service has
+exited, died, or turned unhealthy. The stack is torn down (`docker compose
+down`, keeping the named volumes) whether the check passes or fails.
+
+The script reads `infra/.env` if it exists, so it honours the same `API_PORT`
+as the stack. These environment settings tune it:
+
+| Setting | Default | Effect |
+|---|---|---|
+| `API_PORT` | `3000` | host port the API is polled on |
+| `SMOKE_TIMEOUT_SECONDS` | `180` | how long to wait for `/readyz` |
+| `SMOKE_POLL_INTERVAL_SECONDS` | `2` | delay between `/readyz` polls |
+
+`scripts/smoke.test.sh` exercises the script's control flow with stubbed
+`docker` and `curl`, without a Docker daemon:
+
+```bash
+infra/scripts/smoke.test.sh
+```
