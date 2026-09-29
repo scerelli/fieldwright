@@ -34,3 +34,12 @@ needs CI on the repo (add a workflow once `/discover` has pinned the stack).
 `.agents/skills` (the canonical, vendor-neutral copy; `.claude/skills` is a
 symlink to it) and `.claude/commands` are a copy of the Fieldwright plugin.
 To update, replace both from a newer Fieldwright and commit.
+
+## Repository layout
+
+- `app/` — Flutter client (created by the app-shell Epic).
+- `server/` — NestJS API and BullMQ worker.
+- `packages/protocol/` — the shared protocol definition format.
+- `infra/` — Docker Compose stack and CI workflows.
+- `docs/shipwright/` — the planning documents (product, domain, glossary, stack, architecture, UX, design).
+- `docs/adr/` — the decision log.
