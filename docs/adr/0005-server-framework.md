@@ -5,7 +5,7 @@ Date: 2026-09-29
 Doc: TECH_STACK.md
 
 ## Decision
-A NestJS 12 REST API on TypeScript 7 and Node 24 LTS.
+A NestJS 12 REST API on TypeScript 6 and Node 24 LTS.
 
 ## Context
 One developer across client and server; the brief proposes NestJS REST and a
