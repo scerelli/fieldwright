@@ -4,6 +4,7 @@
  * Membership so a Project never exists without its creator.
  */
 import {
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -81,7 +82,9 @@ export class ProjectsService {
   /**
    * Adds an existing person, resolved by email, to a Project as a collector or
    * validator. Only the Project's creator may grant roles: anyone else,
-   * member or not, is rejected with 403. An email with no person is 404.
+   * member or not, is rejected with 403. An email with no person is 404. A
+   * person who is already a member is rejected with 409 (INV-014: at most one
+   * Membership per person per Project).
    */
   async addMember(
     personId: string,
@@ -107,7 +110,14 @@ export class ProjectsService {
         projectId,
         role: input.role,
       })
+      .onConflictDoNothing({
+        target: [membership.personId, membership.projectId],
+      })
       .returning();
+
+    if (created === undefined) {
+      throw new ConflictException('person is already a member');
+    }
 
     return created;
   }
