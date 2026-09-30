@@ -207,4 +207,17 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get incrementAccount => 'Incrementa account';
+
+  @override
+  String get evidencePhoto => 'Foto';
+
+  @override
+  String get evidenceAudio => 'Audio';
+
+  @override
+  String get evidenceStop => 'Ferma';
+
+  @override
+  String get evidenceCaptureFailed =>
+      'Impossibile acquisire la prova. Riprova.';
 }

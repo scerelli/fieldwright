@@ -259,5 +259,21 @@
   "incrementAccount": "Increment Account",
   "@incrementAccount": {
     "description": "Placeholder increment button on the Account screen."
+  },
+  "evidencePhoto": "Photo",
+  "@evidencePhoto": {
+    "description": "Evidence captured as a photo; tooltip of the photo capture affordance on a Detection."
+  },
+  "evidenceAudio": "Audio",
+  "@evidenceAudio": {
+    "description": "Evidence captured as audio; tooltip of the audio capture affordance on a Detection."
+  },
+  "evidenceStop": "Stop",
+  "@evidenceStop": {
+    "description": "Button that stops an in-progress audio recording for a Detection."
+  },
+  "evidenceCaptureFailed": "Could not capture evidence. Try again.",
+  "@evidenceCaptureFailed": {
+    "description": "Message shown when capturing photo or audio evidence fails."
   }
 }

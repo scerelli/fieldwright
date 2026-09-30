@@ -203,4 +203,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get incrementAccount => 'Increment Account';
+
+  @override
+  String get evidencePhoto => 'Photo';
+
+  @override
+  String get evidenceAudio => 'Audio';
+
+  @override
+  String get evidenceStop => 'Stop';
+
+  @override
+  String get evidenceCaptureFailed => 'Could not capture evidence. Try again.';
 }
