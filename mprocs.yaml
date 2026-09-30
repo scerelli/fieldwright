@@ -1,0 +1,13 @@
+# Turborepo-like dev TUI: `make dev` (or `mprocs`). A process sidebar on the
+# left, output on the right. Switch with the arrow keys / number keys, restart
+# the selected process with `r`, start `worker` (off by default) with `s`.
+procs:
+  api:
+    shell: "./scripts/dev-backend.sh"
+  mobile:
+    shell: "./scripts/dev-android.sh"
+  db:
+    shell: "docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml logs -f db redis"
+  worker:
+    shell: "./scripts/dev-worker.sh"
+    autostart: false

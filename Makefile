@@ -1,42 +1,44 @@
-# DX entry points. `make dev` is the one you usually want.
+# DX entry points. `make dev` is the Turborepo-like TUI (mprocs); `make dev:one`
+# runs the same stack in a single terminal.
 SHELL := bash
-COMPOSE := docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml
-DB_URL ?= postgres://postgres:postgres@localhost:55432/ibis
-REDIS_URL ?= redis://localhost:56379
 EMULATOR_ID ?= Medium_Phone_API_36.0
 API_PORT ?= 3000
 
-.PHONY: dev infra migrate migrate-generate server worker android stop logs
+.PHONY: dev dev:one infra migrate migrate-generate server worker android stop logs
 
-## Everything: db + redis, migrations, API watch, Flutter on the emulator.
+## Turborepo-like dev TUI: api + mobile (+ db logs; worker starts on demand).
 dev:
-	EMULATOR_ID=$(EMULATOR_ID) API_PORT=$(API_PORT) ./scripts/dev.sh
+	@PORT=$$(./scripts/free-port.sh $(API_PORT)); \
+	  echo "==> API port $$PORT — mprocs: arrows switch procs, r restarts, s starts worker"; \
+	  API_PORT=$$PORT mprocs --config mprocs.yaml
+
+## Single-terminal dev: infra -> migrations -> API watch -> flutter run.
+dev:one:
+	API_PORT=$(API_PORT) EMULATOR_ID=$(EMULATOR_ID) ./scripts/dev.sh
 
 ## Just the backing services (published on localhost for host-run API/worker).
 infra:
-	$(COMPOSE) up -d db redis
+	docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d db redis
 
 ## Apply the server schema migrations to the dev database.
 migrate:
-	DATABASE_URL=$(DB_URL) pnpm --dir server run drizzle:migrate
+	@bash -c 'set -euo pipefail; . ./scripts/dev-env.sh; dev_api_env pnpm --dir server run drizzle:migrate'
 
 ## Generate a new migration from the server schema.
 migrate-generate:
-	DATABASE_URL=$(DB_URL) pnpm --dir server run drizzle:generate
+	@bash -c 'set -euo pipefail; . ./scripts/dev-env.sh; dev_api_env pnpm --dir server run drizzle:generate'
 
-## Run the API on the host with hot reload (falls back past a busy API_PORT).
+## Run the API (infra -> migrations -> watch).
 server:
-	@PORT=$$(./scripts/free-port.sh $(API_PORT)); \
-	  echo "==> API (watch) on port $$PORT"; \
-	  DATABASE_URL=$(DB_URL) REDIS_URL=$(REDIS_URL) PORT=$$PORT pnpm --dir server run start:dev
+	./scripts/dev-backend.sh
 
-## Run the worker on the host.
+## Run the worker.
 worker:
-	DATABASE_URL=$(DB_URL) REDIS_URL=$(REDIS_URL) pnpm --dir server run start:worker
+	./scripts/dev-worker.sh
 
-## Flutter only (expects `make infra` + `make server` already running).
+## Flutter only (expects infra + API already running).
 android:
-	EMULATOR_ID=$(EMULATOR_ID) API_PORT=$(API_PORT) ./scripts/dev-android.sh
+	EMULATOR_ID=$(EMULATOR_ID) ./scripts/dev-android.sh
 
 ## Stop db + redis.
 stop:
@@ -44,4 +46,4 @@ stop:
 
 ## Tail db + redis logs.
 logs:
-	$(COMPOSE) logs -f db redis
+	docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml logs -f db redis

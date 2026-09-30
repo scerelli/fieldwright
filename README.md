@@ -47,12 +47,20 @@ To update, replace both from a newer Fieldwright and commit.
 ## Local development
 
 ```bash
-make dev        # db + redis (docker) -> migrations -> API watch -> Flutter on the Android emulator
+make dev        # Turborepo-like TUI (mprocs): api + mobile + db logs
 ```
 
-Brings up everything needed to run the app against a live backend. Other
-targets: `make infra`, `make migrate`, `make migrate-generate`, `make server`,
-`make worker`, `make android`, `make stop`, `make logs`.
+`make dev` opens an [mprocs](https://github.com/pvolok/mprocs) TUI with a
+process sidebar — switch with the arrow keys, `r` restarts a process, `s`
+starts the on-demand `worker`. Processes: `api` (infra → migrations → Nest
+watch), `mobile` (emulator + `flutter run`), `db` (compose logs), `worker`.
+
+```bash
+make dev:one    # same stack in a single terminal, no TUI
+```
+
+Other targets: `make infra`, `make migrate`, `make migrate-generate`,
+`make server`, `make worker`, `make android`, `make stop`, `make logs`.
 
 Overrides (env or `make VAR=...`): `EMULATOR_ID`, `DEVICE`, `API_PORT`,
 `DATABASE_URL`, `REDIS_URL`. The dev database/redis are published on
