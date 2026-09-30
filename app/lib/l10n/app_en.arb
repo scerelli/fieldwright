@@ -40,6 +40,14 @@
   "@sitesAddSite": {
     "description": "Tooltip of the Sites screen button that opens the site editor."
   },
+  "sitesCreateHere": "Create site here",
+  "@sitesCreateHere": {
+    "description": "Tooltip of the Sites screen button that creates a site from the current location."
+  },
+  "sitesCreateHereFailed": "Could not get your location. Try again.",
+  "@sitesCreateHereFailed": {
+    "description": "Message shown when creating a site from the current location fails."
+  },
   "siteEditorNewTitle": "New site",
   "@siteEditorNewTitle": {
     "description": "Title of the site editor when creating a new site."
