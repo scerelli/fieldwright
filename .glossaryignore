@@ -9,3 +9,6 @@ app/android/*
 app/ios/*
 app/l10n.yaml  # glossary:allow gen-l10n toolkit config, not IBIS domain language
 app/lib/l10n/app_localizations*.dart  # glossary:allow generated localization code
+# Generated Dart code (drift/source_gen): library internals, not IBIS language.
+app/lib/store/*.g.dart  # glossary:allow drift-generated database code
+
