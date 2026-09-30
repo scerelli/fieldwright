@@ -116,12 +116,44 @@ class AppLocalizationsIt extends AppLocalizations {
   String get covariateMethodVisualEstimate => 'Stima visiva';
 
   @override
-  String visitsCount(int count) {
-    return 'Conteggio visite: $count';
+  String get visitsEmptyTitle => 'Nessuna visita';
+
+  @override
+  String get visitsEmptyMessage => 'Avvia una visita da un sito.';
+
+  @override
+  String get visitsSitesHeading => 'Siti';
+
+  @override
+  String get visitsListHeading => 'Visite';
+
+  @override
+  String get visitsStartVisit => 'Avvia visita';
+
+  @override
+  String get visitsEndVisit => 'Concludi visita';
+
+  @override
+  String get visitsEndVisitTitle => 'Concludere la visita?';
+
+  @override
+  String get visitStateInProgress => 'In corso';
+
+  @override
+  String get visitStateEnded => 'Conclusa';
+
+  @override
+  String get captureTitle => 'Visita';
+
+  @override
+  String captureEffortStarted(String time) {
+    return 'Sforzo iniziato: $time';
   }
 
   @override
-  String get incrementVisits => 'Incrementa visite';
+  String captureState(String state) {
+    return 'Stato: $state';
+  }
 
   @override
   String accountCount(int count) {

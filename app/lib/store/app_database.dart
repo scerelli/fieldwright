@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../features/sites/site.dart';
+import '../features/visits/visit.dart';
 
 part 'app_database.g.dart';
 
@@ -35,7 +36,27 @@ class Sites extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sites])
+@DataClassName('VisitRow')
+class Visits extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get siteId => text()();
+
+  TextColumn get surveyPeriodId => text()();
+
+  TextColumn get protocolVersionId => text()();
+
+  TextColumn get state => textEnum<VisitState>()();
+
+  DateTimeColumn get effortStartedAt => dateTime()();
+
+  DateTimeColumn get effortEndedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Sites, Visits])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -43,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +75,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await migrator.addColumn(sites, sites.covariates);
+      }
+      if (from < 4) {
+        await migrator.createTable(visits);
       }
     },
   );

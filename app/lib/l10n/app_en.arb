@@ -136,18 +136,63 @@
   "@covariateMethodVisualEstimate": {
     "description": "Provenance method for a covariate entered as a visual estimate."
   },
-  "visitsCount": "Visits count: {count}",
-  "@visitsCount": {
-    "description": "Placeholder counter shown on the Visits screen.",
+  "visitsEmptyTitle": "No visits",
+  "@visitsEmptyTitle": {
+    "description": "Title of the Visits screen empty state shown before any visit exists."
+  },
+  "visitsEmptyMessage": "Start a visit from a site.",
+  "@visitsEmptyMessage": {
+    "description": "Message of the Visits screen empty state shown before any visit exists."
+  },
+  "visitsSitesHeading": "Sites",
+  "@visitsSitesHeading": {
+    "description": "Heading of the sites a visit can be started at on the Visits screen."
+  },
+  "visitsListHeading": "Visits",
+  "@visitsListHeading": {
+    "description": "Heading of the visits recorded on the Visits screen."
+  },
+  "visitsStartVisit": "Start visit",
+  "@visitsStartVisit": {
+    "description": "Button that starts a visit at a site."
+  },
+  "visitsEndVisit": "End visit",
+  "@visitsEndVisit": {
+    "description": "Button that ends an in-progress visit."
+  },
+  "visitsEndVisitTitle": "End visit?",
+  "@visitsEndVisitTitle": {
+    "description": "Title of the confirmation dialog shown before ending a visit."
+  },
+  "visitStateInProgress": "In progress",
+  "@visitStateInProgress": {
+    "description": "Visit state label while the visit's effort timer is running."
+  },
+  "visitStateEnded": "Ended",
+  "@visitStateEnded": {
+    "description": "Visit state label once the collector has ended the visit."
+  },
+  "captureTitle": "Visit",
+  "@captureTitle": {
+    "description": "Title of the capture screen for the in-progress visit."
+  },
+  "captureEffortStarted": "Effort started: {time}",
+  "@captureEffortStarted": {
+    "description": "Label of the visit's effort start time on the capture screen.",
     "placeholders": {
-      "count": {
-        "type": "int"
+      "time": {
+        "type": "String"
       }
     }
   },
-  "incrementVisits": "Increment Visits",
-  "@incrementVisits": {
-    "description": "Placeholder increment button on the Visits screen."
+  "captureState": "State: {state}",
+  "@captureState": {
+    "description": "Label of the visit's lifecycle state on the capture screen.",
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
   },
   "accountCount": "Account count: {count}",
   "@accountCount": {
