@@ -13,6 +13,7 @@
  */
 import {
   boolean,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -75,6 +76,30 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+/**
+ * Project settings (DOMAIN.md): validation on/off and sensitive-taxa
+ * coordinate obfuscation. The pinned Taxonomic reference version is recorded
+ * in its own columns below.
+ */
+export interface ProjectSettings {
+  validationEnabled: boolean;
+  sensitiveTaxaObfuscation: boolean;
+}
+
+/**
+ * Project (DOMAIN.md): the container a creator sets up. Its Memberships,
+ * Protocol versions, Survey periods and Sites are scoped to it.
+ */
+export const project = pgTable('project', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  settings: jsonb('settings').$type<ProjectSettings>().notNull(),
+  taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
+  taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
+});
+
+export type Project = typeof project.$inferSelect;
+
 export const membershipRole = pgEnum('membership_role', [
   'creator',
   'collector',
@@ -84,15 +109,15 @@ export const membershipRole = pgEnum('membership_role', [
 /**
  * Membership (DOMAIN.md): the link between a person and a Project carrying the
  * role they hold there. `person_id` references the Better Auth `user` table.
- * The `project` table does not exist yet, so `project_id` is a plain uuid
- * without a foreign key; add the reference when Project lands.
  */
 export const membership = pgTable('membership', {
   id: uuid('id').primaryKey().defaultRandom(),
   personId: text('person_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-  projectId: uuid('project_id').notNull(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
   role: membershipRole('role').notNull(),
 });
 
