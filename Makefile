@@ -1,10 +1,10 @@
-# DX entry points. `make dev` is the Turborepo-like TUI (mprocs); `make dev:one`
+# DX entry points. `make dev` is the Turborepo-like TUI (mprocs); `make dev-one`
 # runs the same stack in a single terminal.
 SHELL := bash
 EMULATOR_ID ?= Medium_Phone_API_36.0
 API_PORT ?= 3000
 
-.PHONY: dev dev:one infra migrate migrate-generate server worker android stop logs
+.PHONY: dev dev-one infra migrate migrate-generate server worker android kill-dev stop logs
 
 ## Turborepo-like dev TUI: api + mobile (+ db logs; worker starts on demand).
 dev:
@@ -13,7 +13,7 @@ dev:
 	  API_PORT=$$PORT mprocs --config mprocs.yaml
 
 ## Single-terminal dev: infra -> migrations -> API watch -> flutter run.
-dev:one:
+dev-one:
 	API_PORT=$(API_PORT) EMULATOR_ID=$(EMULATOR_ID) ./scripts/dev.sh
 
 ## Just the backing services (published on localhost for host-run API/worker).
@@ -39,6 +39,13 @@ worker:
 ## Flutter only (expects infra + API already running).
 android:
 	EMULATOR_ID=$(EMULATOR_ID) ./scripts/dev-android.sh
+
+## Kill any running dev processes (mprocs + api/mobile) without stopping db/redis.
+kill-dev:
+	@for pat in "mproc[s]" "scrip[t]s/dev-" "nest.j[s] start --watch" "flutter_tool[s].snapshot run" "compos[e] logs -f"; do \
+	  pkill -f "$$pat" 2>/dev/null || true; \
+	done
+	@echo "==> killed dev processes (db/redis untouched; 'make stop' stops them)"
 
 ## Stop db + redis.
 stop:
