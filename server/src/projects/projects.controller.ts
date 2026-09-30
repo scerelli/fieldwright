@@ -3,11 +3,13 @@
  * /projects` is auth-guarded: the creator resolved by `AuthGuard` becomes the
  * Project's creator Membership. `POST /projects/:projectId/members` is
  * auth-guarded too and only the Project's creator may grant a collector or
- * validator Membership.
+ * validator Membership. `GET /projects/:projectId/members` is auth-guarded and
+ * returns the Project's Memberships to any member of that Project.
  */
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Post,
@@ -73,6 +75,15 @@ export class ProjectsController {
   @Post()
   create(@CurrentPerson() person: Person, @Body() dto: CreateProjectDto) {
     return this.projects.create(person.id, dto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':projectId/members')
+  listMembers(
+    @CurrentPerson() person: Person,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ) {
+    return this.projects.listMembers(person.id, projectId);
   }
 
   @UseGuards(AuthGuard)

@@ -138,6 +138,13 @@ describe('Project members', () => {
     });
   }
 
+  function listMembers(
+    projectId: string,
+    headers: Record<string, string> = {},
+  ) {
+    return fetch(`${baseUrl}/projects/${projectId}/members`, { headers });
+  }
+
   it('lets the creator add an existing person as a collector', async () => {
     const projectId = await newProject();
     const target = await signUpAndSignIn('member-collector@example.com');
@@ -290,6 +297,77 @@ describe('Project members', () => {
       email: existing!.email,
       role: 'collector',
     });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('lists the project members for a member of that project', async () => {
+    const projectId = await newProject();
+    const member = await signUpAndSignIn('member-lister@example.com');
+    await app.get<NodePgDatabase>(DATABASE).insert(membership).values({
+      personId: member.id,
+      projectId,
+      role: 'collector',
+    });
+
+    const response = await listMembers(projectId, { cookie: member.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as Array<{
+      id: string;
+      personId: string;
+      projectId: string;
+      role: string;
+      email: string;
+    }>;
+    expect(body).toHaveLength(2);
+    const byPerson = new Map(body.map((row) => [row.personId, row]));
+    expect(byPerson.get(creatorId)).toMatchObject({
+      projectId,
+      role: 'creator',
+      email: CREATOR_EMAIL,
+    });
+    expect(byPerson.get(member.id)).toMatchObject({
+      projectId,
+      role: 'collector',
+      email: 'member-lister@example.com',
+    });
+  });
+
+  it('lists only the memberships of the requested project', async () => {
+    const projectId = await newProject();
+    const otherProjectId = await newProject();
+    const member = await signUpAndSignIn('member-scoped@example.com');
+    await app.get<NodePgDatabase>(DATABASE).insert(membership).values({
+      personId: member.id,
+      projectId: otherProjectId,
+      role: 'validator',
+    });
+
+    const response = await listMembers(projectId, { cookie: creatorCookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as Array<{
+      personId: string;
+      role: string;
+    }>;
+    expect(body).toHaveLength(1);
+    expect(body[0]!.personId).toBe(creatorId);
+  });
+
+  it('rejects listing members for a non-member with 403', async () => {
+    const projectId = await newProject();
+    const outsider = await signUpAndSignIn('member-list-outsider@example.com');
+
+    const response = await listMembers(projectId, { cookie: outsider.cookie });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('rejects listing members when unauthenticated with 401', async () => {
+    const projectId = await newProject();
+
+    const response = await listMembers(projectId);
 
     expect(response.status).toBe(401);
   });
