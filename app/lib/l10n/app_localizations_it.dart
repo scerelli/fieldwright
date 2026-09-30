@@ -156,6 +156,39 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get detectionTargetsHeading => 'Taxa bersaglio';
+
+  @override
+  String get detectionDetected => 'Rilevato';
+
+  @override
+  String get detectionNotDetected => 'Non rilevato';
+
+  @override
+  String get detectionNotRecorded => 'Non registrato';
+
+  @override
+  String get detectionNextUnrecorded => 'Prossimo non registrato';
+
+  @override
+  String get detectionNoTargets =>
+      'Il protocollo non definisce taxa bersaglio.';
+
+  @override
+  String visitIncomplete(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count taxa non registrati',
+      one: '1 taxon non registrato',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get visitAllTargetsRecorded => 'Tutti i taxa registrati';
+
+  @override
   String accountCount(int count) {
     return 'Conteggio account: $count';
   }
