@@ -185,6 +185,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitAllTargetsRecorded => 'All targets recorded';
 
   @override
+  String get opportunisticHeading => 'Opportunistic taxa';
+
+  @override
+  String get opportunisticSearchLabel => 'Search by abbreviation';
+
+  @override
+  String get opportunisticNoResults => 'No matching taxa';
+
+  @override
+  String get opportunisticPresenceOnly => 'Detected (opportunistic)';
+
+  @override
   String accountCount(int count) {
     return 'Account count: $count';
   }

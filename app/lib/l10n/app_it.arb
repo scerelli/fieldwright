@@ -54,6 +54,10 @@
   "detectionNoTargets": "Il protocollo non definisce taxa bersaglio.",
   "visitIncomplete": "{count, plural, =1{1 taxon non registrato} other{{count} taxa non registrati}}",
   "visitAllTargetsRecorded": "Tutti i taxa registrati",
+  "opportunisticHeading": "Taxa occasionali",
+  "opportunisticSearchLabel": "Cerca per abbreviazione",
+  "opportunisticNoResults": "Nessun taxon corrispondente",
+  "opportunisticPresenceOnly": "Rilevato (occasionale)",
   "accountCount": "Conteggio account: {count}",
   "incrementAccount": "Incrementa account"
 }

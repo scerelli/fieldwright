@@ -231,6 +231,22 @@
   "@visitAllTargetsRecorded": {
     "description": "Signal shown once every target taxon has a Detection."
   },
+  "opportunisticHeading": "Opportunistic taxa",
+  "@opportunisticHeading": {
+    "description": "Heading of the opportunistic taxa section on the capture screen."
+  },
+  "opportunisticSearchLabel": "Search by abbreviation",
+  "@opportunisticSearchLabel": {
+    "description": "Label of the abbreviation search field used to add an opportunistic taxon."
+  },
+  "opportunisticNoResults": "No matching taxa",
+  "@opportunisticNoResults": {
+    "description": "Message shown when no taxon abbreviation matches the search."
+  },
+  "opportunisticPresenceOnly": "Detected (opportunistic)",
+  "@opportunisticPresenceOnly": {
+    "description": "Label of an opportunistic Detection, which is presence-only and has no not-detected state."
+  },
   "accountCount": "Account count: {count}",
   "@accountCount": {
     "description": "Placeholder counter shown on the Account screen.",
