@@ -1021,8 +1021,28 @@ class $DetectionsTable extends Detections
       'CHECK ("detected" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _opportunisticMeta = const VerificationMeta(
+    'opportunistic',
+  );
   @override
-  List<GeneratedColumn> get $columns => [visitId, taxonRef, detected];
+  late final GeneratedColumn<bool> opportunistic = GeneratedColumn<bool>(
+    'opportunistic',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("opportunistic" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    visitId,
+    taxonRef,
+    detected,
+    opportunistic,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1059,6 +1079,15 @@ class $DetectionsTable extends Detections
     } else if (isInserting) {
       context.missing(_detectedMeta);
     }
+    if (data.containsKey('opportunistic')) {
+      context.handle(
+        _opportunisticMeta,
+        opportunistic.isAcceptableOrUnknown(
+          data['opportunistic']!,
+          _opportunisticMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1080,6 +1109,10 @@ class $DetectionsTable extends Detections
         DriftSqlType.bool,
         data['${effectivePrefix}detected'],
       )!,
+      opportunistic: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}opportunistic'],
+      )!,
     );
   }
 
@@ -1093,10 +1126,12 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
   final String visitId;
   final String taxonRef;
   final bool detected;
+  final bool opportunistic;
   const DetectionRow({
     required this.visitId,
     required this.taxonRef,
     required this.detected,
+    required this.opportunistic,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1104,6 +1139,7 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     map['visit_id'] = Variable<String>(visitId);
     map['taxon_ref'] = Variable<String>(taxonRef);
     map['detected'] = Variable<bool>(detected);
+    map['opportunistic'] = Variable<bool>(opportunistic);
     return map;
   }
 
@@ -1112,6 +1148,7 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: Value(visitId),
       taxonRef: Value(taxonRef),
       detected: Value(detected),
+      opportunistic: Value(opportunistic),
     );
   }
 
@@ -1124,6 +1161,7 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: serializer.fromJson<String>(json['visitId']),
       taxonRef: serializer.fromJson<String>(json['taxonRef']),
       detected: serializer.fromJson<bool>(json['detected']),
+      opportunistic: serializer.fromJson<bool>(json['opportunistic']),
     );
   }
   @override
@@ -1133,20 +1171,29 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       'visitId': serializer.toJson<String>(visitId),
       'taxonRef': serializer.toJson<String>(taxonRef),
       'detected': serializer.toJson<bool>(detected),
+      'opportunistic': serializer.toJson<bool>(opportunistic),
     };
   }
 
-  DetectionRow copyWith({String? visitId, String? taxonRef, bool? detected}) =>
-      DetectionRow(
-        visitId: visitId ?? this.visitId,
-        taxonRef: taxonRef ?? this.taxonRef,
-        detected: detected ?? this.detected,
-      );
+  DetectionRow copyWith({
+    String? visitId,
+    String? taxonRef,
+    bool? detected,
+    bool? opportunistic,
+  }) => DetectionRow(
+    visitId: visitId ?? this.visitId,
+    taxonRef: taxonRef ?? this.taxonRef,
+    detected: detected ?? this.detected,
+    opportunistic: opportunistic ?? this.opportunistic,
+  );
   DetectionRow copyWithCompanion(DetectionsCompanion data) {
     return DetectionRow(
       visitId: data.visitId.present ? data.visitId.value : this.visitId,
       taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
       detected: data.detected.present ? data.detected.value : this.detected,
+      opportunistic: data.opportunistic.present
+          ? data.opportunistic.value
+          : this.opportunistic,
     );
   }
 
@@ -1155,37 +1202,42 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     return (StringBuffer('DetectionRow(')
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
-          ..write('detected: $detected')
+          ..write('detected: $detected, ')
+          ..write('opportunistic: $opportunistic')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(visitId, taxonRef, detected);
+  int get hashCode => Object.hash(visitId, taxonRef, detected, opportunistic);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DetectionRow &&
           other.visitId == this.visitId &&
           other.taxonRef == this.taxonRef &&
-          other.detected == this.detected);
+          other.detected == this.detected &&
+          other.opportunistic == this.opportunistic);
 }
 
 class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
   final Value<String> visitId;
   final Value<String> taxonRef;
   final Value<bool> detected;
+  final Value<bool> opportunistic;
   final Value<int> rowid;
   const DetectionsCompanion({
     this.visitId = const Value.absent(),
     this.taxonRef = const Value.absent(),
     this.detected = const Value.absent(),
+    this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DetectionsCompanion.insert({
     required String visitId,
     required String taxonRef,
     required bool detected,
+    this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : visitId = Value(visitId),
        taxonRef = Value(taxonRef),
@@ -1194,12 +1246,14 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Expression<String>? visitId,
     Expression<String>? taxonRef,
     Expression<bool>? detected,
+    Expression<bool>? opportunistic,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (visitId != null) 'visit_id': visitId,
       if (taxonRef != null) 'taxon_ref': taxonRef,
       if (detected != null) 'detected': detected,
+      if (opportunistic != null) 'opportunistic': opportunistic,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1208,12 +1262,14 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Value<String>? visitId,
     Value<String>? taxonRef,
     Value<bool>? detected,
+    Value<bool>? opportunistic,
     Value<int>? rowid,
   }) {
     return DetectionsCompanion(
       visitId: visitId ?? this.visitId,
       taxonRef: taxonRef ?? this.taxonRef,
       detected: detected ?? this.detected,
+      opportunistic: opportunistic ?? this.opportunistic,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1230,6 +1286,9 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     if (detected.present) {
       map['detected'] = Variable<bool>(detected.value);
     }
+    if (opportunistic.present) {
+      map['opportunistic'] = Variable<bool>(opportunistic.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1242,6 +1301,7 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
           ..write('detected: $detected, ')
+          ..write('opportunistic: $opportunistic, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1854,12 +1914,14 @@ typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
   required String visitId,
   required String taxonRef,
   required bool detected,
+  Value<bool> opportunistic,
   Value<int> rowid,
 });
 typedef $$DetectionsTableUpdateCompanionBuilder = DetectionsCompanion Function({
   Value<String> visitId,
   Value<String> taxonRef,
   Value<bool> detected,
+  Value<bool> opportunistic,
   Value<int> rowid,
 });
 
@@ -1901,6 +1963,11 @@ class $$DetectionsTableFilterComposer
 
   ColumnFilters<bool> get detected => $composableBuilder(
     column: $table.detected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get opportunistic => $composableBuilder(
+    column: $table.opportunistic,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1947,6 +2014,11 @@ class $$DetectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get opportunistic => $composableBuilder(
+    column: $table.opportunistic,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$VisitsTableOrderingComposer get visitId {
     final $$VisitsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -1985,6 +2057,11 @@ class $$DetectionsTableAnnotationComposer
 
   GeneratedColumn<bool> get detected =>
       $composableBuilder(column: $table.detected, builder: (column) => column);
+
+  GeneratedColumn<bool> get opportunistic => $composableBuilder(
+    column: $table.opportunistic,
+    builder: (column) => column,
+  );
 
   $$VisitsTableAnnotationComposer get visitId {
     final $$VisitsTableAnnotationComposer composer = $composerBuilder(
@@ -2041,11 +2118,13 @@ class $$DetectionsTableTableManager
                 Value<String> visitId = const Value.absent(),
                 Value<String> taxonRef = const Value.absent(),
                 Value<bool> detected = const Value.absent(),
+                Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                opportunistic: opportunistic,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2053,11 +2132,13 @@ class $$DetectionsTableTableManager
                 required String visitId,
                 required String taxonRef,
                 required bool detected,
+                Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion.insert(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                opportunistic: opportunistic,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

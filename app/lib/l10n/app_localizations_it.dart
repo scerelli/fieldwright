@@ -189,6 +189,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get visitAllTargetsRecorded => 'Tutti i taxa registrati';
 
   @override
+  String get opportunisticHeading => 'Taxa occasionali';
+
+  @override
+  String get opportunisticSearchLabel => 'Cerca per abbreviazione';
+
+  @override
+  String get opportunisticNoResults => 'Nessun taxon corrispondente';
+
+  @override
+  String get opportunisticPresenceOnly => 'Rilevato (occasionale)';
+
+  @override
   String accountCount(int count) {
     return 'Conteggio account: $count';
   }

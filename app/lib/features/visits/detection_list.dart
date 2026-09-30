@@ -5,6 +5,8 @@ import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
 import '../../store/detection_dao.dart';
 import 'detection.dart';
+import 'opportunistic_search.dart';
+import 'taxon_reference.dart';
 
 /// The capture-screen control for marking each target taxon of the Protocol
 /// detected or not detected (UX-003). A target with no Detection shows a
@@ -47,8 +49,16 @@ class _DetectionListState extends ConsumerState<DetectionList> {
     setState(() => _detections = detections);
   }
 
+  List<Detection> get _targetDetections => _detections
+      .where((detection) => !detection.opportunistic)
+      .toList(growable: false);
+
+  List<Detection> get _opportunisticDetections => _detections
+      .where((detection) => detection.opportunistic)
+      .toList(growable: false);
+
   Detection? _detectionFor(String taxonRef) {
-    for (final detection in _detections) {
+    for (final detection in _targetDetections) {
       if (detection.taxonRef == taxonRef) return detection;
     }
     return null;
@@ -62,6 +72,18 @@ class _DetectionListState extends ConsumerState<DetectionList> {
             visitId: widget.visitId,
             taxonRef: target.taxonRef,
             detected: detected,
+          ),
+        );
+    await _load();
+  }
+
+  Future<void> _recordOpportunistic(Taxon taxon) async {
+    await ref
+        .read(detectionDaoProvider)
+        .record(
+          Detection.opportunistic(
+            visitId: widget.visitId,
+            taxonRef: taxon.name,
           ),
         );
     await _load();
@@ -121,6 +143,20 @@ class _DetectionListState extends ConsumerState<DetectionList> {
               key: const Key('visit_complete'),
             ),
         ],
+        const Divider(height: 32),
+        Text(
+          l10n.opportunisticHeading,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        for (final detection in _opportunisticDetections)
+          ListTile(
+            key: Key('opportunistic_entry_${detection.taxonRef}'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(detection.taxonRef),
+            trailing: Text(l10n.opportunisticPresenceOnly),
+          ),
+        OpportunisticSearch(onPick: _recordOpportunistic),
       ],
     );
   }

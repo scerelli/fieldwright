@@ -46,11 +46,13 @@ class DetectionDao {
         visitId: detection.visitId,
         taxonRef: detection.taxonRef,
         detected: detection.detected,
+        opportunistic: Value(detection.opportunistic),
       );
 
   Detection _toDetection(DetectionRow row) => Detection(
     visitId: row.visitId,
     taxonRef: row.taxonRef,
     detected: row.detected,
+    opportunistic: row.opportunistic,
   );
 }
