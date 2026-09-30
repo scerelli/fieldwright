@@ -12,4 +12,8 @@ echo "==> migrations"
 dev_api_env pnpm --dir server run drizzle:migrate
 
 echo "==> API (watch) on http://localhost:$DEV_API_PORT"
-dev_api_env pnpm --dir server run start:dev
+# exec (not a wrapper call) so Ctrl-C / mprocs signal the pnpm -> nest process
+# directly instead of orphaning it.
+DATABASE_URL="$DEV_DB_URL" REDIS_URL="$DEV_REDIS_URL" PORT="$DEV_API_PORT" \
+  BETTER_AUTH_SECRET="$DEV_BETTER_AUTH_SECRET" BETTER_AUTH_URL="$DEV_BETTER_AUTH_URL" \
+  exec pnpm --dir server run start:dev

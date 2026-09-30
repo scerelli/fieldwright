@@ -56,7 +56,7 @@ starts the on-demand `worker`. Processes: `api` (infra → migrations → Nest
 watch), `mobile` (emulator + `flutter run`), `db` (compose logs), `worker`.
 
 ```bash
-make dev:one    # same stack in a single terminal, no TUI
+make dev-one    # same stack in a single terminal, no TUI
 ```
 
 Other targets: `make infra`, `make migrate`, `make migrate-generate`,
