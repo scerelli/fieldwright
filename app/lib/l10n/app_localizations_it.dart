@@ -25,12 +25,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get navAccount => 'Account';
 
   @override
-  String projectsCount(int count) {
-    return 'Conteggio progetti: $count';
-  }
+  String get projectsEmptyTitle => 'Nessun progetto';
 
   @override
-  String get incrementProjects => 'Incrementa progetti';
+  String get projectsEmptyMessage =>
+      'Crea o unisciti a un progetto per iniziare.';
 
   @override
   String sitesCount(int count) {
