@@ -224,6 +224,24 @@ abstract class AppLocalizations {
   /// **'Enter a valid geometry.'**
   String get siteEditorInvalidGeometry;
 
+  /// Heading of the detail shown when a site is tapped on the map.
+  ///
+  /// In en, this message translates to:
+  /// **'Site details'**
+  String get siteDetailTitle;
+
+  /// Label of the site name shown in the site detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get siteDetailName;
+
+  /// Label of the geometry shown in the site detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Geometry'**
+  String get siteDetailGeometry;
+
   /// Placeholder counter shown on the Visits screen.
   ///
   /// In en, this message translates to:

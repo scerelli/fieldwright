@@ -84,6 +84,18 @@
   "@siteEditorInvalidGeometry": {
     "description": "Error shown when the entered geometry cannot be saved."
   },
+  "siteDetailTitle": "Site details",
+  "@siteDetailTitle": {
+    "description": "Heading of the detail shown when a site is tapped on the map."
+  },
+  "siteDetailName": "Name",
+  "@siteDetailName": {
+    "description": "Label of the site name shown in the site detail."
+  },
+  "siteDetailGeometry": "Geometry",
+  "@siteDetailGeometry": {
+    "description": "Label of the geometry shown in the site detail."
+  },
   "visitsCount": "Visits count: {count}",
   "@visitsCount": {
     "description": "Placeholder counter shown on the Visits screen.",
