@@ -114,18 +114,29 @@ export const membershipRole = pgEnum('membership_role', [
 
 /**
  * Membership (DOMAIN.md): the link between a person and a Project carrying the
- * role they hold there. `person_id` references the Better Auth `user` table.
+ * role they hold there. `person_id` references the Better Auth `user` table. A
+ * person has at most one Membership per Project (INV-014), enforced by the
+ * unique index on `(person_id, project_id)`.
  */
-export const membership = pgTable('membership', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  personId: text('person_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  projectId: uuid('project_id')
-    .notNull()
-    .references(() => project.id, { onDelete: 'cascade' }),
-  role: membershipRole('role').notNull(),
-});
+export const membership = pgTable(
+  'membership',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    personId: text('person_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    role: membershipRole('role').notNull(),
+  },
+  (table) => [
+    uniqueIndex('membership_person_project_key').on(
+      table.personId,
+      table.projectId,
+    ),
+  ],
+);
 
 export type Membership = typeof membership.$inferSelect;
 
