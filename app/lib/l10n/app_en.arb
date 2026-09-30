@@ -1,0 +1,75 @@
+{
+  "@@locale": "en",
+  "appTitle": "IBIS",
+  "@appTitle": {
+    "description": "Application name shown in the OS task switcher and window title."
+  },
+  "navProjects": "Projects",
+  "@navProjects": {
+    "description": "Bottom navigation destination label and Projects screen title."
+  },
+  "navSites": "Sites",
+  "@navSites": {
+    "description": "Bottom navigation destination label and Sites screen title."
+  },
+  "navVisits": "Visits",
+  "@navVisits": {
+    "description": "Bottom navigation destination label and Visits screen title."
+  },
+  "navAccount": "Account",
+  "@navAccount": {
+    "description": "Bottom navigation destination label and Account screen title."
+  },
+  "projectsCount": "Projects count: {count}",
+  "@projectsCount": {
+    "description": "Placeholder counter shown on the Projects screen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "incrementProjects": "Increment Projects",
+  "@incrementProjects": {
+    "description": "Placeholder increment button on the Projects screen."
+  },
+  "sitesCount": "Sites count: {count}",
+  "@sitesCount": {
+    "description": "Placeholder counter shown on the Sites screen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "incrementSites": "Increment Sites",
+  "@incrementSites": {
+    "description": "Placeholder increment button on the Sites screen."
+  },
+  "visitsCount": "Visits count: {count}",
+  "@visitsCount": {
+    "description": "Placeholder counter shown on the Visits screen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "incrementVisits": "Increment Visits",
+  "@incrementVisits": {
+    "description": "Placeholder increment button on the Visits screen."
+  },
+  "accountCount": "Account count: {count}",
+  "@accountCount": {
+    "description": "Placeholder counter shown on the Account screen.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "incrementAccount": "Increment Account",
+  "@incrementAccount": {
+    "description": "Placeholder increment button on the Account screen."
+  }
+}
