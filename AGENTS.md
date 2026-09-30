@@ -62,6 +62,13 @@ the CI gate — that declaration is a one-time human call. Scripts are
 deterministic mechanism: call them by their real path under
 `.agents/skills/<skill>/scripts/`, never transcribe them.
 
+## Merge-gate policy
+
+The merge gate is **hybrid**, recorded here by Sub-task #232 (item #231) after red CI merged unnoticed on a Sub-task hop.
+
+- **Sub-task → feature** merges are **not** CI-gated. They run under `SHIPWRIGHT_NO_CI=1`; the local gate — the touched package's lint, typecheck, and full test suite per `TECH_STACK.md` — is the real gate.
+- **Feature → main** (production) item merges **do** wait for CI to be green. `SHIPWRIGHT_NO_CI=1` is not set on that hop; a pull request's `server` and `app` jobs (`.github/workflows/ci.yml`, triggered on `pull_request`) are the gate.
+
 ## `docs/brief.md` is the product source of truth
 
 - Status tags matter: **`[decided]`** is settled, **`[proposed]`** is a
