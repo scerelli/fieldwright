@@ -63,5 +63,11 @@
   "evidencePhoto": "Foto",
   "evidenceAudio": "Audio",
   "evidenceStop": "Ferma",
-  "evidenceCaptureFailed": "Impossibile acquisire la prova. Riprova."
+  "evidenceCaptureFailed": "Impossibile acquisire la prova. Riprova.",
+  "visitCovariatesHeading": "Covariate della visita",
+  "measurementManualFallback": "Inserimento manuale (sensore non disponibile)",
+  "measurementLowConfidence": "Bassa affidabilità (sensore non calibrato)",
+  "measurementMethod": "Metodo",
+  "measurementMissingMethod": "Seleziona un metodo per ogni valore.",
+  "measurementSave": "Salva misurazioni"
 }

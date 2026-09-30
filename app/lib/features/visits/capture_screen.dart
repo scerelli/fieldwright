@@ -1,9 +1,13 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
+import '../../store/measurement_dao.dart';
 import 'detection_list.dart';
 import 'effort_timer.dart';
+import 'measurement.dart';
+import 'sensor_service.dart';
 import 'visit.dart';
 
 class CaptureScreen extends StatelessWidget {
@@ -24,6 +28,8 @@ class CaptureScreen extends StatelessWidget {
     final stateLabel = visit.isEnded
         ? l10n.visitStateEnded
         : l10n.visitStateInProgress;
+    final visitCovariates =
+        protocol?.visitCovariates ?? const <CovariateDefinition>[];
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.captureTitle)),
@@ -46,8 +52,200 @@ class CaptureScreen extends StatelessWidget {
             const SizedBox(height: 16),
             DetectionList(protocol: protocol!, visitId: visit.id),
           ],
+          if (visitCovariates.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            VisitCovariates(visitId: visit.id, definitions: visitCovariates),
+          ],
         ],
       ),
     );
   }
+}
+
+/// The visit covariate entry on the capture screen. Each covariate the
+/// Protocol version defines is read from the phone sensor that backs it; when
+/// this device has no such sensor, the field falls back to manual entry and is
+/// labelled as such (UX-011). A value read from an uncalibrated sensor is
+/// marked low-confidence. Saving records each value as a Measurement carrying
+/// its provenance (INV-010).
+class VisitCovariates extends ConsumerStatefulWidget {
+  const VisitCovariates({
+    super.key,
+    required this.visitId,
+    required this.definitions,
+  });
+
+  final String visitId;
+  final List<CovariateDefinition> definitions;
+
+  @override
+  ConsumerState<VisitCovariates> createState() => _VisitCovariatesState();
+}
+
+class _VisitCovariatesState extends ConsumerState<VisitCovariates> {
+  late final Map<String, TextEditingController> _manual = {
+    for (final field in widget.definitions) field.name: TextEditingController(),
+  };
+  final Map<String, ProvenanceMethod?> _methods = <String, ProvenanceMethod?>{};
+  final Map<String, SensorValue?> _sensorValues = <String, SensorValue?>{};
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final service = ref.read(sensorServiceProvider);
+    for (final field in widget.definitions) {
+      _sensorValues[field.name] = await service.read(field);
+    }
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _manual.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    final measurements = <Measurement>[];
+    for (final field in widget.definitions) {
+      final sensorValue = _sensorValues[field.name];
+      if (sensorValue != null) {
+        measurements.add(
+          Measurement(
+            name: field.name,
+            value: sensorValue.value.toString(),
+            unit: field.unit,
+            provenance: Provenance(
+              method: ProvenanceMethod.phoneSensor,
+              calibration: sensorValue.calibration,
+            ),
+          ),
+        );
+        continue;
+      }
+      final value = _manual[field.name]!.text.trim();
+      if (value.isEmpty) continue;
+      final measurement = buildMeasurement(
+        name: field.name,
+        value: value,
+        unit: field.unit,
+        method: _methods[field.name],
+      );
+      if (measurement == null) {
+        setState(() => _error = l10n.measurementMissingMethod);
+        return;
+      }
+      measurements.add(measurement);
+    }
+
+    final dao = ref.read(measurementDaoProvider);
+    for (final measurement in measurements) {
+      await dao.record(visitId: widget.visitId, measurement: measurement);
+    }
+    if (!mounted) return;
+    setState(() => _error = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.visitCovariatesHeading,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        for (final field in widget.definitions) _buildField(field, l10n),
+        if (_error != null)
+          Padding(
+            key: const Key('measurements_error'),
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        const SizedBox(height: 8),
+        FilledButton(
+          key: const Key('measurements_save'),
+          onPressed: _save,
+          child: Text(l10n.measurementSave),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildField(CovariateDefinition field, AppLocalizations l10n) {
+    final sensorValue = _sensorValues[field.name];
+    final label = field.unit == null
+        ? field.name
+        : '${field.name} (${field.unit})';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (sensorValue == null) ...[
+            Text(
+              l10n.measurementManualFallback,
+              key: Key('measurement_manual_fallback_${field.name}'),
+            ),
+            const SizedBox(height: 4),
+            TextField(
+              key: Key('covariate_manual_${field.name}'),
+              controller: _manual[field.name],
+              decoration: InputDecoration(labelText: label),
+            ),
+            const SizedBox(height: 8),
+            DropdownButton<ProvenanceMethod>(
+              key: Key('covariate_method_${field.name}'),
+              value: _methods[field.name],
+              hint: Text(l10n.measurementMethod),
+              onChanged: (method) =>
+                  setState(() => _methods[field.name] = method),
+              items: [
+                for (final method in ProvenanceMethod.values)
+                  DropdownMenuItem(
+                    value: method,
+                    child: Text(_methodLabel(l10n, method)),
+                  ),
+              ],
+            ),
+          ] else ...[
+            Text(
+              field.unit == null
+                  ? '${sensorValue.value}'
+                  : '${sensorValue.value} ${field.unit}',
+              key: Key('covariate_sensor_value_${field.name}'),
+            ),
+            if (sensorValue.calibration == CalibrationState.uncalibrated)
+              Text(
+                l10n.measurementLowConfidence,
+                key: Key('covariate_low_confidence_${field.name}'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _methodLabel(AppLocalizations l10n, ProvenanceMethod method) =>
+      switch (method) {
+        ProvenanceMethod.phoneSensor => l10n.covariateMethodPhoneSensor,
+        ProvenanceMethod.fieldInstrument => l10n.covariateMethodFieldInstrument,
+        ProvenanceMethod.visualEstimate => l10n.covariateMethodVisualEstimate,
+      };
 }

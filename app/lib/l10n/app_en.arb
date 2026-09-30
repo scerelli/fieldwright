@@ -275,5 +275,29 @@
   "evidenceCaptureFailed": "Could not capture evidence. Try again.",
   "@evidenceCaptureFailed": {
     "description": "Message shown when capturing photo or audio evidence fails."
+  },
+  "visitCovariatesHeading": "Visit covariates",
+  "@visitCovariatesHeading": {
+    "description": "Heading of the visit covariate section on the capture screen."
+  },
+  "measurementManualFallback": "Manual entry (sensor unavailable)",
+  "@measurementManualFallback": {
+    "description": "Label shown on a sensor-backed covariate field when the sensor is missing, so the value is entered by hand (UX-011)."
+  },
+  "measurementLowConfidence": "Low confidence (sensor not calibrated)",
+  "@measurementLowConfidence": {
+    "description": "Marker shown on a covariate value read from an uncalibrated sensor (UX-011)."
+  },
+  "measurementMethod": "Method",
+  "@measurementMethod": {
+    "description": "Label of the provenance method selector for a manually entered covariate value."
+  },
+  "measurementMissingMethod": "Select a method for each value.",
+  "@measurementMissingMethod": {
+    "description": "Error shown when a covariate value is entered without a provenance method (INV-010)."
+  },
+  "measurementSave": "Save measurements",
+  "@measurementSave": {
+    "description": "Button that records the entered visit covariate values with their provenance."
   }
 }

@@ -92,7 +92,25 @@ class Evidences extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sites, Visits, Detections, Evidences])
+@DataClassName('MeasurementRow')
+class Measurements extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get name => text()();
+
+  TextColumn get value => text()();
+
+  TextColumn get unit => text().nullable()();
+
+  TextColumn get provenance => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Sites, Visits, Detections, Evidences, Measurements])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -100,7 +118,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -122,6 +140,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await migrator.createTable(evidences);
+      }
+      if (from < 8) {
+        await migrator.createTable(measurements);
       }
     },
   );

@@ -220,4 +220,24 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get evidenceCaptureFailed =>
       'Impossibile acquisire la prova. Riprova.';
+
+  @override
+  String get visitCovariatesHeading => 'Covariate della visita';
+
+  @override
+  String get measurementManualFallback =>
+      'Inserimento manuale (sensore non disponibile)';
+
+  @override
+  String get measurementLowConfidence =>
+      'Bassa affidabilità (sensore non calibrato)';
+
+  @override
+  String get measurementMethod => 'Metodo';
+
+  @override
+  String get measurementMissingMethod => 'Seleziona un metodo per ogni valore.';
+
+  @override
+  String get measurementSave => 'Salva misurazioni';
 }
