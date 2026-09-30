@@ -1,8 +1,8 @@
 /**
  * The served application's root module (ARCHITECTURE.md): wires the database,
- * queue, identity, projects and survey-periods modules so the running server
- * exposes the auth, projects and survey-periods endpoints and its readiness
- * check reflects Postgres and Redis.
+ * queue, identity, projects, protocol-versions and survey-periods modules so the
+ * running server exposes the auth, projects, protocol-versions and
+ * survey-periods endpoints and its readiness check reflects Postgres and Redis.
  *
  * Connection strings and secrets come from the environment (`DATABASE_URL`,
  * `REDIS_URL`, `BETTER_AUTH_SECRET`), as the Compose deployment supplies them.
@@ -14,6 +14,7 @@ import { QUERY_EXECUTOR, type QueryExecutor } from './db/database.provider.js';
 import { HealthModule } from './health/health.module.js';
 import { HealthService } from './health/health.service.js';
 import { ProjectsModule } from './projects/projects.module.js';
+import { ProtocolVersionsModule } from './protocol-versions/protocol-versions.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { SurveyPeriodsModule } from './survey-periods/survey-periods.module.js';
 
@@ -23,6 +24,7 @@ import { SurveyPeriodsModule } from './survey-periods/survey-periods.module.js';
     QueueModule,
     AuthModule,
     ProjectsModule,
+    ProtocolVersionsModule,
     SurveyPeriodsModule,
     HealthModule,
   ],
