@@ -32,6 +32,11 @@ echo ' ready'
 echo "==> migrations"
 DATABASE_URL="$DB_URL" pnpm --dir server run drizzle:migrate
 
+REQUESTED_PORT="$API_PORT"
+API_PORT="$("$ROOT/scripts/free-port.sh" "$API_PORT")"
+if [ "$API_PORT" != "$REQUESTED_PORT" ]; then
+  echo "==> port $REQUESTED_PORT is in use; using $API_PORT"
+fi
 echo "==> API (watch) on port $API_PORT"
 DATABASE_URL="$DB_URL" REDIS_URL="$REDIS_URL" PORT="$API_PORT" \
   pnpm --dir server run start:dev &
