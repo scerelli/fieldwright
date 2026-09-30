@@ -51,8 +51,9 @@ or future method.
 ### Membership (entity inside Project)
 
 - identity: membership id, referencing an external person identity.
-- holds: the role(s) the person holds in this project.
-- Open question: whether one Membership may hold more than one role.
+- holds: the single role the person holds in this project (creator, collector,
+  or validator). A person has at most one Membership per project.
+- invariants: INV-014.
 
 ### Survey period (entity inside Project)
 
@@ -156,6 +157,7 @@ stateDiagram-v2
 | INV-011 | Sensitive-taxa coordinates never leave the server unobfuscated, except to roles the Project allows. | Project | server |
 | INV-012 | A Site belongs to exactly one Project and records whether it was planned or field-created. | Site | both |
 | INV-013 | Validation, when enabled, applies only to a submitted Visit; a rejected Visit keeps its submitted data and gets a Correction, never deletion. | Visit | server |
+| INV-014 | A person has at most one Membership in a project, holding exactly one role. | Project | server |
 
 ## Events
 
@@ -205,4 +207,3 @@ deleted to fix a mistake.
 - Fauna taxonomic references: which lists, their licences, and their update
   cadence.
 - Taxonomic-reference granularity and versioning per group.
-- Whether one Membership may hold more than one role.
