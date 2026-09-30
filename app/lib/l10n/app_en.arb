@@ -315,5 +315,53 @@
   "measurementSave": "Save measurements",
   "@measurementSave": {
     "description": "Button that records the entered visit covariate values with their provenance."
+  },
+  "projectsCreateProject": "Create project",
+  "@projectsCreateProject": {
+    "description": "Tooltip and label of the Projects screen button that opens the project editor."
+  },
+  "projectEditorNewTitle": "New project",
+  "@projectEditorNewTitle": {
+    "description": "Title of the project editor when defining a new project."
+  },
+  "projectEditorName": "Project name",
+  "@projectEditorName": {
+    "description": "Label of the project name field in the project editor."
+  },
+  "projectEditorReferenceId": "Taxonomic reference",
+  "@projectEditorReferenceId": {
+    "description": "Label of the field naming the pinned Taxonomic reference in the project editor."
+  },
+  "projectEditorReferenceVersion": "Taxonomic reference version",
+  "@projectEditorReferenceVersion": {
+    "description": "Label of the field pinning the Taxonomic reference version in the project editor."
+  },
+  "projectEditorValidation": "Validation",
+  "@projectEditorValidation": {
+    "description": "Label of the switch enabling validation for a project."
+  },
+  "projectEditorObfuscation": "Sensitive-taxa obfuscation",
+  "@projectEditorObfuscation": {
+    "description": "Label of the switch enabling sensitive-taxa coordinate obfuscation for a project."
+  },
+  "projectEditorSave": "Save project",
+  "@projectEditorSave": {
+    "description": "Button that creates the project being defined in the project editor."
+  },
+  "projectEditorNameRequired": "Enter a project name.",
+  "@projectEditorNameRequired": {
+    "description": "Error shown when the project name is empty."
+  },
+  "projectEditorReferenceRequired": "Select a taxonomic reference.",
+  "@projectEditorReferenceRequired": {
+    "description": "Error shown when no taxonomic reference is given."
+  },
+  "projectEditorVersionRequired": "Enter a taxonomic reference version.",
+  "@projectEditorVersionRequired": {
+    "description": "Error shown when the taxonomic reference version is empty."
+  },
+  "projectEditorCreateFailed": "Could not create the project. Try again.",
+  "@projectEditorCreateFailed": {
+    "description": "Error shown when creating the project fails."
   }
 }

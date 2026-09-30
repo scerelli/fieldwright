@@ -253,4 +253,44 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get measurementSave => 'Salva misurazioni';
+
+  @override
+  String get projectsCreateProject => 'Crea progetto';
+
+  @override
+  String get projectEditorNewTitle => 'Nuovo progetto';
+
+  @override
+  String get projectEditorName => 'Nome del progetto';
+
+  @override
+  String get projectEditorReferenceId => 'Riferimento tassonomico';
+
+  @override
+  String get projectEditorReferenceVersion =>
+      'Versione del riferimento tassonomico';
+
+  @override
+  String get projectEditorValidation => 'Validazione';
+
+  @override
+  String get projectEditorObfuscation => 'Oscuramento dei taxa sensibili';
+
+  @override
+  String get projectEditorSave => 'Salva progetto';
+
+  @override
+  String get projectEditorNameRequired => 'Inserisci un nome del progetto.';
+
+  @override
+  String get projectEditorReferenceRequired =>
+      'Seleziona un riferimento tassonomico.';
+
+  @override
+  String get projectEditorVersionRequired =>
+      'Inserisci una versione del riferimento tassonomico.';
+
+  @override
+  String get projectEditorCreateFailed =>
+      'Impossibile creare il progetto. Riprova.';
 }

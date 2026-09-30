@@ -541,6 +541,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save measurements'**
   String get measurementSave;
+
+  /// Tooltip and label of the Projects screen button that opens the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Create project'**
+  String get projectsCreateProject;
+
+  /// Title of the project editor when defining a new project.
+  ///
+  /// In en, this message translates to:
+  /// **'New project'**
+  String get projectEditorNewTitle;
+
+  /// Label of the project name field in the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Project name'**
+  String get projectEditorName;
+
+  /// Label of the field naming the pinned Taxonomic reference in the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Taxonomic reference'**
+  String get projectEditorReferenceId;
+
+  /// Label of the field pinning the Taxonomic reference version in the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Taxonomic reference version'**
+  String get projectEditorReferenceVersion;
+
+  /// Label of the switch enabling validation for a project.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation'**
+  String get projectEditorValidation;
+
+  /// Label of the switch enabling sensitive-taxa coordinate obfuscation for a project.
+  ///
+  /// In en, this message translates to:
+  /// **'Sensitive-taxa obfuscation'**
+  String get projectEditorObfuscation;
+
+  /// Button that creates the project being defined in the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Save project'**
+  String get projectEditorSave;
+
+  /// Error shown when the project name is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a project name.'**
+  String get projectEditorNameRequired;
+
+  /// Error shown when no taxonomic reference is given.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a taxonomic reference.'**
+  String get projectEditorReferenceRequired;
+
+  /// Error shown when the taxonomic reference version is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a taxonomic reference version.'**
+  String get projectEditorVersionRequired;
+
+  /// Error shown when creating the project fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the project. Try again.'**
+  String get projectEditorCreateFailed;
 }
 
 class _AppLocalizationsDelegate
