@@ -613,6 +613,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not create the project. Try again.'**
   String get projectEditorCreateFailed;
+
+  /// Heading of the read-only view of a frozen Protocol version.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol version'**
+  String get protocolVersionTitle;
+
+  /// Title of the form that defines a new Protocol version.
+  ///
+  /// In en, this message translates to:
+  /// **'New protocol version'**
+  String get protocolVersionNewTitle;
+
+  /// Label of the stable Protocol identity field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol ID'**
+  String get protocolVersionProtocolId;
+
+  /// Label of the taxonomic scope field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Taxonomic scope'**
+  String get protocolVersionTaxonomicScope;
+
+  /// Label of the switch that leaves the target list undefined so the taxonomic scope defines the targets.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete-list mode'**
+  String get protocolVersionCompleteListMode;
+
+  /// Label of the target taxa field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Target list'**
+  String get protocolVersionTargetList;
+
+  /// Label of the allowed Detection methods field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Detection methods'**
+  String get protocolVersionDetectionMethods;
+
+  /// Heading of the required Sampling effort fields a Protocol version defines.
+  ///
+  /// In en, this message translates to:
+  /// **'Required effort fields'**
+  String get protocolVersionRequiredEffort;
+
+  /// Label of the visit Covariate definitions field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit covariates'**
+  String get protocolVersionVisitCovariates;
+
+  /// Label of the Site Covariate definitions field in the protocol-version form.
+  ///
+  /// In en, this message translates to:
+  /// **'Site covariates'**
+  String get protocolVersionSiteCovariates;
+
+  /// Label of the Sampling effort field recording when the search started.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get effortFieldStart;
+
+  /// Label of the Sampling effort field recording how long the search lasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get effortFieldDuration;
+
+  /// Label of the Sampling effort field recording who searched.
+  ///
+  /// In en, this message translates to:
+  /// **'Observers'**
+  String get effortFieldObservers;
+
+  /// Label of the Sampling effort field recording which Detection methods were used.
+  ///
+  /// In en, this message translates to:
+  /// **'Detection methods'**
+  String get effortFieldDetectionMethods;
+
+  /// Button that defines the protocol version being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Save protocol version'**
+  String get protocolVersionSave;
+
+  /// Badge shown on a Protocol version referenced by a Visit, which is immutable (INV-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Frozen'**
+  String get protocolVersionFrozen;
+
+  /// Button that starts a new Protocol version from a frozen one, since a frozen version never changes (INV-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new version'**
+  String get protocolVersionCreateNew;
+
+  /// Label showing a Protocol version's server-assigned version number.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String protocolVersionVersion(int version);
+
+  /// Explanation shown when a frozen Protocol version is read-only (INV-007).
+  ///
+  /// In en, this message translates to:
+  /// **'This version is frozen and can no longer change. Create a new version to make changes.'**
+  String get protocolVersionReadOnly;
+
+  /// Error shown when the protocol ID is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a protocol ID.'**
+  String get protocolVersionProtocolIdRequired;
+
+  /// Error shown when the taxonomic scope is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one taxon in scope.'**
+  String get protocolVersionScopeRequired;
+
+  /// Error shown when a non-complete-list protocol has no target taxa.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one target taxon or use complete-list mode.'**
+  String get protocolVersionTargetListRequired;
+
+  /// Error shown when no Detection method is given.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one detection method.'**
+  String get protocolVersionDetectionMethodsRequired;
+
+  /// Error shown when no required Sampling effort field is selected (INV-005).
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one required effort field.'**
+  String get protocolVersionEffortRequired;
+
+  /// Error shown when a Covariate definition line cannot be parsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter each covariate as name:type[:unit], or leave the field empty.'**
+  String get protocolVersionInvalidCovariates;
+
+  /// Error shown when defining the protocol version fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the protocol version. Try again.'**
+  String get protocolVersionCreateFailed;
 }
 
 class _AppLocalizationsDelegate
