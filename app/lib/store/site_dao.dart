@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
+
 import '../features/sites/site.dart';
 import 'app_database.dart';
 
@@ -27,6 +29,9 @@ class SiteDao {
     geometry: jsonEncode(site.geometry.toJson()),
     origin: site.origin,
     createdAt: site.createdAt,
+    locationProvenance: site.locationProvenance == null
+        ? const Value(null)
+        : Value(jsonEncode(site.locationProvenance!.toJson())),
   );
 
   Site _toSite(SiteRow row) => Site(
@@ -37,5 +42,10 @@ class SiteDao {
     ),
     origin: row.origin,
     createdAt: row.createdAt.toUtc(),
+    locationProvenance: row.locationProvenance == null
+        ? null
+        : SiteLocationProvenance.fromJson(
+            jsonDecode(row.locationProvenance!) as Map<String, Object?>,
+          ),
   );
 }

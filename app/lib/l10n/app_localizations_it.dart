@@ -41,6 +41,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get sitesAddSite => 'Aggiungi sito';
 
   @override
+  String get sitesCreateHere => 'Crea sito qui';
+
+  @override
+  String get sitesCreateHereFailed =>
+      'Impossibile ottenere la posizione. Riprova.';
+
+  @override
   String get siteEditorNewTitle => 'Nuovo sito';
 
   @override

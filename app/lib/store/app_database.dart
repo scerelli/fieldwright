@@ -27,6 +27,8 @@ class Sites extends Table {
 
   DateTimeColumn get createdAt => dateTime()();
 
+  TextColumn get locationProvenance => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -39,9 +41,15 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
-  MigrationStrategy get migration =>
-      MigrationStrategy(onCreate: (migrator) => migrator.createAll());
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (migrator) => migrator.createAll(),
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.addColumn(sites, sites.locationProvenance);
+      }
+    },
+  );
 }
