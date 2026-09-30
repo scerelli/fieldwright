@@ -10,6 +10,8 @@
   "sitesEmptyTitle": "Nessun sito",
   "sitesEmptyMessage": "Aggiungi un sito pianificato per iniziare.",
   "sitesAddSite": "Aggiungi sito",
+  "sitesCreateHere": "Crea sito qui",
+  "sitesCreateHereFailed": "Impossibile ottenere la posizione. Riprova.",
   "siteEditorNewTitle": "Nuovo sito",
   "siteEditorUpdateTitle": "Aggiorna sito",
   "siteGeometryPoint": "Punto",

@@ -2,6 +2,40 @@ import 'package:latlong2/latlong.dart';
 
 enum SiteOrigin { planned, field }
 
+enum LocationFixMethod { phoneSensor }
+
+class SiteLocationProvenance {
+  const SiteLocationProvenance({
+    required this.method,
+    required this.accuracyMeters,
+  });
+
+  final LocationFixMethod method;
+  final double accuracyMeters;
+
+  Map<String, Object?> toJson() => {
+    'method': method.name,
+    'accuracyMeters': accuracyMeters,
+  };
+
+  static SiteLocationProvenance fromJson(Map<String, Object?> json) {
+    final method = json['method'];
+    final accuracy = json['accuracyMeters'];
+    if (method is! String || accuracy is! num) {
+      throw const FormatException('Malformed site location provenance');
+    }
+    final parsed = LocationFixMethod.values.firstWhere(
+      (candidate) => candidate.name == method,
+      orElse: () =>
+          throw FormatException('Unsupported location fix method: $method'),
+    );
+    return SiteLocationProvenance(
+      method: parsed,
+      accuracyMeters: accuracy.toDouble(),
+    );
+  }
+}
+
 sealed class SiteGeometry {
   const SiteGeometry();
 
@@ -90,6 +124,7 @@ class Site {
     required this.geometry,
     required this.origin,
     required this.createdAt,
+    this.locationProvenance,
   });
 
   final String id;
@@ -97,4 +132,5 @@ class Site {
   final SiteGeometry geometry;
   final SiteOrigin origin;
   final DateTime createdAt;
+  final SiteLocationProvenance? locationProvenance;
 }

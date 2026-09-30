@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../l10n/app_localizations.dart';
 import '../../store/database_provider.dart';
 import '../../widgets/empty_state.dart';
+import 'field_site.dart';
 import 'site.dart';
 import 'site_editor.dart';
 import 'sites_map.dart';
@@ -43,6 +44,25 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     );
   }
 
+  Future<void> _createHere() async {
+    final projectId = widget.projectId;
+    if (projectId == null) return;
+    final l10n = AppLocalizations.of(context);
+    try {
+      final site = await createFieldSite(
+        locationService: ref.read(locationServiceProvider),
+        dao: ref.read(siteDaoProvider),
+        projectId: projectId,
+      );
+      if (!mounted) return;
+      setState(() => _sites.add(site));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.sitesCreateHereFailed)));
+    }
+  }
+
   String _geometryLabel(AppLocalizations l10n, SiteGeometry geometry) =>
       switch (geometry) {
         PointGeometry() => l10n.siteGeometryPoint,
@@ -59,6 +79,13 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
       appBar: AppBar(
         title: Text(l10n.navSites),
         actions: [
+          if (hasProject)
+            IconButton(
+              key: const Key('create_site_here'),
+              onPressed: _createHere,
+              tooltip: l10n.sitesCreateHere,
+              icon: const Icon(Icons.my_location_outlined),
+            ),
           if (hasProject)
             IconButton(
               key: const Key('open_sites_map'),

@@ -158,6 +158,18 @@ abstract class AppLocalizations {
   /// **'Add site'**
   String get sitesAddSite;
 
+  /// Tooltip of the Sites screen button that creates a site from the current location.
+  ///
+  /// In en, this message translates to:
+  /// **'Create site here'**
+  String get sitesCreateHere;
+
+  /// Message shown when creating a site from the current location fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get your location. Try again.'**
+  String get sitesCreateHereFailed;
+
   /// Title of the site editor when creating a new site.
   ///
   /// In en, this message translates to:

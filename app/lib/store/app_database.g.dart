@@ -59,6 +59,17 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _locationProvenanceMeta =
+      const VerificationMeta('locationProvenance');
+  @override
+  late final GeneratedColumn<String> locationProvenance =
+      GeneratedColumn<String>(
+        'location_provenance',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -66,6 +77,7 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
     geometry,
     origin,
     createdAt,
+    locationProvenance,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -108,6 +120,15 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('location_provenance')) {
+      context.handle(
+        _locationProvenanceMeta,
+        locationProvenance.isAcceptableOrUnknown(
+          data['location_provenance']!,
+          _locationProvenanceMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -139,6 +160,10 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      locationProvenance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location_provenance'],
+      ),
     );
   }
 
@@ -157,12 +182,14 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
   final String geometry;
   final SiteOrigin origin;
   final DateTime createdAt;
+  final String? locationProvenance;
   const SiteRow({
     required this.id,
     required this.projectId,
     required this.geometry,
     required this.origin,
     required this.createdAt,
+    this.locationProvenance,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -176,6 +203,9 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
       );
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || locationProvenance != null) {
+      map['location_provenance'] = Variable<String>(locationProvenance);
+    }
     return map;
   }
 
@@ -186,6 +216,9 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
       geometry: Value(geometry),
       origin: Value(origin),
       createdAt: Value(createdAt),
+      locationProvenance: locationProvenance == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationProvenance),
     );
   }
 
@@ -202,6 +235,9 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
         serializer.fromJson<String>(json['origin']),
       ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      locationProvenance: serializer.fromJson<String?>(
+        json['locationProvenance'],
+      ),
     );
   }
   @override
@@ -215,6 +251,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
         $SitesTable.$converterorigin.toJson(origin),
       ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'locationProvenance': serializer.toJson<String?>(locationProvenance),
     };
   }
 
@@ -224,12 +261,16 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     String? geometry,
     SiteOrigin? origin,
     DateTime? createdAt,
+    Value<String?> locationProvenance = const Value.absent(),
   }) => SiteRow(
     id: id ?? this.id,
     projectId: projectId ?? this.projectId,
     geometry: geometry ?? this.geometry,
     origin: origin ?? this.origin,
     createdAt: createdAt ?? this.createdAt,
+    locationProvenance: locationProvenance.present
+        ? locationProvenance.value
+        : this.locationProvenance,
   );
   SiteRow copyWithCompanion(SitesCompanion data) {
     return SiteRow(
@@ -238,6 +279,9 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
       geometry: data.geometry.present ? data.geometry.value : this.geometry,
       origin: data.origin.present ? data.origin.value : this.origin,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      locationProvenance: data.locationProvenance.present
+          ? data.locationProvenance.value
+          : this.locationProvenance,
     );
   }
 
@@ -248,13 +292,21 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
           ..write('projectId: $projectId, ')
           ..write('geometry: $geometry, ')
           ..write('origin: $origin, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('locationProvenance: $locationProvenance')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, projectId, geometry, origin, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    projectId,
+    geometry,
+    origin,
+    createdAt,
+    locationProvenance,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -263,7 +315,8 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
           other.projectId == this.projectId &&
           other.geometry == this.geometry &&
           other.origin == this.origin &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.locationProvenance == this.locationProvenance);
 }
 
 class SitesCompanion extends UpdateCompanion<SiteRow> {
@@ -272,6 +325,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
   final Value<String> geometry;
   final Value<SiteOrigin> origin;
   final Value<DateTime> createdAt;
+  final Value<String?> locationProvenance;
   final Value<int> rowid;
   const SitesCompanion({
     this.id = const Value.absent(),
@@ -279,6 +333,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     this.geometry = const Value.absent(),
     this.origin = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.locationProvenance = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SitesCompanion.insert({
@@ -287,6 +342,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     required String geometry,
     required SiteOrigin origin,
     required DateTime createdAt,
+    this.locationProvenance = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        projectId = Value(projectId),
@@ -299,6 +355,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     Expression<String>? geometry,
     Expression<String>? origin,
     Expression<DateTime>? createdAt,
+    Expression<String>? locationProvenance,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -307,6 +364,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
       if (geometry != null) 'geometry': geometry,
       if (origin != null) 'origin': origin,
       if (createdAt != null) 'created_at': createdAt,
+      if (locationProvenance != null) 'location_provenance': locationProvenance,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -317,6 +375,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     Value<String>? geometry,
     Value<SiteOrigin>? origin,
     Value<DateTime>? createdAt,
+    Value<String?>? locationProvenance,
     Value<int>? rowid,
   }) {
     return SitesCompanion(
@@ -325,6 +384,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
       geometry: geometry ?? this.geometry,
       origin: origin ?? this.origin,
       createdAt: createdAt ?? this.createdAt,
+      locationProvenance: locationProvenance ?? this.locationProvenance,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -349,6 +409,9 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (locationProvenance.present) {
+      map['location_provenance'] = Variable<String>(locationProvenance.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -363,6 +426,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
           ..write('geometry: $geometry, ')
           ..write('origin: $origin, ')
           ..write('createdAt: $createdAt, ')
+          ..write('locationProvenance: $locationProvenance, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -386,6 +450,7 @@ typedef $$SitesTableCreateCompanionBuilder = SitesCompanion Function({
   required String geometry,
   required SiteOrigin origin,
   required DateTime createdAt,
+  Value<String?> locationProvenance,
   Value<int> rowid,
 });
 typedef $$SitesTableUpdateCompanionBuilder = SitesCompanion Function({
@@ -394,6 +459,7 @@ typedef $$SitesTableUpdateCompanionBuilder = SitesCompanion Function({
   Value<String> geometry,
   Value<SiteOrigin> origin,
   Value<DateTime> createdAt,
+  Value<String?> locationProvenance,
   Value<int> rowid,
 });
 
@@ -428,6 +494,11 @@ class $$SitesTableFilterComposer extends Composer<_$AppDatabase, $SitesTable> {
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationProvenance => $composableBuilder(
+    column: $table.locationProvenance,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -465,6 +536,11 @@ class $$SitesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get locationProvenance => $composableBuilder(
+    column: $table.locationProvenance,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SitesTableAnnotationComposer
@@ -490,6 +566,11 @@ class $$SitesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get locationProvenance => $composableBuilder(
+    column: $table.locationProvenance,
+    builder: (column) => column,
+  );
 }
 
 class $$SitesTableTableManager
@@ -525,6 +606,7 @@ class $$SitesTableTableManager
                 Value<String> geometry = const Value.absent(),
                 Value<SiteOrigin> origin = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> locationProvenance = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SitesCompanion(
                 id: id,
@@ -532,6 +614,7 @@ class $$SitesTableTableManager
                 geometry: geometry,
                 origin: origin,
                 createdAt: createdAt,
+                locationProvenance: locationProvenance,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -541,6 +624,7 @@ class $$SitesTableTableManager
                 required String geometry,
                 required SiteOrigin origin,
                 required DateTime createdAt,
+                Value<String?> locationProvenance = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SitesCompanion.insert(
                 id: id,
@@ -548,6 +632,7 @@ class $$SitesTableTableManager
                 geometry: geometry,
                 origin: origin,
                 createdAt: createdAt,
+                locationProvenance: locationProvenance,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
