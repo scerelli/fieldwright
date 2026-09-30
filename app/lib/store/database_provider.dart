@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../outbox/outbox.dart';
 import 'app_database.dart';
+import 'outbox_dao.dart';
 import 'site_dao.dart';
 import 'visit_dao.dart';
 
@@ -16,4 +18,12 @@ final siteDaoProvider = Provider<SiteDao>(
 
 final visitDaoProvider = Provider<VisitDao>(
   (ref) => VisitDao(ref.watch(databaseProvider)),
+);
+
+final outboxDaoProvider = Provider<OutboxDao>(
+  (ref) => OutboxDao(ref.watch(databaseProvider)),
+);
+
+final outboxProvider = Provider<Outbox>(
+  (ref) => Outbox(ref.watch(outboxDaoProvider)),
 );

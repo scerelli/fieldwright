@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../features/sites/site.dart';
 import '../features/visits/evidence.dart';
 import '../features/visits/visit.dart';
+import '../outbox/outbox.dart';
 
 part 'app_database.g.dart';
 
@@ -110,7 +111,21 @@ class Measurements extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sites, Visits, Detections, Evidences, Measurements])
+@DataClassName('OutboxRow')
+class OutboxEntries extends Table {
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get syncState => textEnum<SyncState>()();
+
+  DateTimeColumn get queuedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {visitId};
+}
+
+@DriftDatabase(
+  tables: [Sites, Visits, Detections, Evidences, Measurements, OutboxEntries],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -118,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +158,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 8) {
         await migrator.createTable(measurements);
+      }
+      if (from < 9) {
+        await migrator.createTable(outboxEntries);
       }
     },
   );
