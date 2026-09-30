@@ -13,11 +13,13 @@
  */
 import {
   boolean,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -122,3 +124,35 @@ export const membership = pgTable('membership', {
 });
 
 export type Membership = typeof membership.$inferSelect;
+
+/**
+ * Protocol version (DOMAIN.md): an immutable snapshot of a Protocol, an entity
+ * inside Project. `document` is the versioned protocol document, validated
+ * against the packages/protocol JSON Schema; the monotonic `version` is
+ * server-assigned per Protocol identity. `frozen_at` is set the first time a
+ * Visit references the version (INV-007): a frozen version is never updated,
+ * and a change creates a new version.
+ */
+export const protocolVersion = pgTable(
+  'protocol_version',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    protocolId: text('protocol_id').notNull(),
+    version: integer('version').notNull(),
+    document: jsonb('document').$type<Record<string, unknown>>().notNull(),
+    frozenAt: timestamp('frozen_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('protocol_version_project_protocol_version_key').on(
+      table.projectId,
+      table.protocolId,
+      table.version,
+    ),
+  ],
+);
+
+export type ProtocolVersion = typeof protocolVersion.$inferSelect;
