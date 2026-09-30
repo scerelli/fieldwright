@@ -24,9 +24,11 @@ migrate:
 migrate-generate:
 	DATABASE_URL=$(DB_URL) pnpm --dir server run drizzle:generate
 
-## Run the API on the host with hot reload.
+## Run the API on the host with hot reload (falls back past a busy API_PORT).
 server:
-	DATABASE_URL=$(DB_URL) REDIS_URL=$(REDIS_URL) API_PORT=$(API_PORT) pnpm --dir server run start:dev
+	@PORT=$$(./scripts/free-port.sh $(API_PORT)); \
+	  echo "==> API (watch) on port $$PORT"; \
+	  DATABASE_URL=$(DB_URL) REDIS_URL=$(REDIS_URL) PORT=$$PORT pnpm --dir server run start:dev
 
 ## Run the worker on the host.
 worker:
