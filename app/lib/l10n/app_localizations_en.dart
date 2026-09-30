@@ -215,4 +215,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get evidenceCaptureFailed => 'Could not capture evidence. Try again.';
+
+  @override
+  String get visitCovariatesHeading => 'Visit covariates';
+
+  @override
+  String get measurementManualFallback => 'Manual entry (sensor unavailable)';
+
+  @override
+  String get measurementLowConfidence =>
+      'Low confidence (sensor not calibrated)';
+
+  @override
+  String get measurementMethod => 'Method';
+
+  @override
+  String get measurementMissingMethod => 'Select a method for each value.';
+
+  @override
+  String get measurementSave => 'Save measurements';
 }

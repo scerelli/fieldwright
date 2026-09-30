@@ -1787,6 +1787,413 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
   }
 }
 
+class $MeasurementsTable extends Measurements
+    with TableInfo<$MeasurementsTable, MeasurementRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MeasurementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+    'unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _provenanceMeta = const VerificationMeta(
+    'provenance',
+  );
+  @override
+  late final GeneratedColumn<String> provenance = GeneratedColumn<String>(
+    'provenance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitId,
+    name,
+    value,
+    unit,
+    provenance,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'measurements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MeasurementRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('unit')) {
+      context.handle(
+        _unitMeta,
+        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
+      );
+    }
+    if (data.containsKey('provenance')) {
+      context.handle(
+        _provenanceMeta,
+        provenance.isAcceptableOrUnknown(data['provenance']!, _provenanceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_provenanceMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MeasurementRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MeasurementRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+      unit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit'],
+      ),
+      provenance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provenance'],
+      )!,
+    );
+  }
+
+  @override
+  $MeasurementsTable createAlias(String alias) {
+    return $MeasurementsTable(attachedDatabase, alias);
+  }
+}
+
+class MeasurementRow extends DataClass implements Insertable<MeasurementRow> {
+  final String id;
+  final String visitId;
+  final String name;
+  final String value;
+  final String? unit;
+  final String provenance;
+  const MeasurementRow({
+    required this.id,
+    required this.visitId,
+    required this.name,
+    required this.value,
+    this.unit,
+    required this.provenance,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visit_id'] = Variable<String>(visitId);
+    map['name'] = Variable<String>(name);
+    map['value'] = Variable<String>(value);
+    if (!nullToAbsent || unit != null) {
+      map['unit'] = Variable<String>(unit);
+    }
+    map['provenance'] = Variable<String>(provenance);
+    return map;
+  }
+
+  MeasurementsCompanion toCompanion(bool nullToAbsent) {
+    return MeasurementsCompanion(
+      id: Value(id),
+      visitId: Value(visitId),
+      name: Value(name),
+      value: Value(value),
+      unit: unit == null && nullToAbsent ? const Value.absent() : Value(unit),
+      provenance: Value(provenance),
+    );
+  }
+
+  factory MeasurementRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MeasurementRow(
+      id: serializer.fromJson<String>(json['id']),
+      visitId: serializer.fromJson<String>(json['visitId']),
+      name: serializer.fromJson<String>(json['name']),
+      value: serializer.fromJson<String>(json['value']),
+      unit: serializer.fromJson<String?>(json['unit']),
+      provenance: serializer.fromJson<String>(json['provenance']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitId': serializer.toJson<String>(visitId),
+      'name': serializer.toJson<String>(name),
+      'value': serializer.toJson<String>(value),
+      'unit': serializer.toJson<String?>(unit),
+      'provenance': serializer.toJson<String>(provenance),
+    };
+  }
+
+  MeasurementRow copyWith({
+    String? id,
+    String? visitId,
+    String? name,
+    String? value,
+    Value<String?> unit = const Value.absent(),
+    String? provenance,
+  }) => MeasurementRow(
+    id: id ?? this.id,
+    visitId: visitId ?? this.visitId,
+    name: name ?? this.name,
+    value: value ?? this.value,
+    unit: unit.present ? unit.value : this.unit,
+    provenance: provenance ?? this.provenance,
+  );
+  MeasurementRow copyWithCompanion(MeasurementsCompanion data) {
+    return MeasurementRow(
+      id: data.id.present ? data.id.value : this.id,
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      name: data.name.present ? data.name.value : this.name,
+      value: data.value.present ? data.value.value : this.value,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      provenance: data.provenance.present
+          ? data.provenance.value
+          : this.provenance,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MeasurementRow(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('name: $name, ')
+          ..write('value: $value, ')
+          ..write('unit: $unit, ')
+          ..write('provenance: $provenance')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, visitId, name, value, unit, provenance);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MeasurementRow &&
+          other.id == this.id &&
+          other.visitId == this.visitId &&
+          other.name == this.name &&
+          other.value == this.value &&
+          other.unit == this.unit &&
+          other.provenance == this.provenance);
+}
+
+class MeasurementsCompanion extends UpdateCompanion<MeasurementRow> {
+  final Value<String> id;
+  final Value<String> visitId;
+  final Value<String> name;
+  final Value<String> value;
+  final Value<String?> unit;
+  final Value<String> provenance;
+  final Value<int> rowid;
+  const MeasurementsCompanion({
+    this.id = const Value.absent(),
+    this.visitId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.value = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.provenance = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MeasurementsCompanion.insert({
+    required String id,
+    required String visitId,
+    required String name,
+    required String value,
+    this.unit = const Value.absent(),
+    required String provenance,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitId = Value(visitId),
+       name = Value(name),
+       value = Value(value),
+       provenance = Value(provenance);
+  static Insertable<MeasurementRow> custom({
+    Expression<String>? id,
+    Expression<String>? visitId,
+    Expression<String>? name,
+    Expression<String>? value,
+    Expression<String>? unit,
+    Expression<String>? provenance,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitId != null) 'visit_id': visitId,
+      if (name != null) 'name': name,
+      if (value != null) 'value': value,
+      if (unit != null) 'unit': unit,
+      if (provenance != null) 'provenance': provenance,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MeasurementsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitId,
+    Value<String>? name,
+    Value<String>? value,
+    Value<String?>? unit,
+    Value<String>? provenance,
+    Value<int>? rowid,
+  }) {
+    return MeasurementsCompanion(
+      id: id ?? this.id,
+      visitId: visitId ?? this.visitId,
+      name: name ?? this.name,
+      value: value ?? this.value,
+      unit: unit ?? this.unit,
+      provenance: provenance ?? this.provenance,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
+    if (provenance.present) {
+      map['provenance'] = Variable<String>(provenance.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MeasurementsCompanion(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('name: $name, ')
+          ..write('value: $value, ')
+          ..write('unit: $unit, ')
+          ..write('provenance: $provenance, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1794,6 +2201,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VisitsTable visits = $VisitsTable(this);
   late final $DetectionsTable detections = $DetectionsTable(this);
   late final $EvidencesTable evidences = $EvidencesTable(this);
+  late final $MeasurementsTable measurements = $MeasurementsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1803,6 +2211,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visits,
     detections,
     evidences,
+    measurements,
   ];
 }
 
@@ -2109,6 +2518,24 @@ final class $$VisitsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$MeasurementsTable, List<MeasurementRow>>
+  _measurementsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.measurements,
+    aliasName: 'visits__id__measurements__visit_id',
+  );
+
+  $$MeasurementsTableProcessedTableManager get measurementsRefs {
+    final manager = $$MeasurementsTableTableManager(
+      $_db,
+      $_db.measurements,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_measurementsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$VisitsTableFilterComposer
@@ -2197,6 +2624,31 @@ class $$VisitsTableFilterComposer
           }) => $$EvidencesTableFilterComposer(
             $db: $db,
             $table: $db.evidences,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> measurementsRefs(
+    Expression<bool> Function($$MeasurementsTableFilterComposer f) f,
+  ) {
+    final $$MeasurementsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.measurements,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MeasurementsTableFilterComposer(
+            $db: $db,
+            $table: $db.measurements,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2339,6 +2791,31 @@ class $$VisitsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> measurementsRefs<T extends Object>(
+    Expression<T> Function($$MeasurementsTableAnnotationComposer a) f,
+  ) {
+    final $$MeasurementsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.measurements,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MeasurementsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.measurements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableTableManager
@@ -2354,7 +2831,11 @@ class $$VisitsTableTableManager
           $$VisitsTableUpdateCompanionBuilder,
           (VisitRow, $$VisitsTableReferences),
           VisitRow,
-          PrefetchHooks Function({bool detectionsRefs, bool evidencesRefs})
+          PrefetchHooks Function({
+            bool detectionsRefs,
+            bool evidencesRefs,
+            bool measurementsRefs,
+          })
         > {
   $$VisitsTableTableManager(_$AppDatabase db, $VisitsTable table)
     : super(
@@ -2416,12 +2897,17 @@ class $$VisitsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({detectionsRefs = false, evidencesRefs = false}) {
+              ({
+                detectionsRefs = false,
+                evidencesRefs = false,
+                measurementsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (detectionsRefs) db.detections,
                     if (evidencesRefs) db.evidences,
+                    if (measurementsRefs) db.measurements,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2468,6 +2954,27 @@ class $$VisitsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (measurementsRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          MeasurementRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._measurementsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).measurementsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2488,7 +2995,11 @@ typedef $$VisitsTableProcessedTableManager =
       $$VisitsTableUpdateCompanionBuilder,
       (VisitRow, $$VisitsTableReferences),
       VisitRow,
-      PrefetchHooks Function({bool detectionsRefs, bool evidencesRefs})
+      PrefetchHooks Function({
+        bool detectionsRefs,
+        bool evidencesRefs,
+        bool measurementsRefs,
+      })
     >;
 typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
   required String visitId,
@@ -3142,6 +3653,342 @@ typedef $$EvidencesTableProcessedTableManager =
       EvidenceRow,
       PrefetchHooks Function({bool visitId})
     >;
+typedef $$MeasurementsTableCreateCompanionBuilder =
+    MeasurementsCompanion Function({
+      required String id,
+      required String visitId,
+      required String name,
+      required String value,
+      Value<String?> unit,
+      required String provenance,
+      Value<int> rowid,
+    });
+typedef $$MeasurementsTableUpdateCompanionBuilder =
+    MeasurementsCompanion Function({
+      Value<String> id,
+      Value<String> visitId,
+      Value<String> name,
+      Value<String> value,
+      Value<String?> unit,
+      Value<String> provenance,
+      Value<int> rowid,
+    });
+
+final class $$MeasurementsTableReferences
+    extends BaseReferences<_$AppDatabase, $MeasurementsTable, MeasurementRow> {
+  $$MeasurementsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('measurements__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$MeasurementsTableFilterComposer
+    extends Composer<_$AppDatabase, $MeasurementsTable> {
+  $$MeasurementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get provenance => $composableBuilder(
+    column: $table.provenance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MeasurementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MeasurementsTable> {
+  $$MeasurementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get provenance => $composableBuilder(
+    column: $table.provenance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MeasurementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MeasurementsTable> {
+  $$MeasurementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<String> get provenance => $composableBuilder(
+    column: $table.provenance,
+    builder: (column) => column,
+  );
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MeasurementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MeasurementsTable,
+          MeasurementRow,
+          $$MeasurementsTableFilterComposer,
+          $$MeasurementsTableOrderingComposer,
+          $$MeasurementsTableAnnotationComposer,
+          $$MeasurementsTableCreateCompanionBuilder,
+          $$MeasurementsTableUpdateCompanionBuilder,
+          (MeasurementRow, $$MeasurementsTableReferences),
+          MeasurementRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$MeasurementsTableTableManager(_$AppDatabase db, $MeasurementsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MeasurementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MeasurementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MeasurementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<String?> unit = const Value.absent(),
+                Value<String> provenance = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MeasurementsCompanion(
+                id: id,
+                visitId: visitId,
+                name: name,
+                value: value,
+                unit: unit,
+                provenance: provenance,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitId,
+                required String name,
+                required String value,
+                Value<String?> unit = const Value.absent(),
+                required String provenance,
+                Value<int> rowid = const Value.absent(),
+              }) => MeasurementsCompanion.insert(
+                id: id,
+                visitId: visitId,
+                name: name,
+                value: value,
+                unit: unit,
+                provenance: provenance,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$MeasurementsTable, MeasurementRow>(table),
+                  $$MeasurementsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$MeasurementsTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$MeasurementsTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MeasurementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MeasurementsTable,
+      MeasurementRow,
+      $$MeasurementsTableFilterComposer,
+      $$MeasurementsTableOrderingComposer,
+      $$MeasurementsTableAnnotationComposer,
+      $$MeasurementsTableCreateCompanionBuilder,
+      $$MeasurementsTableUpdateCompanionBuilder,
+      (MeasurementRow, $$MeasurementsTableReferences),
+      MeasurementRow,
+      PrefetchHooks Function({bool visitId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3154,4 +4001,6 @@ class $AppDatabaseManager {
       $$DetectionsTableTableManager(_db, _db.detections);
   $$EvidencesTableTableManager get evidences =>
       $$EvidencesTableTableManager(_db, _db.evidences);
+  $$MeasurementsTableTableManager get measurements =>
+      $$MeasurementsTableTableManager(_db, _db.measurements);
 }
