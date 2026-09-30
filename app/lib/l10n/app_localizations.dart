@@ -481,6 +481,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not capture evidence. Try again.'**
   String get evidenceCaptureFailed;
+
+  /// Heading of the visit covariate section on the capture screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit covariates'**
+  String get visitCovariatesHeading;
+
+  /// Label shown on a sensor-backed covariate field when the sensor is missing, so the value is entered by hand (UX-011).
+  ///
+  /// In en, this message translates to:
+  /// **'Manual entry (sensor unavailable)'**
+  String get measurementManualFallback;
+
+  /// Marker shown on a covariate value read from an uncalibrated sensor (UX-011).
+  ///
+  /// In en, this message translates to:
+  /// **'Low confidence (sensor not calibrated)'**
+  String get measurementLowConfidence;
+
+  /// Label of the provenance method selector for a manually entered covariate value.
+  ///
+  /// In en, this message translates to:
+  /// **'Method'**
+  String get measurementMethod;
+
+  /// Error shown when a covariate value is entered without a provenance method (INV-010).
+  ///
+  /// In en, this message translates to:
+  /// **'Select a method for each value.'**
+  String get measurementMissingMethod;
+
+  /// Button that records the entered visit covariate values with their provenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Save measurements'**
+  String get measurementSave;
 }
 
 class _AppLocalizationsDelegate
