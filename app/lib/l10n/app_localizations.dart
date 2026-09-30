@@ -140,17 +140,89 @@ abstract class AppLocalizations {
   /// **'Create or join a project to get started.'**
   String get projectsEmptyMessage;
 
-  /// Placeholder counter shown on the Sites screen.
+  /// Title of the Sites screen empty state shown before any site exists.
   ///
   /// In en, this message translates to:
-  /// **'Sites count: {count}'**
-  String sitesCount(int count);
+  /// **'No sites'**
+  String get sitesEmptyTitle;
 
-  /// Placeholder increment button on the Sites screen.
+  /// Message of the Sites screen empty state shown before any site exists.
   ///
   /// In en, this message translates to:
-  /// **'Increment Sites'**
-  String get incrementSites;
+  /// **'Add a planned site to start.'**
+  String get sitesEmptyMessage;
+
+  /// Tooltip of the Sites screen button that opens the site editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add site'**
+  String get sitesAddSite;
+
+  /// Title of the site editor when creating a new site.
+  ///
+  /// In en, this message translates to:
+  /// **'New site'**
+  String get siteEditorNewTitle;
+
+  /// Title of the site editor when changing an existing site.
+  ///
+  /// In en, this message translates to:
+  /// **'Update site'**
+  String get siteEditorUpdateTitle;
+
+  /// Geometry kind option for a site drawn as a single point.
+  ///
+  /// In en, this message translates to:
+  /// **'Point'**
+  String get siteGeometryPoint;
+
+  /// Geometry kind option for a site drawn as a line.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get siteGeometryLine;
+
+  /// Geometry kind option for a site drawn as a polygon.
+  ///
+  /// In en, this message translates to:
+  /// **'Polygon'**
+  String get siteGeometryPolygon;
+
+  /// Label of a site vertex latitude field, in decimal degrees.
+  ///
+  /// In en, this message translates to:
+  /// **'Latitude'**
+  String get siteEditorLatitude;
+
+  /// Label of a site vertex longitude field, in decimal degrees.
+  ///
+  /// In en, this message translates to:
+  /// **'Longitude'**
+  String get siteEditorLongitude;
+
+  /// Button that adds another vertex to a line or polygon site.
+  ///
+  /// In en, this message translates to:
+  /// **'Add point'**
+  String get siteEditorAddVertex;
+
+  /// Button that removes a vertex from a line or polygon site.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove point'**
+  String get siteEditorRemoveVertex;
+
+  /// Button that saves the site being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Save site'**
+  String get siteEditorSave;
+
+  /// Error shown when the entered geometry cannot be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid geometry.'**
+  String get siteEditorInvalidGeometry;
 
   /// Placeholder counter shown on the Visits screen.
   ///
