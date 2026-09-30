@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   PostgreSqlContainer,
@@ -11,6 +12,9 @@ const serverRoot = fileURLToPath(new URL('..', import.meta.url));
 const drizzleKitBin = fileURLToPath(
   new URL('../node_modules/drizzle-kit/bin.cjs', import.meta.url),
 );
+const migrationCount = readdirSync(
+  fileURLToPath(new URL('../drizzle', import.meta.url)),
+).filter((entry) => entry.endsWith('.sql')).length;
 
 function runDrizzleKitMigrate(databaseUrl: string) {
   return spawnSync(process.execPath, [drizzleKitBin, 'migrate'], {
@@ -66,7 +70,7 @@ describe('baseline migration', () => {
     const first = runDrizzleKitMigrate(databaseUrl);
     expect(first.status, first.stderr).toBe(0);
     const before = await applied();
-    expect(before).toEqual([{ count: 1 }]);
+    expect(before).toEqual([{ count: migrationCount }]);
 
     const rerun = runDrizzleKitMigrate(databaseUrl);
     expect(rerun.status, rerun.stderr).toBe(0);

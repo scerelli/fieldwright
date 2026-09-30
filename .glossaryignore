@@ -11,4 +11,6 @@ app/l10n.yaml  # glossary:allow gen-l10n toolkit config, not IBIS domain languag
 app/lib/l10n/app_localizations*.dart  # glossary:allow generated localization code
 # Generated Dart code (drift/source_gen): library internals, not IBIS language.
 app/lib/store/*.g.dart  # glossary:allow drift-generated database code
+# drizzle-kit generated SQL and snapshots: generated DDL, not IBIS language.
+server/drizzle/*  # glossary:allow drizzle-kit generated migrations and snapshots
 

@@ -31,6 +31,7 @@
     "@nestjs/common": "^12.1.1",
     "@nestjs/core": "^12.1.1",
     "@nestjs/platform-express": "^12.1.1",
+    "better-auth": "~1.7.6",
     "bullmq": "6.3.x",
     "drizzle-orm": "0.45.x",
     "ioredis": "6.0.x",
