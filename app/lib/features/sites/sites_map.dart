@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../store/app_database.dart';
 import '../../store/database_provider.dart';
+import 'map_tile_cache.dart';
 import 'site.dart';
 
 const _osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -50,7 +51,11 @@ class SitesMap extends ConsumerWidget {
         TileLayer(
           urlTemplate: _osmTileUrl, // glossary:allow flutter_map parameter
           userAgentPackageName: 'org.ibis.ibis',
-          tileProvider: tileProvider ?? NetworkTileProvider(),
+          tileProvider:
+              tileProvider ??
+              NetworkTileProvider(
+                cachingProvider: ref.watch(mapTileCacheProvider),
+              ),
         ),
         ..._siteOverlays(Theme.of(context).colorScheme, sites),
       ],
