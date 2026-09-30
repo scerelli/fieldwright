@@ -85,7 +85,7 @@ void main() {
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 6);
+    expect(version.data['user_version'], 7);
 
     await SiteDao(database).save(buildSite());
 

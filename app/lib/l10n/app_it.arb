@@ -59,5 +59,9 @@
   "opportunisticNoResults": "Nessun taxon corrispondente",
   "opportunisticPresenceOnly": "Rilevato (occasionale)",
   "accountCount": "Conteggio account: {count}",
-  "incrementAccount": "Incrementa account"
+  "incrementAccount": "Incrementa account",
+  "evidencePhoto": "Foto",
+  "evidenceAudio": "Audio",
+  "evidenceStop": "Ferma",
+  "evidenceCaptureFailed": "Impossibile acquisire la prova. Riprova."
 }

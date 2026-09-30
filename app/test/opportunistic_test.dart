@@ -292,7 +292,7 @@ void main() {
   });
 
   group('client schema migration', () {
-    test('migrates a version 5 schema to version 6 forward-only', () async {
+    test('migrates a version 5 schema to version 7 forward-only', () async {
       final database = AppDatabase(
         NativeDatabase.memory(
           setup: (raw) {
@@ -333,7 +333,7 @@ CREATE TABLE detections (
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 6);
+      expect(version.data['user_version'], 7);
 
       final stored = await DetectionDao(database).forVisit('visit-1');
       expect(stored, hasLength(1));

@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../features/sites/site.dart';
+import '../features/visits/evidence.dart';
 import '../features/visits/visit.dart';
 
 part 'app_database.g.dart';
@@ -71,7 +72,27 @@ class Detections extends Table {
   Set<Column<Object>> get primaryKey => {visitId, taxonRef};
 }
 
-@DriftDatabase(tables: [Sites, Visits, Detections])
+@DataClassName('EvidenceRow')
+class Evidences extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get taxonRef => text()();
+
+  TextColumn get kind => textEnum<EvidenceKind>()();
+
+  TextColumn get filePath => text()();
+
+  DateTimeColumn get capturedAt => dateTime()();
+
+  TextColumn get contentHash => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Sites, Visits, Detections, Evidences])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -79,7 +100,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +119,9 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(detections);
       } else if (from < 6) {
         await migrator.addColumn(detections, detections.opportunistic);
+      }
+      if (from < 7) {
+        await migrator.createTable(evidences);
       }
     },
   );
