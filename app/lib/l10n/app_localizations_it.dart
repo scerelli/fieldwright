@@ -381,4 +381,43 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get protocolVersionCreateFailed =>
       'Impossibile salvare la versione del protocollo. Riprova.';
+
+  @override
+  String get membersTitle => 'Membri';
+
+  @override
+  String get membersEmpty => 'Nessun membro.';
+
+  @override
+  String get membersLoadFailed => 'Impossibile caricare i membri. Riprova.';
+
+  @override
+  String get membersAddHeading => 'Aggiungi membro';
+
+  @override
+  String get membersEmail => 'Email';
+
+  @override
+  String get membersRole => 'Ruolo';
+
+  @override
+  String get membersAdd => 'Aggiungi membro';
+
+  @override
+  String get membersEmailRequired => 'Inserisci un\'email valida.';
+
+  @override
+  String get membersRoleRequired => 'Seleziona un ruolo.';
+
+  @override
+  String get membersAddFailed => 'Impossibile aggiungere il membro. Riprova.';
+
+  @override
+  String get membershipRoleCreator => 'Creatore';
+
+  @override
+  String get membershipRoleCollector => 'Raccoglitore';
+
+  @override
+  String get membershipRoleValidator => 'Validatore';
 }

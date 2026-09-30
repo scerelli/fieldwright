@@ -372,4 +372,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get protocolVersionCreateFailed =>
       'Could not save the protocol version. Try again.';
+
+  @override
+  String get membersTitle => 'Members';
+
+  @override
+  String get membersEmpty => 'No members yet.';
+
+  @override
+  String get membersLoadFailed => 'Could not load the members. Try again.';
+
+  @override
+  String get membersAddHeading => 'Add member';
+
+  @override
+  String get membersEmail => 'Email';
+
+  @override
+  String get membersRole => 'Role';
+
+  @override
+  String get membersAdd => 'Add member';
+
+  @override
+  String get membersEmailRequired => 'Enter a valid email.';
+
+  @override
+  String get membersRoleRequired => 'Select a role.';
+
+  @override
+  String get membersAddFailed => 'Could not add the member. Try again.';
+
+  @override
+  String get membershipRoleCreator => 'Creator';
+
+  @override
+  String get membershipRoleCollector => 'Collector';
+
+  @override
+  String get membershipRoleValidator => 'Validator';
 }
