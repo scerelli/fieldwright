@@ -11,8 +11,11 @@
  * creates them alongside the domain tables. Their JavaScript keys must match
  * Better Auth's field names; the snake_case column names are the store's.
  */
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
+  date,
   integer,
   jsonb,
   pgEnum,
@@ -156,3 +159,31 @@ export const protocolVersion = pgTable(
 );
 
 export type ProtocolVersion = typeof protocolVersion.$inferSelect;
+
+/**
+ * Survey period (DOMAIN.md): a project-scoped entity inside Project, a named
+ * date range in which Visits are expected. A Survey period belongs to exactly
+ * one Project, and its end date never precedes its start date (enforced here
+ * as a Check and mirrored in the service).
+ */
+export const surveyPeriod = pgTable(
+  'survey_period',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    startDate: date('start_date').notNull(),
+    endDate: date('end_date').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      'survey_period_date_range',
+      sql`${table.endDate} >= ${table.startDate}`,
+    ),
+  ],
+);
+
+export type SurveyPeriod = typeof surveyPeriod.$inferSelect;
