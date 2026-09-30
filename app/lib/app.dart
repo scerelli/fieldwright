@@ -21,7 +21,7 @@ class IbisApp extends ConsumerWidget {
       routerConfig: router,
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
     );
   }
 }

@@ -23,6 +23,19 @@ void main() {
     expect(Theme.of(context).brightness, Brightness.dark);
   });
 
+  testWidgets(
+    'defaults to the dark scheme when the platform brightness is light',
+    (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await pumpApp(tester);
+
+      final context = tester.element(find.byType(AppShell));
+      expect(Theme.of(context).brightness, Brightness.dark);
+    },
+  );
+
   testWidgets('provides a light theme and a dark theme', (tester) async {
     await pumpApp(tester);
 
