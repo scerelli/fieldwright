@@ -124,5 +124,19 @@
   "membersAddFailed": "Impossibile aggiungere il membro. Riprova.",
   "membershipRoleCreator": "Creatore",
   "membershipRoleCollector": "Raccoglitore",
-  "membershipRoleValidator": "Validatore"
+  "membershipRoleValidator": "Validatore",
+  "surveyPeriodsTitle": "Periodi di indagine",
+  "surveyPeriodsEmpty": "Nessun periodo di indagine.",
+  "surveyPeriodsLoadFailed": "Impossibile caricare i periodi di indagine. Riprova.",
+  "surveyPeriodsAddHeading": "Aggiungi periodo di indagine",
+  "surveyPeriodName": "Nome",
+  "surveyPeriodStartDate": "Data di inizio",
+  "surveyPeriodEndDate": "Data di fine",
+  "surveyPeriodsAdd": "Aggiungi periodo di indagine",
+  "surveyPeriodNameRequired": "Inserisci un nome.",
+  "surveyPeriodStartRequired": "Inserisci una data di inizio.",
+  "surveyPeriodEndRequired": "Inserisci una data di fine.",
+  "surveyPeriodInvalidDate": "Inserisci ogni data come AAAA-MM-GG.",
+  "surveyPeriodEndBeforeStart": "La data di fine non può precedere quella di inizio.",
+  "surveyPeriodsAddFailed": "Impossibile aggiungere il periodo di indagine. Riprova."
 }

@@ -524,5 +524,61 @@
   "membershipRoleValidator": "Validator",
   "@membershipRoleValidator": {
     "description": "Label of the Membership validator role."
+  },
+  "surveyPeriodsTitle": "Survey periods",
+  "@surveyPeriodsTitle": {
+    "description": "Title of the survey-periods screen listing a project's Survey periods."
+  },
+  "surveyPeriodsEmpty": "No survey periods yet.",
+  "@surveyPeriodsEmpty": {
+    "description": "Message shown when the project has no Survey periods."
+  },
+  "surveyPeriodsLoadFailed": "Could not load the survey periods. Try again.",
+  "@surveyPeriodsLoadFailed": {
+    "description": "Error shown when loading the Survey-period list fails."
+  },
+  "surveyPeriodsAddHeading": "Add survey period",
+  "@surveyPeriodsAddHeading": {
+    "description": "Heading of the add-Survey-period form shown to a project creator."
+  },
+  "surveyPeriodName": "Name",
+  "@surveyPeriodName": {
+    "description": "Label of the name field in the add-Survey-period form."
+  },
+  "surveyPeriodStartDate": "Start date",
+  "@surveyPeriodStartDate": {
+    "description": "Label of the start-date field in the add-Survey-period form."
+  },
+  "surveyPeriodEndDate": "End date",
+  "@surveyPeriodEndDate": {
+    "description": "Label of the end-date field in the add-Survey-period form."
+  },
+  "surveyPeriodsAdd": "Add survey period",
+  "@surveyPeriodsAdd": {
+    "description": "Button that adds the Survey period entered in the add-Survey-period form."
+  },
+  "surveyPeriodNameRequired": "Enter a name.",
+  "@surveyPeriodNameRequired": {
+    "description": "Error shown when the Survey-period name is empty."
+  },
+  "surveyPeriodStartRequired": "Enter a start date.",
+  "@surveyPeriodStartRequired": {
+    "description": "Error shown when the Survey-period start date is empty."
+  },
+  "surveyPeriodEndRequired": "Enter an end date.",
+  "@surveyPeriodEndRequired": {
+    "description": "Error shown when the Survey-period end date is empty."
+  },
+  "surveyPeriodInvalidDate": "Enter each date as YYYY-MM-DD.",
+  "@surveyPeriodInvalidDate": {
+    "description": "Error shown when a Survey-period date is not an ISO date."
+  },
+  "surveyPeriodEndBeforeStart": "The end date cannot precede the start date.",
+  "@surveyPeriodEndBeforeStart": {
+    "description": "Error shown when a Survey period's end date precedes its start date."
+  },
+  "surveyPeriodsAddFailed": "Could not add the survey period. Try again.",
+  "@surveyPeriodsAddFailed": {
+    "description": "Error shown when adding a Survey period fails."
   }
 }
