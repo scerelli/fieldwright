@@ -6,6 +6,7 @@ import '../../store/database_provider.dart';
 import '../../widgets/empty_state.dart';
 import 'site.dart';
 import 'site_editor.dart';
+import 'sites_map.dart';
 
 class SitesScreen extends ConsumerStatefulWidget {
   const SitesScreen({super.key, this.projectId});
@@ -34,6 +35,14 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     );
   }
 
+  void _openMap() {
+    final projectId = widget.projectId;
+    if (projectId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => SitesMap(projectId: projectId)),
+    );
+  }
+
   String _geometryLabel(AppLocalizations l10n, SiteGeometry geometry) =>
       switch (geometry) {
         PointGeometry() => l10n.siteGeometryPoint,
@@ -47,7 +56,17 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     final hasProject = widget.projectId != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navSites)),
+      appBar: AppBar(
+        title: Text(l10n.navSites),
+        actions: [
+          if (hasProject)
+            IconButton(
+              key: const Key('open_sites_map'),
+              onPressed: _openMap,
+              icon: const Icon(Icons.map_outlined),
+            ),
+        ],
+      ),
       body: !hasProject
           ? EmptyState(
               title: l10n.projectsEmptyTitle,
