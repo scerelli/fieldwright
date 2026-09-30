@@ -1,7 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { Module, type INestApplication } from '@nestjs/common';
+import {
+  BadRequestException,
+  Module,
+  type INestApplication,
+} from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   PostgreSqlContainer,
@@ -346,6 +350,147 @@ describe('Visit store', () => {
 
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
       0,
+    );
+  });
+
+  it('rejects a Measurement whose detectionIndex is out of range and stores nothing', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+        measurements: [
+          {
+            detectionIndex: 1,
+            value: '3',
+            unit: 'count',
+            provenance: { method: 'visual_estimate' },
+          },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+    expect(
+      await db.select().from(measurement).where(eq(measurement.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('rejects Evidence whose detectionIndex is out of range and stores nothing', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+        evidence: [
+          {
+            detectionIndex: 2,
+            kind: 'photo',
+            storageKey: 'evidences/abc.jpg',
+            sha256: 'abc123',
+          },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+    expect(
+      await db.select().from(evidence).where(eq(evidence.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('stores null/absent detectionIndex at Visit level and an in-range index on its Detection', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+      detections: [
+        { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+      ],
+      measurements: [
+        {
+          detectionIndex: null,
+          value: '12',
+          unit: 'celsius',
+          provenance: { method: 'field_instrument' },
+        },
+        {
+          detectionIndex: 1,
+          value: '2',
+          unit: 'count',
+          provenance: { method: 'visual_estimate' },
+        },
+      ],
+      evidence: [
+        {
+          detectionIndex: null,
+          kind: 'audio',
+          storageKey: 'evidences/def.wav',
+          sha256: 'def456',
+        },
+        {
+          detectionIndex: 1,
+          kind: 'photo',
+          storageKey: 'evidences/abc.jpg',
+          sha256: 'abc123',
+        },
+      ],
+    });
+
+    const detections = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const byTaxon = Object.fromEntries(
+      detections.map((row) => [row.taxon, row]),
+    );
+
+    const measurements = await db
+      .select()
+      .from(measurement)
+      .where(eq(measurement.visitId, id));
+    expect(
+      measurements.find((row) => row.unit === 'celsius')!.detectionId,
+    ).toBeNull();
+    expect(measurements.find((row) => row.unit === 'count')!.detectionId).toBe(
+      byTaxon['Sylvia borin']!.id,
+    );
+
+    const evidenceRows = await db
+      .select()
+      .from(evidence)
+      .where(eq(evidence.visitId, id));
+    expect(
+      evidenceRows.find((row) => row.kind === 'audio')!.detectionId,
+    ).toBeNull();
+    expect(evidenceRows.find((row) => row.kind === 'photo')!.detectionId).toBe(
+      byTaxon['Sylvia borin']!.id,
     );
   });
 

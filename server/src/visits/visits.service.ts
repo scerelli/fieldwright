@@ -76,6 +76,24 @@ export interface StoreSubmittedVisitInput {
   evidence?: StoreEvidenceInput[];
 }
 
+function assertDetectionIndicesInRange(
+  entries: ReadonlyArray<{ detectionIndex?: number | null }>,
+  detectionsCount: number,
+  part: 'Measurement' | 'Evidence',
+): void {
+  for (const entry of entries) {
+    const index = entry.detectionIndex;
+    if (index === undefined || index === null) {
+      continue;
+    }
+    if (index < 0 || index >= detectionsCount) {
+      throw new BadRequestException(
+        `${part} detectionIndex ${index} does not refer to a Detection in the submission`,
+      );
+    }
+  }
+}
+
 @Injectable()
 export class VisitsService {
   constructor(@Inject(DATABASE) private readonly db: NodePgDatabase) {}
@@ -83,9 +101,22 @@ export class VisitsService {
   /**
    * Stores a submitted Visit with its parts in one transaction. Detections are
    * inserted first so a Detection-level Measurement or Evidence can reference
-   * one by its position in the input via `detectionIndex`.
+   * one by its position in the input via `detectionIndex`. A provided
+   * `detectionIndex` that names no Detection in the submission is rejected, so a
+   * Measurement or Evidence is never silently stored at the Visit level.
    */
   async storeSubmittedVisit(input: StoreSubmittedVisitInput): Promise<Visit> {
+    const detections = input.detections ?? [];
+    const measurements = input.measurements ?? [];
+    const evidenceRows = input.evidence ?? [];
+
+    assertDetectionIndicesInRange(
+      measurements,
+      detections.length,
+      'Measurement',
+    );
+    assertDetectionIndicesInRange(evidenceRows, detections.length, 'Evidence');
+
     return this.db.transaction(async (tx) => {
       const [created] = await tx
         .insert(visit)
@@ -104,7 +135,6 @@ export class VisitsService {
         .returning();
 
       const detectionIds: string[] = [];
-      const detections = input.detections ?? [];
       if (detections.length > 0) {
         const rows = await tx
           .insert(detection)
@@ -157,7 +187,6 @@ export class VisitsService {
           ? null
           : (detectionIds[index] ?? null);
 
-      const measurements = input.measurements ?? [];
       if (measurements.length > 0) {
         await tx.insert(measurement).values(
           measurements.map((entry) => ({
@@ -170,7 +199,6 @@ export class VisitsService {
         );
       }
 
-      const evidenceRows = input.evidence ?? [];
       if (evidenceRows.length > 0) {
         await tx.insert(evidence).values(
           evidenceRows.map((entry) => ({
