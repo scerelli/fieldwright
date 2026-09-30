@@ -11,7 +11,14 @@
  * creates them alongside the domain tables. Their JavaScript keys must match
  * Better Auth's field names; the snake_case column names are the store's.
  */
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -67,3 +74,26 @@ export const verification = pgTable('verification', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const membershipRole = pgEnum('membership_role', [
+  'creator',
+  'collector',
+  'validator',
+]);
+
+/**
+ * Membership (DOMAIN.md): the link between a person and a Project carrying the
+ * role they hold there. `person_id` references the Better Auth `user` table.
+ * The `project` table does not exist yet, so `project_id` is a plain uuid
+ * without a foreign key; add the reference when Project lands.
+ */
+export const membership = pgTable('membership', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  personId: text('person_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').notNull(),
+  role: membershipRole('role').notNull(),
+});
+
+export type Membership = typeof membership.$inferSelect;
