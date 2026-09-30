@@ -49,7 +49,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Membership
 - code: `Membership`
-- definition: The link between a person and a Project, carrying the role(s) they hold there (creator, collector, or validator).
+- definition: The link between a person and a Project, carrying the single role they hold there (creator, collector, or validator). A person has at most one Membership per project.
 - concept: DOMAIN.md › Membership (entity)
 - avoid: participant
 
