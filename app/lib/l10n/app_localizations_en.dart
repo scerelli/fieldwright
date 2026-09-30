@@ -73,6 +73,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get siteEditorInvalidGeometry => 'Enter a valid geometry.';
 
   @override
+  String get siteDetailTitle => 'Site details';
+
+  @override
+  String get siteDetailName => 'Name';
+
+  @override
+  String get siteDetailGeometry => 'Geometry';
+
+  @override
   String visitsCount(int count) {
     return 'Visits count: $count';
   }
