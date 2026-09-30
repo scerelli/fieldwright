@@ -153,6 +153,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get detectionTargetsHeading => 'Target taxa';
+
+  @override
+  String get detectionDetected => 'Detected';
+
+  @override
+  String get detectionNotDetected => 'Not detected';
+
+  @override
+  String get detectionNotRecorded => 'Not recorded';
+
+  @override
+  String get detectionNextUnrecorded => 'Next unrecorded';
+
+  @override
+  String get detectionNoTargets => 'The protocol defines no target taxa.';
+
+  @override
+  String visitIncomplete(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count targets not recorded',
+      one: '1 target not recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get visitAllTargetsRecorded => 'All targets recorded';
+
+  @override
   String accountCount(int count) {
     return 'Account count: $count';
   }

@@ -374,6 +374,54 @@ abstract class AppLocalizations {
   /// **'State: {state}'**
   String captureState(String state);
 
+  /// Heading of the target taxa list on the capture screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Target taxa'**
+  String get detectionTargetsHeading;
+
+  /// Label of the two-state control marking a target taxon as detected.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected'**
+  String get detectionDetected;
+
+  /// Label of the two-state control marking a target taxon as searched for but not detected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not detected'**
+  String get detectionNotDetected;
+
+  /// Distinct state shown for a target taxon that has no Detection yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get detectionNotRecorded;
+
+  /// Button that brings the next unrecorded target taxon into view in one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Next unrecorded'**
+  String get detectionNextUnrecorded;
+
+  /// Message shown when the protocol has no target list.
+  ///
+  /// In en, this message translates to:
+  /// **'The protocol defines no target taxa.'**
+  String get detectionNoTargets;
+
+  /// Incomplete signal shown while target taxa remain unrecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 target not recorded} other{{count} targets not recorded}}'**
+  String visitIncomplete(int count);
+
+  /// Signal shown once every target taxon has a Detection.
+  ///
+  /// In en, this message translates to:
+  /// **'All targets recorded'**
+  String get visitAllTargetsRecorded;
+
   /// Placeholder counter shown on the Account screen.
   ///
   /// In en, this message translates to:

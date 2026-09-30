@@ -194,6 +194,43 @@
       }
     }
   },
+  "detectionTargetsHeading": "Target taxa",
+  "@detectionTargetsHeading": {
+    "description": "Heading of the target taxa list on the capture screen."
+  },
+  "detectionDetected": "Detected",
+  "@detectionDetected": {
+    "description": "Label of the two-state control marking a target taxon as detected."
+  },
+  "detectionNotDetected": "Not detected",
+  "@detectionNotDetected": {
+    "description": "Label of the two-state control marking a target taxon as searched for but not detected."
+  },
+  "detectionNotRecorded": "Not recorded",
+  "@detectionNotRecorded": {
+    "description": "Distinct state shown for a target taxon that has no Detection yet."
+  },
+  "detectionNextUnrecorded": "Next unrecorded",
+  "@detectionNextUnrecorded": {
+    "description": "Button that brings the next unrecorded target taxon into view in one tap."
+  },
+  "detectionNoTargets": "The protocol defines no target taxa.",
+  "@detectionNoTargets": {
+    "description": "Message shown when the protocol has no target list."
+  },
+  "visitIncomplete": "{count, plural, =1{1 target not recorded} other{{count} targets not recorded}}",
+  "@visitIncomplete": {
+    "description": "Incomplete signal shown while target taxa remain unrecorded.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "visitAllTargetsRecorded": "All targets recorded",
+  "@visitAllTargetsRecorded": {
+    "description": "Signal shown once every target taxon has a Detection."
+  },
   "accountCount": "Account count: {count}",
   "@accountCount": {
     "description": "Placeholder counter shown on the Account screen.",

@@ -56,7 +56,19 @@ class Visits extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sites, Visits])
+@DataClassName('DetectionRow')
+class Detections extends Table {
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get taxonRef => text()();
+
+  BoolColumn get detected => boolean()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {visitId, taxonRef};
+}
+
+@DriftDatabase(tables: [Sites, Visits, Detections])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -64,7 +76,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,6 +90,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await migrator.createTable(visits);
+      }
+      if (from < 5) {
+        await migrator.createTable(detections);
       }
     },
   );

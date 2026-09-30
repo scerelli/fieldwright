@@ -46,6 +46,14 @@
   "captureTitle": "Visita",
   "captureEffortStarted": "Sforzo iniziato: {time}",
   "captureState": "Stato: {state}",
+  "detectionTargetsHeading": "Taxa bersaglio",
+  "detectionDetected": "Rilevato",
+  "detectionNotDetected": "Non rilevato",
+  "detectionNotRecorded": "Non registrato",
+  "detectionNextUnrecorded": "Prossimo non registrato",
+  "detectionNoTargets": "Il protocollo non definisce taxa bersaglio.",
+  "visitIncomplete": "{count, plural, =1{1 taxon non registrato} other{{count} taxa non registrati}}",
+  "visitAllTargetsRecorded": "Tutti i taxa registrati",
   "accountCount": "Conteggio account: {count}",
   "incrementAccount": "Incrementa account"
 }
