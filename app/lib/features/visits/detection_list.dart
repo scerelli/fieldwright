@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
 import '../../store/detection_dao.dart';
 import 'detection.dart';
+import 'evidence_capture.dart';
 import 'opportunistic_search.dart';
 import 'taxon_reference.dart';
 
@@ -150,11 +151,20 @@ class _DetectionListState extends ConsumerState<DetectionList> {
         ),
         const SizedBox(height: 8),
         for (final detection in _opportunisticDetections)
-          ListTile(
-            key: Key('opportunistic_entry_${detection.taxonRef}'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(detection.taxonRef),
-            trailing: Text(l10n.opportunisticPresenceOnly),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                key: Key('opportunistic_entry_${detection.taxonRef}'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(detection.taxonRef),
+                trailing: Text(l10n.opportunisticPresenceOnly),
+              ),
+              EvidenceCapture(
+                visitId: widget.visitId,
+                taxonRef: detection.taxonRef,
+              ),
+            ],
           ),
         OpportunisticSearch(onPick: _recordOpportunistic),
       ],
@@ -221,6 +231,8 @@ class _DetectionListState extends ConsumerState<DetectionList> {
               ),
             ],
           ),
+          if (recorded)
+            EvidenceCapture(visitId: widget.visitId, taxonRef: target.taxonRef),
         ],
       ),
     );

@@ -1308,12 +1308,492 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
   }
 }
 
+class $EvidencesTable extends Evidences
+    with TableInfo<$EvidencesTable, EvidenceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EvidencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  static const VerificationMeta _taxonRefMeta = const VerificationMeta(
+    'taxonRef',
+  );
+  @override
+  late final GeneratedColumn<String> taxonRef = GeneratedColumn<String>(
+    'taxon_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<EvidenceKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<EvidenceKind>($EvidencesTable.$converterkind);
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _capturedAtMeta = const VerificationMeta(
+    'capturedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> capturedAt = GeneratedColumn<DateTime>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentHashMeta = const VerificationMeta(
+    'contentHash',
+  );
+  @override
+  late final GeneratedColumn<String> contentHash = GeneratedColumn<String>(
+    'content_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitId,
+    taxonRef,
+    kind,
+    filePath,
+    capturedAt,
+    contentHash,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'evidences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EvidenceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('taxon_ref')) {
+      context.handle(
+        _taxonRefMeta,
+        taxonRef.isAcceptableOrUnknown(data['taxon_ref']!, _taxonRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonRefMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('captured_at')) {
+      context.handle(
+        _capturedAtMeta,
+        capturedAt.isAcceptableOrUnknown(data['captured_at']!, _capturedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_capturedAtMeta);
+    }
+    if (data.containsKey('content_hash')) {
+      context.handle(
+        _contentHashMeta,
+        contentHash.isAcceptableOrUnknown(
+          data['content_hash']!,
+          _contentHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contentHashMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EvidenceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EvidenceRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      taxonRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon_ref'],
+      )!,
+      kind: $EvidencesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      capturedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}captured_at'],
+      )!,
+      contentHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_hash'],
+      )!,
+    );
+  }
+
+  @override
+  $EvidencesTable createAlias(String alias) {
+    return $EvidencesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<EvidenceKind, String, String> $converterkind =
+      const EnumNameConverter<EvidenceKind>(EvidenceKind.values);
+}
+
+class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
+  final String id;
+  final String visitId;
+  final String taxonRef;
+  final EvidenceKind kind;
+  final String filePath;
+  final DateTime capturedAt;
+  final String contentHash;
+  const EvidenceRow({
+    required this.id,
+    required this.visitId,
+    required this.taxonRef,
+    required this.kind,
+    required this.filePath,
+    required this.capturedAt,
+    required this.contentHash,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visit_id'] = Variable<String>(visitId);
+    map['taxon_ref'] = Variable<String>(taxonRef);
+    {
+      map['kind'] = Variable<String>(
+        $EvidencesTable.$converterkind.toSql(kind),
+      );
+    }
+    map['file_path'] = Variable<String>(filePath);
+    map['captured_at'] = Variable<DateTime>(capturedAt);
+    map['content_hash'] = Variable<String>(contentHash);
+    return map;
+  }
+
+  EvidencesCompanion toCompanion(bool nullToAbsent) {
+    return EvidencesCompanion(
+      id: Value(id),
+      visitId: Value(visitId),
+      taxonRef: Value(taxonRef),
+      kind: Value(kind),
+      filePath: Value(filePath),
+      capturedAt: Value(capturedAt),
+      contentHash: Value(contentHash),
+    );
+  }
+
+  factory EvidenceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EvidenceRow(
+      id: serializer.fromJson<String>(json['id']),
+      visitId: serializer.fromJson<String>(json['visitId']),
+      taxonRef: serializer.fromJson<String>(json['taxonRef']),
+      kind: $EvidencesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
+      contentHash: serializer.fromJson<String>(json['contentHash']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitId': serializer.toJson<String>(visitId),
+      'taxonRef': serializer.toJson<String>(taxonRef),
+      'kind': serializer.toJson<String>(
+        $EvidencesTable.$converterkind.toJson(kind),
+      ),
+      'filePath': serializer.toJson<String>(filePath),
+      'capturedAt': serializer.toJson<DateTime>(capturedAt),
+      'contentHash': serializer.toJson<String>(contentHash),
+    };
+  }
+
+  EvidenceRow copyWith({
+    String? id,
+    String? visitId,
+    String? taxonRef,
+    EvidenceKind? kind,
+    String? filePath,
+    DateTime? capturedAt,
+    String? contentHash,
+  }) => EvidenceRow(
+    id: id ?? this.id,
+    visitId: visitId ?? this.visitId,
+    taxonRef: taxonRef ?? this.taxonRef,
+    kind: kind ?? this.kind,
+    filePath: filePath ?? this.filePath,
+    capturedAt: capturedAt ?? this.capturedAt,
+    contentHash: contentHash ?? this.contentHash,
+  );
+  EvidenceRow copyWithCompanion(EvidencesCompanion data) {
+    return EvidenceRow(
+      id: data.id.present ? data.id.value : this.id,
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      capturedAt: data.capturedAt.present
+          ? data.capturedAt.value
+          : this.capturedAt,
+      contentHash: data.contentHash.present
+          ? data.contentHash.value
+          : this.contentHash,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EvidenceRow(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('kind: $kind, ')
+          ..write('filePath: $filePath, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('contentHash: $contentHash')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    visitId,
+    taxonRef,
+    kind,
+    filePath,
+    capturedAt,
+    contentHash,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EvidenceRow &&
+          other.id == this.id &&
+          other.visitId == this.visitId &&
+          other.taxonRef == this.taxonRef &&
+          other.kind == this.kind &&
+          other.filePath == this.filePath &&
+          other.capturedAt == this.capturedAt &&
+          other.contentHash == this.contentHash);
+}
+
+class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
+  final Value<String> id;
+  final Value<String> visitId;
+  final Value<String> taxonRef;
+  final Value<EvidenceKind> kind;
+  final Value<String> filePath;
+  final Value<DateTime> capturedAt;
+  final Value<String> contentHash;
+  final Value<int> rowid;
+  const EvidencesCompanion({
+    this.id = const Value.absent(),
+    this.visitId = const Value.absent(),
+    this.taxonRef = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EvidencesCompanion.insert({
+    required String id,
+    required String visitId,
+    required String taxonRef,
+    required EvidenceKind kind,
+    required String filePath,
+    required DateTime capturedAt,
+    required String contentHash,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitId = Value(visitId),
+       taxonRef = Value(taxonRef),
+       kind = Value(kind),
+       filePath = Value(filePath),
+       capturedAt = Value(capturedAt),
+       contentHash = Value(contentHash);
+  static Insertable<EvidenceRow> custom({
+    Expression<String>? id,
+    Expression<String>? visitId,
+    Expression<String>? taxonRef,
+    Expression<String>? kind,
+    Expression<String>? filePath,
+    Expression<DateTime>? capturedAt,
+    Expression<String>? contentHash,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitId != null) 'visit_id': visitId,
+      if (taxonRef != null) 'taxon_ref': taxonRef,
+      if (kind != null) 'kind': kind,
+      if (filePath != null) 'file_path': filePath,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (contentHash != null) 'content_hash': contentHash,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EvidencesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitId,
+    Value<String>? taxonRef,
+    Value<EvidenceKind>? kind,
+    Value<String>? filePath,
+    Value<DateTime>? capturedAt,
+    Value<String>? contentHash,
+    Value<int>? rowid,
+  }) {
+    return EvidencesCompanion(
+      id: id ?? this.id,
+      visitId: visitId ?? this.visitId,
+      taxonRef: taxonRef ?? this.taxonRef,
+      kind: kind ?? this.kind,
+      filePath: filePath ?? this.filePath,
+      capturedAt: capturedAt ?? this.capturedAt,
+      contentHash: contentHash ?? this.contentHash,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (taxonRef.present) {
+      map['taxon_ref'] = Variable<String>(taxonRef.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $EvidencesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<DateTime>(capturedAt.value);
+    }
+    if (contentHash.present) {
+      map['content_hash'] = Variable<String>(contentHash.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EvidencesCompanion(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('kind: $kind, ')
+          ..write('filePath: $filePath, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SitesTable sites = $SitesTable(this);
   late final $VisitsTable visits = $VisitsTable(this);
   late final $DetectionsTable detections = $DetectionsTable(this);
+  late final $EvidencesTable evidences = $EvidencesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1322,6 +1802,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sites,
     visits,
     detections,
+    evidences,
   ];
 }
 
@@ -1610,6 +2091,24 @@ final class $$VisitsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$EvidencesTable, List<EvidenceRow>>
+  _evidencesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.evidences,
+    aliasName: 'visits__id__evidences__visit_id',
+  );
+
+  $$EvidencesTableProcessedTableManager get evidencesRefs {
+    final manager = $$EvidencesTableTableManager(
+      $_db,
+      $_db.evidences,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_evidencesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$VisitsTableFilterComposer
@@ -1673,6 +2172,31 @@ class $$VisitsTableFilterComposer
           }) => $$DetectionsTableFilterComposer(
             $db: $db,
             $table: $db.detections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> evidencesRefs(
+    Expression<bool> Function($$EvidencesTableFilterComposer f) f,
+  ) {
+    final $$EvidencesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidences,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidencesTableFilterComposer(
+            $db: $db,
+            $table: $db.evidences,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1790,6 +2314,31 @@ class $$VisitsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> evidencesRefs<T extends Object>(
+    Expression<T> Function($$EvidencesTableAnnotationComposer a) f,
+  ) {
+    final $$EvidencesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidences,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidencesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.evidences,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableTableManager
@@ -1805,7 +2354,7 @@ class $$VisitsTableTableManager
           $$VisitsTableUpdateCompanionBuilder,
           (VisitRow, $$VisitsTableReferences),
           VisitRow,
-          PrefetchHooks Function({bool detectionsRefs})
+          PrefetchHooks Function({bool detectionsRefs, bool evidencesRefs})
         > {
   $$VisitsTableTableManager(_$AppDatabase db, $VisitsTable table)
     : super(
@@ -1866,32 +2415,63 @@ class $$VisitsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({detectionsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (detectionsRefs) db.detections],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (detectionsRefs)
-                    await $_getPrefetchedData<
-                      VisitRow,
-                      $VisitsTable,
-                      DetectionRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$VisitsTableReferences
-                          ._detectionsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$VisitsTableReferences(db, table, p0).detectionsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.visitId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({detectionsRefs = false, evidencesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (detectionsRefs) db.detections,
+                    if (evidencesRefs) db.evidences,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (detectionsRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          DetectionRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._detectionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).detectionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (evidencesRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          EvidenceRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._evidencesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidencesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1908,7 +2488,7 @@ typedef $$VisitsTableProcessedTableManager =
       $$VisitsTableUpdateCompanionBuilder,
       (VisitRow, $$VisitsTableReferences),
       VisitRow,
-      PrefetchHooks Function({bool detectionsRefs})
+      PrefetchHooks Function({bool detectionsRefs, bool evidencesRefs})
     >;
 typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
   required String visitId,
@@ -2206,6 +2786,362 @@ typedef $$DetectionsTableProcessedTableManager =
       DetectionRow,
       PrefetchHooks Function({bool visitId})
     >;
+typedef $$EvidencesTableCreateCompanionBuilder = EvidencesCompanion Function({
+  required String id,
+  required String visitId,
+  required String taxonRef,
+  required EvidenceKind kind,
+  required String filePath,
+  required DateTime capturedAt,
+  required String contentHash,
+  Value<int> rowid,
+});
+typedef $$EvidencesTableUpdateCompanionBuilder = EvidencesCompanion Function({
+  Value<String> id,
+  Value<String> visitId,
+  Value<String> taxonRef,
+  Value<EvidenceKind> kind,
+  Value<String> filePath,
+  Value<DateTime> capturedAt,
+  Value<String> contentHash,
+  Value<int> rowid,
+});
+
+final class $$EvidencesTableReferences
+    extends BaseReferences<_$AppDatabase, $EvidencesTable, EvidenceRow> {
+  $$EvidencesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('evidences__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$EvidencesTableFilterComposer
+    extends Composer<_$AppDatabase, $EvidencesTable> {
+  $$EvidencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<EvidenceKind, EvidenceKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EvidencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $EvidencesTable> {
+  $$EvidencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EvidencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EvidencesTable> {
+  $$EvidencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get taxonRef =>
+      $composableBuilder(column: $table.taxonRef, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<EvidenceKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EvidencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EvidencesTable,
+          EvidenceRow,
+          $$EvidencesTableFilterComposer,
+          $$EvidencesTableOrderingComposer,
+          $$EvidencesTableAnnotationComposer,
+          $$EvidencesTableCreateCompanionBuilder,
+          $$EvidencesTableUpdateCompanionBuilder,
+          (EvidenceRow, $$EvidencesTableReferences),
+          EvidenceRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$EvidencesTableTableManager(_$AppDatabase db, $EvidencesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EvidencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EvidencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EvidencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitId = const Value.absent(),
+                Value<String> taxonRef = const Value.absent(),
+                Value<EvidenceKind> kind = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<DateTime> capturedAt = const Value.absent(),
+                Value<String> contentHash = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EvidencesCompanion(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                kind: kind,
+                filePath: filePath,
+                capturedAt: capturedAt,
+                contentHash: contentHash,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitId,
+                required String taxonRef,
+                required EvidenceKind kind,
+                required String filePath,
+                required DateTime capturedAt,
+                required String contentHash,
+                Value<int> rowid = const Value.absent(),
+              }) => EvidencesCompanion.insert(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                kind: kind,
+                filePath: filePath,
+                capturedAt: capturedAt,
+                contentHash: contentHash,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$EvidencesTable, EvidenceRow>(table),
+                  $$EvidencesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$EvidencesTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$EvidencesTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EvidencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EvidencesTable,
+      EvidenceRow,
+      $$EvidencesTableFilterComposer,
+      $$EvidencesTableOrderingComposer,
+      $$EvidencesTableAnnotationComposer,
+      $$EvidencesTableCreateCompanionBuilder,
+      $$EvidencesTableUpdateCompanionBuilder,
+      (EvidenceRow, $$EvidencesTableReferences),
+      EvidenceRow,
+      PrefetchHooks Function({bool visitId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2216,4 +3152,6 @@ class $AppDatabaseManager {
       $$VisitsTableTableManager(_db, _db.visits);
   $$DetectionsTableTableManager get detections =>
       $$DetectionsTableTableManager(_db, _db.detections);
+  $$EvidencesTableTableManager get evidences =>
+      $$EvidencesTableTableManager(_db, _db.evidences);
 }

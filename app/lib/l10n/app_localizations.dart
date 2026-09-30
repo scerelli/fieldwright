@@ -457,6 +457,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increment Account'**
   String get incrementAccount;
+
+  /// Evidence captured as a photo; tooltip of the photo capture affordance on a Detection.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get evidencePhoto;
+
+  /// Evidence captured as audio; tooltip of the audio capture affordance on a Detection.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get evidenceAudio;
+
+  /// Button that stops an in-progress audio recording for a Detection.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get evidenceStop;
+
+  /// Message shown when capturing photo or audio evidence fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not capture evidence. Try again.'**
+  String get evidenceCaptureFailed;
 }
 
 class _AppLocalizationsDelegate
