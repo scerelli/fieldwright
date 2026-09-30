@@ -8,7 +8,7 @@
 ## Languages & runtimes
 
 - **Dart 3.13** on **Flutter 3.47.5** (client).
-- **TypeScript 7** on **Node 24 LTS** (server).
+- **TypeScript 6.0** on **Node 24 LTS** (server).
 - **PostgreSQL 18** with **PostGIS** (latest 3.x built for PG 18) (server data).
 
 ## Frameworks & key libraries
@@ -36,7 +36,7 @@
 - **better-auth 1.7** — authentication on the Drizzle adapter (ADR-0003).
 - **class-validator 0.15** + **class-transformer 0.5** — request validation (NestJS default).
 - **@nestjs/swagger 12.0** — OpenAPI document for the client.
-- **oxlint 1.86** + **oxlint-tsgolint 7.0.2003** — the server linter (type-aware rules), matching NestJS 12's TypeScript 7 default.
+- **oxlint 1.86** + **oxlint-tsgolint 7.0.2003** — the server linter (type-aware rules), matching NestJS 12's default.
 
 ## Data layer
 
@@ -127,7 +127,6 @@ GitHub Actions, one job per package running the check-only commands above.
 - **Maps** — flutter_map + OSM; MapLibre (heavier), Google Maps (API key, conflicts with self-host) lost.
 - **State management** — Riverpod; Bloc (boilerplate), Provider (scales worst) lost.
 - **Server test runner** — Vitest; Jest (slower on TS), `node:test` (fewer features) lost.
-- **Server linter** — oxlint; ESLint (cannot lint TypeScript 7 — no compatible parser exists) lost.
 - **Repo layout** — `app/` + `server/` + `packages/protocol/` + `infra/` (the shared protocol package is added by ARCHITECTURE.md); separate repositories (cross-repo overhead) lost.
 - **Package manager** — pnpm; npm/yarn (slower, less strict) lost.
 
