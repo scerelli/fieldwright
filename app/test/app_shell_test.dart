@@ -47,19 +47,19 @@ void main() {
     (tester) async {
       await pumpApp(tester);
 
-      await tester.tap(navLabel('Visits'));
+      await tester.tap(navLabel('Account'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Increment Visits'));
-      await tester.tap(find.text('Increment Visits'));
+      await tester.tap(find.text('Increment Account'));
+      await tester.tap(find.text('Increment Account'));
       await tester.pump();
-      expect(find.text('Visits count: 2'), findsOneWidget);
+      expect(find.text('Account count: 2'), findsOneWidget);
 
       await tester.tap(navLabel('Projects'));
       await tester.pumpAndSettle();
-      await tester.tap(navLabel('Visits'));
+      await tester.tap(navLabel('Account'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Visits count: 2'), findsOneWidget);
+      expect(find.text('Account count: 2'), findsOneWidget);
     },
   );
 

@@ -113,12 +113,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get covariateMethodVisualEstimate => 'Visual estimate';
 
   @override
-  String visitsCount(int count) {
-    return 'Visits count: $count';
+  String get visitsEmptyTitle => 'No visits';
+
+  @override
+  String get visitsEmptyMessage => 'Start a visit from a site.';
+
+  @override
+  String get visitsSitesHeading => 'Sites';
+
+  @override
+  String get visitsListHeading => 'Visits';
+
+  @override
+  String get visitsStartVisit => 'Start visit';
+
+  @override
+  String get visitsEndVisit => 'End visit';
+
+  @override
+  String get visitsEndVisitTitle => 'End visit?';
+
+  @override
+  String get visitStateInProgress => 'In progress';
+
+  @override
+  String get visitStateEnded => 'Ended';
+
+  @override
+  String get captureTitle => 'Visit';
+
+  @override
+  String captureEffortStarted(String time) {
+    return 'Effort started: $time';
   }
 
   @override
-  String get incrementVisits => 'Increment Visits';
+  String captureState(String state) {
+    return 'State: $state';
+  }
 
   @override
   String accountCount(int count) {

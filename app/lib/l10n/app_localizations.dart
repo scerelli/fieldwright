@@ -302,17 +302,77 @@ abstract class AppLocalizations {
   /// **'Visual estimate'**
   String get covariateMethodVisualEstimate;
 
-  /// Placeholder counter shown on the Visits screen.
+  /// Title of the Visits screen empty state shown before any visit exists.
   ///
   /// In en, this message translates to:
-  /// **'Visits count: {count}'**
-  String visitsCount(int count);
+  /// **'No visits'**
+  String get visitsEmptyTitle;
 
-  /// Placeholder increment button on the Visits screen.
+  /// Message of the Visits screen empty state shown before any visit exists.
   ///
   /// In en, this message translates to:
-  /// **'Increment Visits'**
-  String get incrementVisits;
+  /// **'Start a visit from a site.'**
+  String get visitsEmptyMessage;
+
+  /// Heading of the sites a visit can be started at on the Visits screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sites'**
+  String get visitsSitesHeading;
+
+  /// Heading of the visits recorded on the Visits screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits'**
+  String get visitsListHeading;
+
+  /// Button that starts a visit at a site.
+  ///
+  /// In en, this message translates to:
+  /// **'Start visit'**
+  String get visitsStartVisit;
+
+  /// Button that ends an in-progress visit.
+  ///
+  /// In en, this message translates to:
+  /// **'End visit'**
+  String get visitsEndVisit;
+
+  /// Title of the confirmation dialog shown before ending a visit.
+  ///
+  /// In en, this message translates to:
+  /// **'End visit?'**
+  String get visitsEndVisitTitle;
+
+  /// Visit state label while the visit's effort timer is running.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get visitStateInProgress;
+
+  /// Visit state label once the collector has ended the visit.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get visitStateEnded;
+
+  /// Title of the capture screen for the in-progress visit.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit'**
+  String get captureTitle;
+
+  /// Label of the visit's effort start time on the capture screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Effort started: {time}'**
+  String captureEffortStarted(String time);
+
+  /// Label of the visit's lifecycle state on the capture screen.
+  ///
+  /// In en, this message translates to:
+  /// **'State: {state}'**
+  String captureState(String state);
 
   /// Placeholder counter shown on the Account screen.
   ///
