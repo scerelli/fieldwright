@@ -128,17 +128,17 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get navAccount;
 
-  /// Placeholder counter shown on the Projects screen.
+  /// Title of the Projects screen empty state shown when no project is configured.
   ///
   /// In en, this message translates to:
-  /// **'Projects count: {count}'**
-  String projectsCount(int count);
+  /// **'No project'**
+  String get projectsEmptyTitle;
 
-  /// Placeholder increment button on the Projects screen.
+  /// Message of the Projects screen empty state shown when no project is configured.
   ///
   /// In en, this message translates to:
-  /// **'Increment Projects'**
-  String get incrementProjects;
+  /// **'Create or join a project to get started.'**
+  String get projectsEmptyMessage;
 
   /// Placeholder counter shown on the Sites screen.
   ///
