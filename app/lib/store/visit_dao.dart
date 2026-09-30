@@ -74,6 +74,17 @@ class VisitDao {
     return rows.map(_toVisit).toList(growable: false);
   }
 
+  /// The Visits still in progress, most recently started first. The app
+  /// resumes the first of these on relaunch (UX-013).
+  Future<List<Visit>> inProgress() async {
+    final rows =
+        await (_database.select(_database.visits)
+              ..where((table) => table.state.equalsValue(VisitState.inProgress))
+              ..orderBy([(table) => OrderingTerm.desc(table.effortStartedAt)]))
+            .get();
+    return rows.map(_toVisit).toList(growable: false);
+  }
+
   VisitsCompanion _toCompanion(Visit visit) => VisitsCompanion.insert(
     id: visit.id,
     siteId: visit.siteId,

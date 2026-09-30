@@ -1,10 +1,14 @@
+import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:ibis/features/visits/capture_screen.dart';
 import 'package:ibis/features/visits/effort_timer.dart';
-import 'package:ibis/features/visits/visit.dart';
 import 'package:ibis/l10n/app_localizations.dart';
+import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/database_provider.dart';
+import 'package:ibis/store/visit_dao.dart';
 
 Widget _host(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -81,23 +85,28 @@ void main() {
   testWidgets(
     'the capture screen shows the persisted elapsed effort after a restart',
     (tester) async {
-      final visit = Visit(
-        id: 'visit-1',
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final startedAt = DateTime.utc(2026, 5, 1, 8, 0);
+      final visit = await VisitDao(database).startVisit(
         siteId: 'site-1',
         surveyPeriodId: 'survey-period-1',
         protocolVersionId: 'protocol-version-1',
-        state: VisitState.inProgress,
-        effort: SamplingEffort(startedAt: DateTime.utc(2026, 5, 1, 8, 0)),
+        now: startedAt,
       );
       var now = DateTime.utc(2026, 5, 1, 8, 30);
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: CaptureScreen(visit: visit, clock: () => now),
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(database)],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: CaptureScreen(visit: visit, clock: () => now),
+          ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('00:30:00'), findsOneWidget);
     },
