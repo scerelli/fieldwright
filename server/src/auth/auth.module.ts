@@ -16,8 +16,7 @@ import type { Request, Response } from 'express';
 import { DATABASE } from '../db/database.provider.js';
 import { DatabaseModule } from '../db/database.module.js';
 import * as schema from '../db/schema.js';
-
-export const AUTH = 'AUTH';
+import { AUTH, AuthGuard } from './auth.guard.js';
 
 export function createAuth(db: NodePgDatabase) {
   return betterAuth({
@@ -53,7 +52,9 @@ export class AuthController {
 @Module({
   imports: [DatabaseModule],
   controllers: [AuthController],
-  providers: [authProvider],
-  exports: [AUTH],
+  providers: [authProvider, AuthGuard],
+  exports: [AUTH, AuthGuard],
 })
 export class AuthModule {}
+
+export { AUTH };
