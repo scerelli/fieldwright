@@ -1,12 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'effort_timer.dart';
 import 'visit.dart';
 
 class CaptureScreen extends StatelessWidget {
-  const CaptureScreen({super.key, required this.visit});
+  const CaptureScreen({super.key, required this.visit, this.clock});
 
   final Visit visit;
+  final DateTime Function()? clock;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,12 @@ class CaptureScreen extends StatelessWidget {
                 visit.effort.startedAt.toIso8601String(),
               ),
               key: const Key('capture_effort_started'),
+            ),
+            const SizedBox(height: 8),
+            EffortTimer(
+              startedAt: visit.effort.startedAt,
+              endedAt: visit.effort.endedAt,
+              clock: clock,
             ),
           ],
         ),
