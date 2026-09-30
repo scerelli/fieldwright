@@ -420,4 +420,49 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get membershipRoleValidator => 'Validatore';
+
+  @override
+  String get surveyPeriodsTitle => 'Periodi di indagine';
+
+  @override
+  String get surveyPeriodsEmpty => 'Nessun periodo di indagine.';
+
+  @override
+  String get surveyPeriodsLoadFailed =>
+      'Impossibile caricare i periodi di indagine. Riprova.';
+
+  @override
+  String get surveyPeriodsAddHeading => 'Aggiungi periodo di indagine';
+
+  @override
+  String get surveyPeriodName => 'Nome';
+
+  @override
+  String get surveyPeriodStartDate => 'Data di inizio';
+
+  @override
+  String get surveyPeriodEndDate => 'Data di fine';
+
+  @override
+  String get surveyPeriodsAdd => 'Aggiungi periodo di indagine';
+
+  @override
+  String get surveyPeriodNameRequired => 'Inserisci un nome.';
+
+  @override
+  String get surveyPeriodStartRequired => 'Inserisci una data di inizio.';
+
+  @override
+  String get surveyPeriodEndRequired => 'Inserisci una data di fine.';
+
+  @override
+  String get surveyPeriodInvalidDate => 'Inserisci ogni data come AAAA-MM-GG.';
+
+  @override
+  String get surveyPeriodEndBeforeStart =>
+      'La data di fine non può precedere quella di inizio.';
+
+  @override
+  String get surveyPeriodsAddFailed =>
+      'Impossibile aggiungere il periodo di indagine. Riprova.';
 }

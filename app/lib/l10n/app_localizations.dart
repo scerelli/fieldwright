@@ -847,6 +847,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Validator'**
   String get membershipRoleValidator;
+
+  /// Title of the survey-periods screen listing a project's Survey periods.
+  ///
+  /// In en, this message translates to:
+  /// **'Survey periods'**
+  String get surveyPeriodsTitle;
+
+  /// Message shown when the project has no Survey periods.
+  ///
+  /// In en, this message translates to:
+  /// **'No survey periods yet.'**
+  String get surveyPeriodsEmpty;
+
+  /// Error shown when loading the Survey-period list fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the survey periods. Try again.'**
+  String get surveyPeriodsLoadFailed;
+
+  /// Heading of the add-Survey-period form shown to a project creator.
+  ///
+  /// In en, this message translates to:
+  /// **'Add survey period'**
+  String get surveyPeriodsAddHeading;
+
+  /// Label of the name field in the add-Survey-period form.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get surveyPeriodName;
+
+  /// Label of the start-date field in the add-Survey-period form.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get surveyPeriodStartDate;
+
+  /// Label of the end-date field in the add-Survey-period form.
+  ///
+  /// In en, this message translates to:
+  /// **'End date'**
+  String get surveyPeriodEndDate;
+
+  /// Button that adds the Survey period entered in the add-Survey-period form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add survey period'**
+  String get surveyPeriodsAdd;
+
+  /// Error shown when the Survey-period name is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name.'**
+  String get surveyPeriodNameRequired;
+
+  /// Error shown when the Survey-period start date is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a start date.'**
+  String get surveyPeriodStartRequired;
+
+  /// Error shown when the Survey-period end date is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an end date.'**
+  String get surveyPeriodEndRequired;
+
+  /// Error shown when a Survey-period date is not an ISO date.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter each date as YYYY-MM-DD.'**
+  String get surveyPeriodInvalidDate;
+
+  /// Error shown when a Survey period's end date precedes its start date.
+  ///
+  /// In en, this message translates to:
+  /// **'The end date cannot precede the start date.'**
+  String get surveyPeriodEndBeforeStart;
+
+  /// Error shown when adding a Survey period fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add the survey period. Try again.'**
+  String get surveyPeriodsAddFailed;
 }
 
 class _AppLocalizationsDelegate

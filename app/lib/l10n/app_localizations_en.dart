@@ -411,4 +411,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get membershipRoleValidator => 'Validator';
+
+  @override
+  String get surveyPeriodsTitle => 'Survey periods';
+
+  @override
+  String get surveyPeriodsEmpty => 'No survey periods yet.';
+
+  @override
+  String get surveyPeriodsLoadFailed =>
+      'Could not load the survey periods. Try again.';
+
+  @override
+  String get surveyPeriodsAddHeading => 'Add survey period';
+
+  @override
+  String get surveyPeriodName => 'Name';
+
+  @override
+  String get surveyPeriodStartDate => 'Start date';
+
+  @override
+  String get surveyPeriodEndDate => 'End date';
+
+  @override
+  String get surveyPeriodsAdd => 'Add survey period';
+
+  @override
+  String get surveyPeriodNameRequired => 'Enter a name.';
+
+  @override
+  String get surveyPeriodStartRequired => 'Enter a start date.';
+
+  @override
+  String get surveyPeriodEndRequired => 'Enter an end date.';
+
+  @override
+  String get surveyPeriodInvalidDate => 'Enter each date as YYYY-MM-DD.';
+
+  @override
+  String get surveyPeriodEndBeforeStart =>
+      'The end date cannot precede the start date.';
+
+  @override
+  String get surveyPeriodsAddFailed =>
+      'Could not add the survey period. Try again.';
 }
