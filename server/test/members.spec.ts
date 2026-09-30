@@ -7,7 +7,7 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -190,6 +190,59 @@ describe('Project members', () => {
     const body = (await response.json()) as { personId: string; role: string };
     expect(body.personId).toBe(target.id);
     expect(body.role).toBe('validator');
+  });
+
+  it('rejects adding an existing member with 409 and creates no second row', async () => {
+    const projectId = await newProject();
+    const target = await signUpAndSignIn('member-duplicate@example.com');
+    const db = app.get<NodePgDatabase>(DATABASE);
+
+    const first = await addMember(
+      projectId,
+      { email: 'member-duplicate@example.com', role: 'collector' },
+      { cookie: creatorCookie },
+    );
+    expect(first.status, await first.clone().text()).toBe(201);
+
+    const second = await addMember(
+      projectId,
+      { email: 'member-duplicate@example.com', role: 'collector' },
+      { cookie: creatorCookie },
+    );
+    expect(second.status, await second.clone().text()).toBe(409);
+
+    const rows = await db
+      .select()
+      .from(membership)
+      .where(
+        and(
+          eq(membership.projectId, projectId),
+          eq(membership.personId, target.id),
+        ),
+      );
+    expect(rows).toHaveLength(1);
+  });
+
+  it('lists each person once after a repeated add', async () => {
+    const projectId = await newProject();
+    const target = await signUpAndSignIn('member-once@example.com');
+
+    await addMember(
+      projectId,
+      { email: 'member-once@example.com', role: 'collector' },
+      { cookie: creatorCookie },
+    );
+    await addMember(
+      projectId,
+      { email: 'member-once@example.com', role: 'collector' },
+      { cookie: creatorCookie },
+    );
+
+    const response = await listMembers(projectId, { cookie: creatorCookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as Array<{ personId: string }>;
+    expect(body.filter((row) => row.personId === target.id)).toHaveLength(1);
   });
 
   it('rejects a non-creator member with 403 and stores nothing', async () => {
