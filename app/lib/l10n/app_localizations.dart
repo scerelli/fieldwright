@@ -422,6 +422,30 @@ abstract class AppLocalizations {
   /// **'All targets recorded'**
   String get visitAllTargetsRecorded;
 
+  /// Heading of the opportunistic taxa section on the capture screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Opportunistic taxa'**
+  String get opportunisticHeading;
+
+  /// Label of the abbreviation search field used to add an opportunistic taxon.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by abbreviation'**
+  String get opportunisticSearchLabel;
+
+  /// Message shown when no taxon abbreviation matches the search.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching taxa'**
+  String get opportunisticNoResults;
+
+  /// Label of an opportunistic Detection, which is presence-only and has no not-detected state.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected (opportunistic)'**
+  String get opportunisticPresenceOnly;
+
   /// Placeholder counter shown on the Account screen.
   ///
   /// In en, this message translates to:

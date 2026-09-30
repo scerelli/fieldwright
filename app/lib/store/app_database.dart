@@ -64,6 +64,9 @@ class Detections extends Table {
 
   BoolColumn get detected => boolean()();
 
+  BoolColumn get opportunistic =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {visitId, taxonRef};
 }
@@ -76,7 +79,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -93,6 +96,8 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await migrator.createTable(detections);
+      } else if (from < 6) {
+        await migrator.addColumn(detections, detections.opportunistic);
       }
     },
   );
