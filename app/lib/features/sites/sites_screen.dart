@@ -1,19 +1,11 @@
-import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../store/app_database.dart';
-import '../../store/site_dao.dart';
+import '../../store/database_provider.dart';
 import '../../widgets/empty_state.dart';
 import 'site.dart';
 import 'site_editor.dart';
-
-final siteDaoProvider = Provider<SiteDao>((ref) {
-  final database = AppDatabase(NativeDatabase.memory());
-  ref.onDispose(database.close);
-  return SiteDao(database);
-});
 
 class SitesScreen extends ConsumerStatefulWidget {
   const SitesScreen({super.key, this.projectId});
