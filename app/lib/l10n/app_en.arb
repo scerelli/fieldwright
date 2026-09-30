@@ -104,6 +104,38 @@
   "@siteDetailGeometry": {
     "description": "Label of the geometry shown in the site detail."
   },
+  "siteCovariatesTitle": "Site covariates",
+  "@siteCovariatesTitle": {
+    "description": "Heading of the site covariate entry shown for a site."
+  },
+  "siteCovariatesNone": "No site covariates defined by the protocol.",
+  "@siteCovariatesNone": {
+    "description": "Message shown when the protocol defines no site covariates."
+  },
+  "siteCovariatesMethod": "Method",
+  "@siteCovariatesMethod": {
+    "description": "Label of the provenance method selector for a site covariate value."
+  },
+  "siteCovariatesMissingMethod": "Select a method for each value.",
+  "@siteCovariatesMissingMethod": {
+    "description": "Error shown when a covariate value is entered without a provenance method."
+  },
+  "siteCovariatesSave": "Save covariates",
+  "@siteCovariatesSave": {
+    "description": "Button that saves the entered site covariate values."
+  },
+  "covariateMethodPhoneSensor": "Phone sensor",
+  "@covariateMethodPhoneSensor": {
+    "description": "Provenance method for a covariate read from a phone sensor."
+  },
+  "covariateMethodFieldInstrument": "Field instrument",
+  "@covariateMethodFieldInstrument": {
+    "description": "Provenance method for a covariate read from a field instrument."
+  },
+  "covariateMethodVisualEstimate": "Visual estimate",
+  "@covariateMethodVisualEstimate": {
+    "description": "Provenance method for a covariate entered as a visual estimate."
+  },
   "visitsCount": "Visits count: {count}",
   "@visitsCount": {
     "description": "Placeholder counter shown on the Visits screen.",

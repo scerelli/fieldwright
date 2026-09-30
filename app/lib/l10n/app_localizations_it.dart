@@ -90,6 +90,32 @@ class AppLocalizationsIt extends AppLocalizations {
   String get siteDetailGeometry => 'Geometria';
 
   @override
+  String get siteCovariatesTitle => 'Covariate del sito';
+
+  @override
+  String get siteCovariatesNone =>
+      'Il protocollo non definisce covariate del sito.';
+
+  @override
+  String get siteCovariatesMethod => 'Metodo';
+
+  @override
+  String get siteCovariatesMissingMethod =>
+      'Seleziona un metodo per ogni valore.';
+
+  @override
+  String get siteCovariatesSave => 'Salva covariate';
+
+  @override
+  String get covariateMethodPhoneSensor => 'Sensore del telefono';
+
+  @override
+  String get covariateMethodFieldInstrument => 'Strumento da campo';
+
+  @override
+  String get covariateMethodVisualEstimate => 'Stima visiva';
+
+  @override
   String visitsCount(int count) {
     return 'Conteggio visite: $count';
   }
