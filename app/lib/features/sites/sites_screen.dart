@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class SitesScreen extends StatefulWidget {
   const SitesScreen({super.key});
 
@@ -12,17 +14,19 @@ class _SitesScreenState extends State<SitesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Sites')),
+      appBar: AppBar(title: Text(l10n.navSites)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Sites count: $_count'),
+            Text(l10n.sitesCount(_count)),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => setState(() => _count++),
-              child: const Text('Increment Sites'),
+              child: Text(l10n.incrementSites),
             ),
           ],
         ),
