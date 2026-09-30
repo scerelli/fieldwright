@@ -49,17 +49,18 @@ void main() {
 
       await tester.tap(navLabel('Account'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Increment Account'));
-      await tester.tap(find.text('Increment Account'));
+      await tester.enterText(
+        find.byKey(const Key('auth_email')),
+        'field@example.com',
+      );
       await tester.pump();
-      expect(find.text('Account count: 2'), findsOneWidget);
 
       await tester.tap(navLabel('Projects'));
       await tester.pumpAndSettle();
       await tester.tap(navLabel('Account'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Account count: 2'), findsOneWidget);
+      expect(find.text('field@example.com'), findsOneWidget);
     },
   );
 

@@ -201,12 +201,25 @@ class AppLocalizationsIt extends AppLocalizations {
   String get opportunisticPresenceOnly => 'Rilevato (occasionale)';
 
   @override
-  String accountCount(int count) {
-    return 'Conteggio account: $count';
-  }
+  String get authEmail => 'Email';
 
   @override
-  String get incrementAccount => 'Incrementa account';
+  String get authPassword => 'Password';
+
+  @override
+  String get authSignIn => 'Accedi';
+
+  @override
+  String get authSignInFailed =>
+      'Accesso non riuscito. Controlla email e password.';
+
+  @override
+  String get authSignOut => 'Esci';
+
+  @override
+  String authSignedInAs(String name) {
+    return 'Accesso effettuato come $name';
+  }
 
   @override
   String get evidencePhoto => 'Foto';
