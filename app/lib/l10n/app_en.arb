@@ -363,5 +363,114 @@
   "projectEditorCreateFailed": "Could not create the project. Try again.",
   "@projectEditorCreateFailed": {
     "description": "Error shown when creating the project fails."
+  },
+  "protocolVersionTitle": "Protocol version",
+  "@protocolVersionTitle": {
+    "description": "Heading of the read-only view of a frozen Protocol version."
+  },
+  "protocolVersionNewTitle": "New protocol version",
+  "@protocolVersionNewTitle": {
+    "description": "Title of the form that defines a new Protocol version."
+  },
+  "protocolVersionProtocolId": "Protocol ID",
+  "@protocolVersionProtocolId": {
+    "description": "Label of the stable Protocol identity field in the protocol-version form."
+  },
+  "protocolVersionTaxonomicScope": "Taxonomic scope",
+  "@protocolVersionTaxonomicScope": {
+    "description": "Label of the taxonomic scope field in the protocol-version form."
+  },
+  "protocolVersionCompleteListMode": "Complete-list mode",
+  "@protocolVersionCompleteListMode": {
+    "description": "Label of the switch that leaves the target list undefined so the taxonomic scope defines the targets."
+  },
+  "protocolVersionTargetList": "Target list",
+  "@protocolVersionTargetList": {
+    "description": "Label of the target taxa field in the protocol-version form."
+  },
+  "protocolVersionDetectionMethods": "Detection methods",
+  "@protocolVersionDetectionMethods": {
+    "description": "Label of the allowed Detection methods field in the protocol-version form."
+  },
+  "protocolVersionRequiredEffort": "Required effort fields",
+  "@protocolVersionRequiredEffort": {
+    "description": "Heading of the required Sampling effort fields a Protocol version defines."
+  },
+  "protocolVersionVisitCovariates": "Visit covariates",
+  "@protocolVersionVisitCovariates": {
+    "description": "Label of the visit Covariate definitions field in the protocol-version form."
+  },
+  "protocolVersionSiteCovariates": "Site covariates",
+  "@protocolVersionSiteCovariates": {
+    "description": "Label of the Site Covariate definitions field in the protocol-version form."
+  },
+  "effortFieldStart": "Start",
+  "@effortFieldStart": {
+    "description": "Label of the Sampling effort field recording when the search started."
+  },
+  "effortFieldDuration": "Duration",
+  "@effortFieldDuration": {
+    "description": "Label of the Sampling effort field recording how long the search lasted."
+  },
+  "effortFieldObservers": "Observers",
+  "@effortFieldObservers": {
+    "description": "Label of the Sampling effort field recording who searched."
+  },
+  "effortFieldDetectionMethods": "Detection methods",
+  "@effortFieldDetectionMethods": {
+    "description": "Label of the Sampling effort field recording which Detection methods were used."
+  },
+  "protocolVersionSave": "Save protocol version",
+  "@protocolVersionSave": {
+    "description": "Button that defines the protocol version being edited."
+  },
+  "protocolVersionFrozen": "Frozen",
+  "@protocolVersionFrozen": {
+    "description": "Badge shown on a Protocol version referenced by a Visit, which is immutable (INV-007)."
+  },
+  "protocolVersionCreateNew": "Create a new version",
+  "@protocolVersionCreateNew": {
+    "description": "Button that starts a new Protocol version from a frozen one, since a frozen version never changes (INV-007)."
+  },
+  "protocolVersionVersion": "Version {version}",
+  "@protocolVersionVersion": {
+    "description": "Label showing a Protocol version's server-assigned version number.",
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "protocolVersionReadOnly": "This version is frozen and can no longer change. Create a new version to make changes.",
+  "@protocolVersionReadOnly": {
+    "description": "Explanation shown when a frozen Protocol version is read-only (INV-007)."
+  },
+  "protocolVersionProtocolIdRequired": "Enter a protocol ID.",
+  "@protocolVersionProtocolIdRequired": {
+    "description": "Error shown when the protocol ID is empty."
+  },
+  "protocolVersionScopeRequired": "Enter at least one taxon in scope.",
+  "@protocolVersionScopeRequired": {
+    "description": "Error shown when the taxonomic scope is empty."
+  },
+  "protocolVersionTargetListRequired": "Enter at least one target taxon or use complete-list mode.",
+  "@protocolVersionTargetListRequired": {
+    "description": "Error shown when a non-complete-list protocol has no target taxa."
+  },
+  "protocolVersionDetectionMethodsRequired": "Enter at least one detection method.",
+  "@protocolVersionDetectionMethodsRequired": {
+    "description": "Error shown when no Detection method is given."
+  },
+  "protocolVersionEffortRequired": "Select at least one required effort field.",
+  "@protocolVersionEffortRequired": {
+    "description": "Error shown when no required Sampling effort field is selected (INV-005)."
+  },
+  "protocolVersionInvalidCovariates": "Enter each covariate as name:type[:unit], or leave the field empty.",
+  "@protocolVersionInvalidCovariates": {
+    "description": "Error shown when a Covariate definition line cannot be parsed."
+  },
+  "protocolVersionCreateFailed": "Could not save the protocol version. Try again.",
+  "@protocolVersionCreateFailed": {
+    "description": "Error shown when defining the protocol version fails."
   }
 }

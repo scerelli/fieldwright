@@ -293,4 +293,92 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get projectEditorCreateFailed =>
       'Impossibile creare il progetto. Riprova.';
+
+  @override
+  String get protocolVersionTitle => 'Versione del protocollo';
+
+  @override
+  String get protocolVersionNewTitle => 'Nuova versione del protocollo';
+
+  @override
+  String get protocolVersionProtocolId => 'ID del protocollo';
+
+  @override
+  String get protocolVersionTaxonomicScope => 'Ambito tassonomico';
+
+  @override
+  String get protocolVersionCompleteListMode => 'Modalità elenco completo';
+
+  @override
+  String get protocolVersionTargetList => 'Lista dei taxa bersaglio';
+
+  @override
+  String get protocolVersionDetectionMethods => 'Metodi di rilevamento';
+
+  @override
+  String get protocolVersionRequiredEffort => 'Campi di sforzo obbligatori';
+
+  @override
+  String get protocolVersionVisitCovariates => 'Covariate della visita';
+
+  @override
+  String get protocolVersionSiteCovariates => 'Covariate del sito';
+
+  @override
+  String get effortFieldStart => 'Inizio';
+
+  @override
+  String get effortFieldDuration => 'Durata';
+
+  @override
+  String get effortFieldObservers => 'Osservatori';
+
+  @override
+  String get effortFieldDetectionMethods => 'Metodi di rilevamento';
+
+  @override
+  String get protocolVersionSave => 'Salva versione del protocollo';
+
+  @override
+  String get protocolVersionFrozen => 'Congelata';
+
+  @override
+  String get protocolVersionCreateNew => 'Crea una nuova versione';
+
+  @override
+  String protocolVersionVersion(int version) {
+    return 'Versione $version';
+  }
+
+  @override
+  String get protocolVersionReadOnly =>
+      'Questa versione è congelata e non può più cambiare. Crea una nuova versione per apportare modifiche.';
+
+  @override
+  String get protocolVersionProtocolIdRequired =>
+      'Inserisci un ID del protocollo.';
+
+  @override
+  String get protocolVersionScopeRequired =>
+      'Inserisci almeno un taxon nell\'ambito.';
+
+  @override
+  String get protocolVersionTargetListRequired =>
+      'Inserisci almeno un taxon bersaglio o usa la modalità elenco completo.';
+
+  @override
+  String get protocolVersionDetectionMethodsRequired =>
+      'Inserisci almeno un metodo di rilevamento.';
+
+  @override
+  String get protocolVersionEffortRequired =>
+      'Seleziona almeno un campo di sforzo obbligatorio.';
+
+  @override
+  String get protocolVersionInvalidCovariates =>
+      'Inserisci ogni covariata come nome:tipo[:unità], oppure lascia vuoto il campo.';
+
+  @override
+  String get protocolVersionCreateFailed =>
+      'Impossibile salvare la versione del protocollo. Riprova.';
 }

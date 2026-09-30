@@ -285,4 +285,91 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get projectEditorCreateFailed =>
       'Could not create the project. Try again.';
+
+  @override
+  String get protocolVersionTitle => 'Protocol version';
+
+  @override
+  String get protocolVersionNewTitle => 'New protocol version';
+
+  @override
+  String get protocolVersionProtocolId => 'Protocol ID';
+
+  @override
+  String get protocolVersionTaxonomicScope => 'Taxonomic scope';
+
+  @override
+  String get protocolVersionCompleteListMode => 'Complete-list mode';
+
+  @override
+  String get protocolVersionTargetList => 'Target list';
+
+  @override
+  String get protocolVersionDetectionMethods => 'Detection methods';
+
+  @override
+  String get protocolVersionRequiredEffort => 'Required effort fields';
+
+  @override
+  String get protocolVersionVisitCovariates => 'Visit covariates';
+
+  @override
+  String get protocolVersionSiteCovariates => 'Site covariates';
+
+  @override
+  String get effortFieldStart => 'Start';
+
+  @override
+  String get effortFieldDuration => 'Duration';
+
+  @override
+  String get effortFieldObservers => 'Observers';
+
+  @override
+  String get effortFieldDetectionMethods => 'Detection methods';
+
+  @override
+  String get protocolVersionSave => 'Save protocol version';
+
+  @override
+  String get protocolVersionFrozen => 'Frozen';
+
+  @override
+  String get protocolVersionCreateNew => 'Create a new version';
+
+  @override
+  String protocolVersionVersion(int version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get protocolVersionReadOnly =>
+      'This version is frozen and can no longer change. Create a new version to make changes.';
+
+  @override
+  String get protocolVersionProtocolIdRequired => 'Enter a protocol ID.';
+
+  @override
+  String get protocolVersionScopeRequired =>
+      'Enter at least one taxon in scope.';
+
+  @override
+  String get protocolVersionTargetListRequired =>
+      'Enter at least one target taxon or use complete-list mode.';
+
+  @override
+  String get protocolVersionDetectionMethodsRequired =>
+      'Enter at least one detection method.';
+
+  @override
+  String get protocolVersionEffortRequired =>
+      'Select at least one required effort field.';
+
+  @override
+  String get protocolVersionInvalidCovariates =>
+      'Enter each covariate as name:type[:unit], or leave the field empty.';
+
+  @override
+  String get protocolVersionCreateFailed =>
+      'Could not save the protocol version. Try again.';
 }
