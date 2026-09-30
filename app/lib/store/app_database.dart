@@ -2,10 +2,18 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../features/sites/site.dart';
 
 part 'app_database.g.dart';
+
+const appDatabaseFileName = 'ibis.sqlite';
+
+Future<AppDatabase> openAppDatabase() async {
+  final directory = await getApplicationSupportDirectory();
+  return AppDatabase.open('${directory.path}/$appDatabaseFileName');
+}
 
 @DataClassName('SiteRow')
 class Sites extends Table {
