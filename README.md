@@ -55,12 +55,30 @@ process sidebar — switch with the arrow keys, `r` restarts a process, `s`
 starts the on-demand `worker`. Processes: `api` (infra → migrations → Nest
 watch), `mobile` (emulator + `flutter run`), `db` (compose logs), `worker`.
 
+### Dev lifecycle
+
+`make dev` brings up `db` + `redis` (Docker) and the API runs migrations, then
+starts `api`, `mobile` and the `db` log tail; `worker` starts on demand with
+`s`.
+
+Press `q` to quit. mprocs stops `api`, `mobile` and `worker`, then exits
+without needing to close the terminal — each proc is declared
+`stop: "SIGKILL"`, so a child that ignores SIGTERM (the
+`docker compose logs -f` tail is the usual one) cannot hold the TUI open.
+Quitting leaves the **emulator** and **db + redis** running, so the next
+`make dev` reuses the emulator and the database.
+
+`make dev-stop` clears stuck dev processes: it kills any leftover mprocs, api,
+worker or `flutter run` while leaving the emulator and db/redis up.
+`make stop` then stops db + redis.
+
 ```bash
 make dev-one    # same stack in a single terminal, no TUI
 ```
 
 Other targets: `make infra`, `make migrate`, `make migrate-generate`,
-`make server`, `make worker`, `make android`, `make stop`, `make logs`.
+`make server`, `make worker`, `make android`, `make dev-stop`, `make stop`,
+`make logs`.
 
 Overrides (env or `make VAR=...`): `EMULATOR_ID`, `DEVICE`, `API_PORT`,
 `DATABASE_URL`, `REDIS_URL`. The dev database/redis are published on
