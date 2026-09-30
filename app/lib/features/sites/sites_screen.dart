@@ -2,17 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../protocol/protocol.dart';
 import '../../store/database_provider.dart';
+import '../../store/site_dao.dart';
 import '../../widgets/empty_state.dart';
 import 'field_site.dart';
 import 'site.dart';
+import 'site_covariates.dart';
 import 'site_editor.dart';
 import 'sites_map.dart';
 
 class SitesScreen extends ConsumerStatefulWidget {
-  const SitesScreen({super.key, this.projectId});
+  const SitesScreen({super.key, this.projectId, this.protocol});
 
   final String? projectId;
+  final ProtocolDocument? protocol;
 
   @override
   ConsumerState<SitesScreen> createState() => _SitesScreenState();
@@ -63,6 +67,35 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     }
   }
 
+  Future<void> _openCovariates(Site site) async {
+    final protocol = widget.protocol;
+    if (protocol == null) return;
+    final dao = ref.read(siteDaoProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SiteCovariatesSheet(
+        fields: siteCovariateFields(protocol),
+        initialValues: site.covariates,
+        onSave: (covariates) => _saveCovariates(dao, site, covariates),
+      ),
+    );
+  }
+
+  Future<void> _saveCovariates(
+    SiteDao dao,
+    Site site,
+    List<SiteCovariate> covariates,
+  ) async {
+    final updated = site.copyWith(covariates: covariates);
+    await dao.save(updated);
+    if (!mounted) return;
+    setState(() {
+      final index = _sites.indexWhere((candidate) => candidate.id == site.id);
+      if (index != -1) _sites[index] = updated;
+    });
+  }
+
   String _geometryLabel(AppLocalizations l10n, SiteGeometry geometry) =>
       switch (geometry) {
         PointGeometry() => l10n.siteGeometryPoint,
@@ -111,6 +144,9 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
                 return ListTile(
                   leading: const Icon(Icons.place_outlined),
                   title: Text(_geometryLabel(l10n, site.geometry)),
+                  onTap: widget.protocol == null
+                      ? null
+                      : () => _openCovariates(site),
                 );
               },
             ),

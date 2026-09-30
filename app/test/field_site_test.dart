@@ -190,7 +190,7 @@ void main() {
     },
   );
 
-  test('migrates a version 1 client schema to version 2 forward-only', () async {
+  test('migrates a version 1 client schema to version 3 forward-only', () async {
     final database = AppDatabase(
       NativeDatabase.memory(
         setup: (raw) {
@@ -218,12 +218,13 @@ CREATE TABLE sites (
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 2);
+    expect(version.data['user_version'], 3);
 
     final legacy = await SiteDao(database).findById('legacy');
     expect(legacy, isNotNull);
     expect(legacy!.origin, SiteOrigin.planned);
     expect(legacy.locationProvenance, isNull);
+    expect(legacy.covariates, isEmpty);
 
     final columns = await database
         .customSelect('PRAGMA table_info(sites)')
@@ -232,5 +233,6 @@ CREATE TABLE sites (
       columns.map((row) => row.data['name']),
       contains('location_provenance'),
     );
+    expect(columns.map((row) => row.data['name']), contains('covariates'));
   });
 }
