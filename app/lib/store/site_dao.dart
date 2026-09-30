@@ -32,6 +32,13 @@ class SiteDao {
     locationProvenance: site.locationProvenance == null
         ? const Value(null)
         : Value(jsonEncode(site.locationProvenance!.toJson())),
+    covariates: site.covariates.isEmpty
+        ? const Value(null)
+        : Value(
+            jsonEncode([
+              for (final covariate in site.covariates) covariate.toJson(),
+            ]),
+          ),
   );
 
   Site _toSite(SiteRow row) => Site(
@@ -47,5 +54,11 @@ class SiteDao {
         : SiteLocationProvenance.fromJson(
             jsonDecode(row.locationProvenance!) as Map<String, Object?>,
           ),
+    covariates: row.covariates == null
+        ? const []
+        : [
+            for (final item in jsonDecode(row.covariates!) as List)
+              SiteCovariate.fromJson((item as Map).cast<String, Object?>()),
+          ],
   );
 }

@@ -36,6 +36,71 @@ class SiteLocationProvenance {
   }
 }
 
+enum CovariateMethod { phoneSensor, fieldInstrument, visualEstimate }
+
+class CovariateProvenance {
+  const CovariateProvenance({required this.method});
+
+  final CovariateMethod method;
+
+  Map<String, Object?> toJson() => {'method': method.name};
+
+  static CovariateProvenance fromJson(Map<String, Object?> json) {
+    final method = json['method'];
+    if (method is! String) {
+      throw const FormatException('Malformed covariate provenance');
+    }
+    final parsed = CovariateMethod.values.firstWhere(
+      (candidate) => candidate.name == method,
+      orElse: () =>
+          throw FormatException('Unsupported covariate method: $method'),
+    );
+    return CovariateProvenance(method: parsed);
+  }
+}
+
+class SiteCovariate {
+  const SiteCovariate({
+    required this.name,
+    required this.value,
+    required this.provenance,
+    this.unit,
+  });
+
+  final String name;
+  final String value;
+  final String? unit;
+  final CovariateProvenance provenance;
+
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'value': value,
+    'unit': unit,
+    'provenance': provenance.toJson(),
+  };
+
+  static SiteCovariate fromJson(Map<String, Object?> json) {
+    final name = json['name'];
+    final value = json['value'];
+    final unit = json['unit'];
+    final provenance = json['provenance'];
+    if (name is! String ||
+        value is! String ||
+        (unit != null && unit is! String) ||
+        provenance is! Map) {
+      throw const FormatException('Malformed site covariate');
+    }
+    return SiteCovariate(
+      name: name,
+      value: value,
+      unit: unit as String?,
+      provenance: CovariateProvenance.fromJson(
+        provenance.cast<String, Object?>(),
+      ),
+    );
+  }
+}
+
 sealed class SiteGeometry {
   const SiteGeometry();
 
@@ -125,6 +190,7 @@ class Site {
     required this.origin,
     required this.createdAt,
     this.locationProvenance,
+    this.covariates = const [],
   });
 
   final String id;
@@ -133,4 +199,15 @@ class Site {
   final SiteOrigin origin;
   final DateTime createdAt;
   final SiteLocationProvenance? locationProvenance;
+  final List<SiteCovariate> covariates;
+
+  Site copyWith({List<SiteCovariate>? covariates}) => Site(
+    id: id,
+    projectId: projectId,
+    geometry: geometry,
+    origin: origin,
+    createdAt: createdAt,
+    locationProvenance: locationProvenance,
+    covariates: covariates ?? this.covariates,
+  );
 }

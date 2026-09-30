@@ -254,6 +254,54 @@ abstract class AppLocalizations {
   /// **'Geometry'**
   String get siteDetailGeometry;
 
+  /// Heading of the site covariate entry shown for a site.
+  ///
+  /// In en, this message translates to:
+  /// **'Site covariates'**
+  String get siteCovariatesTitle;
+
+  /// Message shown when the protocol defines no site covariates.
+  ///
+  /// In en, this message translates to:
+  /// **'No site covariates defined by the protocol.'**
+  String get siteCovariatesNone;
+
+  /// Label of the provenance method selector for a site covariate value.
+  ///
+  /// In en, this message translates to:
+  /// **'Method'**
+  String get siteCovariatesMethod;
+
+  /// Error shown when a covariate value is entered without a provenance method.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a method for each value.'**
+  String get siteCovariatesMissingMethod;
+
+  /// Button that saves the entered site covariate values.
+  ///
+  /// In en, this message translates to:
+  /// **'Save covariates'**
+  String get siteCovariatesSave;
+
+  /// Provenance method for a covariate read from a phone sensor.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone sensor'**
+  String get covariateMethodPhoneSensor;
+
+  /// Provenance method for a covariate read from a field instrument.
+  ///
+  /// In en, this message translates to:
+  /// **'Field instrument'**
+  String get covariateMethodFieldInstrument;
+
+  /// Provenance method for a covariate entered as a visual estimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual estimate'**
+  String get covariateMethodVisualEstimate;
+
   /// Placeholder counter shown on the Visits screen.
   ///
   /// In en, this message translates to:
