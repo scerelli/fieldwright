@@ -36,6 +36,13 @@
       "when": 1790769920095,
       "tag": "0004_protocol_version",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790773886701,
+      "tag": "0005_survey_period",
+      "breakpoints": true
     }
   ]
 }
