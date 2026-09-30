@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class VisitsScreen extends StatefulWidget {
   const VisitsScreen({super.key});
 
@@ -12,17 +14,19 @@ class _VisitsScreenState extends State<VisitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Visits')),
+      appBar: AppBar(title: Text(l10n.navVisits)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Visits count: $_count'),
+            Text(l10n.visitsCount(_count)),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => setState(() => _count++),
-              child: const Text('Increment Visits'),
+              child: Text(l10n.incrementVisits),
             ),
           ],
         ),

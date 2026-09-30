@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/router/app_router.dart';
 import 'package:ibis/shell/app_shell.dart';
 import 'package:ibis/theme/app_theme.dart';
@@ -21,6 +22,11 @@ Future<void> pumpShell(WidgetTester tester, Brightness brightness) async {
       themeMode: brightness == Brightness.dark
           ? ThemeMode.dark
           : ThemeMode.light,
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: container.read(goRouterProvider),
     ),
   );

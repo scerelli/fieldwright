@@ -1,36 +1,17 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../l10n/app_localizations.dart';
+
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
-  static const List<NavigationDestination> _destinations = [
-    NavigationDestination(
-      icon: Icon(Icons.folder_outlined),
-      selectedIcon: Icon(Icons.folder),
-      label: 'Projects',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.place_outlined),
-      selectedIcon: Icon(Icons.place),
-      label: 'Sites',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.assignment_outlined),
-      selectedIcon: Icon(Icons.assignment),
-      label: 'Visits',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.person_outline),
-      selectedIcon: Icon(Icons.person),
-      label: 'Account',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
@@ -39,7 +20,28 @@ class AppShell extends StatelessWidget {
           index,
           initialLocation: index == navigationShell.currentIndex,
         ),
-        destinations: _destinations,
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
+            label: l10n.navProjects,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.place_outlined),
+            selectedIcon: const Icon(Icons.place),
+            label: l10n.navSites,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.assignment_outlined),
+            selectedIcon: const Icon(Icons.assignment),
+            label: l10n.navVisits,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.navAccount,
+          ),
+        ],
       ),
     );
   }

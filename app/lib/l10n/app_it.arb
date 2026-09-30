@@ -1,0 +1,16 @@
+{
+  "@@locale": "it",
+  "appTitle": "IBIS",
+  "navProjects": "Progetti",
+  "navSites": "Siti",
+  "navVisits": "Visite",
+  "navAccount": "Account",
+  "projectsCount": "Conteggio progetti: {count}",
+  "incrementProjects": "Incrementa progetti",
+  "sitesCount": "Conteggio siti: {count}",
+  "incrementSites": "Incrementa siti",
+  "visitsCount": "Conteggio visite: {count}",
+  "incrementVisits": "Incrementa visite",
+  "accountCount": "Conteggio account: {count}",
+  "incrementAccount": "Incrementa account"
+}
