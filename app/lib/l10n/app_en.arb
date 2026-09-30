@@ -28,18 +28,61 @@
   "@projectsEmptyMessage": {
     "description": "Message of the Projects screen empty state shown when no project is configured."
   },
-  "sitesCount": "Sites count: {count}",
-  "@sitesCount": {
-    "description": "Placeholder counter shown on the Sites screen.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+  "sitesEmptyTitle": "No sites",
+  "@sitesEmptyTitle": {
+    "description": "Title of the Sites screen empty state shown before any site exists."
   },
-  "incrementSites": "Increment Sites",
-  "@incrementSites": {
-    "description": "Placeholder increment button on the Sites screen."
+  "sitesEmptyMessage": "Add a planned site to start.",
+  "@sitesEmptyMessage": {
+    "description": "Message of the Sites screen empty state shown before any site exists."
+  },
+  "sitesAddSite": "Add site",
+  "@sitesAddSite": {
+    "description": "Tooltip of the Sites screen button that opens the site editor."
+  },
+  "siteEditorNewTitle": "New site",
+  "@siteEditorNewTitle": {
+    "description": "Title of the site editor when creating a new site."
+  },
+  "siteEditorUpdateTitle": "Update site",
+  "@siteEditorUpdateTitle": {
+    "description": "Title of the site editor when changing an existing site."
+  },
+  "siteGeometryPoint": "Point",
+  "@siteGeometryPoint": {
+    "description": "Geometry kind option for a site drawn as a single point."
+  },
+  "siteGeometryLine": "Line",
+  "@siteGeometryLine": {
+    "description": "Geometry kind option for a site drawn as a line."
+  },
+  "siteGeometryPolygon": "Polygon",
+  "@siteGeometryPolygon": {
+    "description": "Geometry kind option for a site drawn as a polygon."
+  },
+  "siteEditorLatitude": "Latitude",
+  "@siteEditorLatitude": {
+    "description": "Label of a site vertex latitude field, in decimal degrees."
+  },
+  "siteEditorLongitude": "Longitude",
+  "@siteEditorLongitude": {
+    "description": "Label of a site vertex longitude field, in decimal degrees."
+  },
+  "siteEditorAddVertex": "Add point",
+  "@siteEditorAddVertex": {
+    "description": "Button that adds another vertex to a line or polygon site."
+  },
+  "siteEditorRemoveVertex": "Remove point",
+  "@siteEditorRemoveVertex": {
+    "description": "Button that removes a vertex from a line or polygon site."
+  },
+  "siteEditorSave": "Save site",
+  "@siteEditorSave": {
+    "description": "Button that saves the site being edited."
+  },
+  "siteEditorInvalidGeometry": "Enter a valid geometry.",
+  "@siteEditorInvalidGeometry": {
+    "description": "Error shown when the entered geometry cannot be saved."
   },
   "visitsCount": "Visits count: {count}",
   "@visitsCount": {

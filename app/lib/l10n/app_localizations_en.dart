@@ -31,12 +31,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectsEmptyMessage => 'Create or join a project to get started.';
 
   @override
-  String sitesCount(int count) {
-    return 'Sites count: $count';
-  }
+  String get sitesEmptyTitle => 'No sites';
 
   @override
-  String get incrementSites => 'Increment Sites';
+  String get sitesEmptyMessage => 'Add a planned site to start.';
+
+  @override
+  String get sitesAddSite => 'Add site';
+
+  @override
+  String get siteEditorNewTitle => 'New site';
+
+  @override
+  String get siteEditorUpdateTitle => 'Update site';
+
+  @override
+  String get siteGeometryPoint => 'Point';
+
+  @override
+  String get siteGeometryLine => 'Line';
+
+  @override
+  String get siteGeometryPolygon => 'Polygon';
+
+  @override
+  String get siteEditorLatitude => 'Latitude';
+
+  @override
+  String get siteEditorLongitude => 'Longitude';
+
+  @override
+  String get siteEditorAddVertex => 'Add point';
+
+  @override
+  String get siteEditorRemoveVertex => 'Remove point';
+
+  @override
+  String get siteEditorSave => 'Save site';
+
+  @override
+  String get siteEditorInvalidGeometry => 'Enter a valid geometry.';
 
   @override
   String visitsCount(int count) {

@@ -32,12 +32,46 @@ class AppLocalizationsIt extends AppLocalizations {
       'Crea o unisciti a un progetto per iniziare.';
 
   @override
-  String sitesCount(int count) {
-    return 'Conteggio siti: $count';
-  }
+  String get sitesEmptyTitle => 'Nessun sito';
 
   @override
-  String get incrementSites => 'Incrementa siti';
+  String get sitesEmptyMessage => 'Aggiungi un sito pianificato per iniziare.';
+
+  @override
+  String get sitesAddSite => 'Aggiungi sito';
+
+  @override
+  String get siteEditorNewTitle => 'Nuovo sito';
+
+  @override
+  String get siteEditorUpdateTitle => 'Aggiorna sito';
+
+  @override
+  String get siteGeometryPoint => 'Punto';
+
+  @override
+  String get siteGeometryLine => 'Linea';
+
+  @override
+  String get siteGeometryPolygon => 'Poligono';
+
+  @override
+  String get siteEditorLatitude => 'Latitudine';
+
+  @override
+  String get siteEditorLongitude => 'Longitudine';
+
+  @override
+  String get siteEditorAddVertex => 'Aggiungi punto';
+
+  @override
+  String get siteEditorRemoveVertex => 'Rimuovi punto';
+
+  @override
+  String get siteEditorSave => 'Salva sito';
+
+  @override
+  String get siteEditorInvalidGeometry => 'Inserisci una geometria valida.';
 
   @override
   String visitsCount(int count) {
