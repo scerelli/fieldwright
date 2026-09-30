@@ -1,0 +1,21 @@
+{
+  "protocolId": "alpine-birds-2026",
+  "version": 1,
+  "taxonomicScope": {
+    "taxa": ["Aves"]
+  },
+  "targetList": [
+    { "taxonRef": "Aves|Turdus|merula", "label": "Common blackbird" },
+    { "taxonRef": "Aves|Erithacus|rubecula", "label": "European robin" }
+  ],
+  "detectionMethods": [
+    { "id": "visual", "label": "Visual detection" },
+    { "id": "acoustic", "label": "Acoustic detection" }
+  ],
+  "requiredEffortFields": ["start", "duration", "observers", "detectionMethods"],
+  "visitCovariates": [
+    { "name": "windSpeed", "type": "number", "unit": "m/s" },
+    { "name": "weather", "type": "enum", "options": ["clear", "cloudy", "rain"] }
+  ],
+  "siteCovariates": [{ "name": "habitat", "type": "text" }]
+}
