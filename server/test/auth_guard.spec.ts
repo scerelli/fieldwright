@@ -24,7 +24,7 @@ import {
 } from '../src/auth/current-person.decorator.js';
 import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
-import { membership, type Membership } from '../src/db/schema.js';
+import { membership, project, type Membership } from '../src/db/schema.js';
 
 const serverRoot = fileURLToPath(new URL('..', import.meta.url));
 const drizzleKitBin = fileURLToPath(
@@ -161,7 +161,16 @@ describe('AuthGuard', () => {
 
   it('exposes the current person project Memberships when present', async () => {
     const db = app.get<NodePgDatabase>(DATABASE);
-    const projectId = crypto.randomUUID();
+    const [createdProject] = await db
+      .insert(project)
+      .values({
+        name: 'Survey',
+        settings: { validationEnabled: false, sensitiveTaxaObfuscation: false },
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      })
+      .returning();
+    const projectId = createdProject.id;
     await db.insert(membership).values({
       personId,
       projectId,
