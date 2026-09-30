@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
+import { HealthModule } from '../src/health/health.module.js';
 import { HealthService } from '../src/health/health.service.js';
 
 describe('health endpoints', () => {
@@ -10,7 +10,7 @@ describe('health endpoints', () => {
   let baseUrl: string;
 
   beforeEach(async () => {
-    app = await NestFactory.create(AppModule, { logger: false });
+    app = await NestFactory.create(HealthModule, { logger: false });
     await app.listen(0, '127.0.0.1');
     const server = app.getHttpServer() as Server;
     const address = server.address();
