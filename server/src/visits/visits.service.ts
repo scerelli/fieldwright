@@ -16,11 +16,12 @@
  * by the submission use case that calls this store, which holds the Protocol
  * version document; this service is the storage primitive beneath it.
  */
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE } from '../db/database.provider.js';
 import {
   detection,
+  determination,
   evidence,
   measurement,
   visit,
@@ -28,12 +29,22 @@ import {
   type Visit,
 } from '../db/schema.js';
 
+export interface StoreDeterminationInput {
+  taxon: string;
+  qualifier?: 'cf.' | 'aff.' | 'sp.' | null;
+  specimenCode?: string | null;
+  determiner: string;
+  date: string;
+  replacesIndex?: number | null;
+}
+
 export interface StoreDetectionInput {
   taxon: string;
   detected: boolean;
   method: string;
   count?: number | null;
   opportunistic?: boolean;
+  determinations?: StoreDeterminationInput[];
 }
 
 export interface StoreMeasurementInput {
@@ -109,6 +120,36 @@ export class VisitsService {
           )
           .returning({ id: detection.id });
         detectionIds.push(...rows.map((row) => row.id));
+      }
+
+      for (let i = 0; i < detections.length; i += 1) {
+        const entries = detections[i]!.determinations ?? [];
+        const determinationIds: string[] = [];
+        for (const entry of entries) {
+          const replacesIndex = entry.replacesIndex ?? null;
+          const replacesId =
+            replacesIndex === null
+              ? null
+              : (determinationIds[replacesIndex] ?? null);
+          if (replacesIndex !== null && replacesId === null) {
+            throw new BadRequestException(
+              `Determination replacesIndex ${replacesIndex} does not refer to a stored Determination`,
+            );
+          }
+          const [row] = await tx
+            .insert(determination)
+            .values({
+              detectionId: detectionIds[i]!,
+              taxon: entry.taxon,
+              qualifier: entry.qualifier ?? null,
+              specimenCode: entry.specimenCode ?? null,
+              determiner: entry.determiner,
+              date: entry.date,
+              replacesId,
+            })
+            .returning({ id: determination.id });
+          determinationIds.push(row!.id);
+        }
       }
 
       const ownerDetectionId = (index?: number | null): string | null =>
