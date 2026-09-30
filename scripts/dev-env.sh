@@ -47,3 +47,27 @@ dev_api_env() {
     BETTER_AUTH_URL="$DEV_BETTER_AUTH_URL" \
     "$@"
 }
+
+# Kill stuck dev processes: mprocs plus the api/worker scripts and `flutter run`
+# it started. Leaves the emulator (a detached qemu process) and the db/redis
+# containers alone — neither matches any pattern below.
+#
+# Each pattern brackets one letter so `pkill -f` cannot match this shell (or the
+# `make dev-stop` recipe) by its own command line. The dev-wrapper pattern names
+# the four scripts explicitly rather than `scripts/dev-`: the recipe sources
+# `scripts/dev-env.sh`, so a bare `scripts/dev-` would match and kill the very
+# shell running `dev-stop`. SIGTERM first for a clean stop, then SIGKILL for
+# anything that ignored it — which is the whole point of this escape hatch.
+dev_kill_dev_processes() {
+  local pats=(
+    "mproc[s]"
+    "scrip[t]s/dev(-backend|-android|-worker)?\.sh"
+    "nest.j[s] start --watch"
+    "flutter_tool[s].snapshot run"
+    "compos[e] logs -f"
+  )
+  local pat
+  for pat in "${pats[@]}"; do pkill -f "$pat" 2>/dev/null || true; done
+  sleep 1
+  for pat in "${pats[@]}"; do pkill -9 -f "$pat" 2>/dev/null || true; done
+}

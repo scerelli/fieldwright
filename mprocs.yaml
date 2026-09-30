@@ -1,13 +1,25 @@
 # Turborepo-like dev TUI: `make dev` (or `mprocs`). A process sidebar on the
 # left, output on the right. Switch with the arrow keys / number keys, restart
 # the selected process with `r`, start `worker` (off by default) with `s`.
+#
+# `stop: "SIGKILL"` on every proc is deliberate. On quit mprocs sends each
+# proc its `stop` signal and then waits, with no timeout and no SIGKILL
+# fallback, for the proc's whole process group to exit. A child that ignores
+# SIGTERM — the `docker compose logs -f` tail is the usual one — would hang the
+# TUI forever, forcing you to close the terminal. SIGKILL cannot be ignored, so
+# quitting always tears down api/mobile/worker and exits. The emulator is
+# launched detached (see scripts/dev-android.sh) and so survives the quit.
 procs:
   api:
     shell: "./scripts/dev-backend.sh"
+    stop: "SIGKILL"
   mobile:
     shell: "./scripts/dev-android.sh"
+    stop: "SIGKILL"
   db:
     shell: "docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml logs -f db redis"
+    stop: "SIGKILL"
   worker:
     shell: "./scripts/dev-worker.sh"
     autostart: false
+    stop: "SIGKILL"

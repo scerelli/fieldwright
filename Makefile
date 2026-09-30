@@ -4,7 +4,7 @@ SHELL := bash
 EMULATOR_ID ?= Medium_Phone_API_36.0
 API_PORT ?= 3000
 
-.PHONY: dev dev-one infra migrate migrate-generate server worker android kill-dev stop logs
+.PHONY: dev dev-one infra migrate migrate-generate server worker android dev-stop kill-dev stop logs
 
 ## Turborepo-like dev TUI: api + mobile (+ db logs; worker starts on demand).
 dev:
@@ -40,12 +40,13 @@ worker:
 android:
 	EMULATOR_ID=$(EMULATOR_ID) ./scripts/dev-android.sh
 
-## Kill any running dev processes (mprocs + api/mobile) without stopping db/redis.
-kill-dev:
-	@for pat in "mproc[s]" "scrip[t]s/dev-" "nest.j[s] start --watch" "flutter_tool[s].snapshot run" "compos[e] logs -f"; do \
-	  pkill -f "$$pat" 2>/dev/null || true; \
-	done
-	@echo "==> killed dev processes (db/redis untouched; 'make stop' stops them)"
+## Kill stuck dev processes (mprocs + api/worker/flutter), keep emulator + db.
+dev-stop:
+	@bash -c 'set -euo pipefail; . ./scripts/dev-env.sh; dev_kill_dev_processes'
+	@echo "==> killed dev processes (emulator + db/redis untouched; 'make stop' stops them)"
+
+## Deprecated alias for `dev-stop`.
+kill-dev: dev-stop
 
 ## Stop db + redis.
 stop:
