@@ -9,14 +9,37 @@ import 'effort_timer.dart';
 import 'measurement.dart';
 import 'sensor_service.dart';
 import 'visit.dart';
+import 'visit_recovery.dart';
 
-class CaptureScreen extends StatelessWidget {
+/// The Visit capture flow. It identifies its Visit by [visit] but renders the
+/// state read from the local store, so every change is persisted and no
+/// in-memory copy can drift from the store (UX-013).
+class CaptureScreen extends ConsumerWidget {
   const CaptureScreen({
     super.key,
     required this.visit,
     this.protocol,
     this.clock,
   });
+
+  /// The Visit this screen belongs to. Only its identity is used; the rendered
+  /// state comes from the store so a kill never leaves a stale copy on screen.
+  final Visit visit;
+  final ProtocolDocument? protocol;
+  final DateTime Function()? clock;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stored = ref.watch(captureVisitProvider(visit.id)).value;
+    if (stored == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return _CaptureView(visit: stored, protocol: protocol, clock: clock);
+  }
+}
+
+class _CaptureView extends StatelessWidget {
+  const _CaptureView({required this.visit, this.protocol, this.clock});
 
   final Visit visit;
   final ProtocolDocument? protocol;
