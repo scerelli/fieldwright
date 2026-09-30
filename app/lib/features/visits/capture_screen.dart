@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
+import '../../store/database_provider.dart';
 import '../../store/measurement_dao.dart';
 import 'detection_list.dart';
 import 'effort_timer.dart';
@@ -38,7 +39,7 @@ class CaptureScreen extends ConsumerWidget {
   }
 }
 
-class _CaptureView extends StatelessWidget {
+class _CaptureView extends ConsumerWidget {
   const _CaptureView({required this.visit, this.protocol, this.clock});
 
   final Visit visit;
@@ -46,7 +47,7 @@ class _CaptureView extends StatelessWidget {
   final DateTime Function()? clock;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final stateLabel = visit.isEnded
         ? l10n.visitStateEnded
@@ -55,7 +56,17 @@ class _CaptureView extends StatelessWidget {
         protocol?.visitCovariates ?? const <CovariateDefinition>[];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.captureTitle)),
+      appBar: AppBar(
+        title: Text(l10n.captureTitle),
+        actions: [
+          if (visit.isEnded)
+            IconButton(
+              key: const Key('submit_visit'),
+              onPressed: () => ref.read(outboxProvider).submit(visit),
+              icon: const Icon(Icons.cloud_upload_outlined),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

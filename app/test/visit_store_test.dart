@@ -139,7 +139,7 @@ void main() {
   );
 
   test(
-    'migrates a version 3 client schema to version 8 forward-only',
+    'migrates a version 3 client schema to version 9 forward-only',
     () async {
       final database = AppDatabase(
         NativeDatabase.memory(
@@ -165,7 +165,7 @@ CREATE TABLE sites (
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 8);
+      expect(version.data['user_version'], 9);
 
       final tables = await database
           .customSelect(
@@ -173,6 +173,13 @@ CREATE TABLE sites (
           )
           .get();
       expect(tables, hasLength(1));
+
+      final outbox = await database
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'outbox_entries'",
+          )
+          .get();
+      expect(outbox, hasLength(1));
 
       final dao = VisitDao(database);
       final visit = await dao.startVisit(
