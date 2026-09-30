@@ -13,6 +13,7 @@
  */
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -282,6 +283,40 @@ export const detection = pgTable(
 );
 
 export type Detection = typeof detection.$inferSelect;
+
+/**
+ * Determination qualifier (DOMAIN.md): the uncertainty qualifier a
+ * Determination may carry (`cf.`, `aff.`, `sp.`).
+ */
+export const determinationQualifier = pgEnum('determination_qualifier', [
+  'cf.',
+  'aff.',
+  'sp.',
+]);
+
+/**
+ * Determination (DOMAIN.md): a taxon assignment for a Detection, carrying its
+ * qualifier, specimen code, determiner and date. Append-only (INV-009): a
+ * revision is a new row whose `replaces_id` links to the one it replaces;
+ * there is no update path, so nothing is overwritten.
+ */
+export const determination = pgTable('determination', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  detectionId: uuid('detection_id')
+    .notNull()
+    .references(() => detection.id, { onDelete: 'cascade' }),
+  taxon: text('taxon').notNull(),
+  qualifier: determinationQualifier('qualifier'),
+  specimenCode: text('specimen_code'),
+  determiner: text('determiner').notNull(),
+  date: date('date').notNull(),
+  replacesId: uuid('replaces_id').references(
+    (): AnyPgColumn => determination.id,
+    { onDelete: 'set null' },
+  ),
+});
+
+export type Determination = typeof determination.$inferSelect;
 
 /**
  * Measurement provenance (DOMAIN.md): how a Measurement was obtained. A

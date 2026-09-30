@@ -41,6 +41,32 @@ import {
   type StoreSubmittedVisitInput,
 } from './visits.service.js';
 
+export class DeterminationDto {
+  @IsString()
+  @IsNotEmpty()
+  taxon!: string;
+
+  @IsOptional()
+  @IsIn(['cf.', 'aff.', 'sp.'])
+  qualifier?: 'cf.' | 'aff.' | 'sp.';
+
+  @IsOptional()
+  @IsString()
+  specimenCode?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  determiner!: string;
+
+  @IsISO8601()
+  date!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  replacesIndex?: number;
+}
+
 export class DetectionDto {
   @IsString()
   @IsNotEmpty()
@@ -61,6 +87,12 @@ export class DetectionDto {
   @IsOptional()
   @IsBoolean()
   opportunistic?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DeterminationDto)
+  determinations?: DeterminationDto[];
 }
 
 export class MeasurementDto {
@@ -223,6 +255,14 @@ function toStoreInput(dto: SubmitVisitDto): StoreSubmittedVisitInput {
       method: entry.method,
       count: entry.count ?? null,
       opportunistic: entry.opportunistic ?? false,
+      determinations: entry.determinations?.map((determinationEntry) => ({
+        taxon: determinationEntry.taxon,
+        qualifier: determinationEntry.qualifier ?? null,
+        specimenCode: determinationEntry.specimenCode ?? null,
+        determiner: determinationEntry.determiner,
+        date: determinationEntry.date,
+        replacesIndex: determinationEntry.replacesIndex ?? null,
+      })),
     })),
     measurements: dto.measurements?.map((entry) => ({
       detectionIndex: entry.detectionIndex ?? null,
