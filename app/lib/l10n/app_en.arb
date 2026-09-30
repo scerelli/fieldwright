@@ -472,5 +472,57 @@
   "protocolVersionCreateFailed": "Could not save the protocol version. Try again.",
   "@protocolVersionCreateFailed": {
     "description": "Error shown when defining the protocol version fails."
+  },
+  "membersTitle": "Members",
+  "@membersTitle": {
+    "description": "Title of the members screen listing a project's members."
+  },
+  "membersEmpty": "No members yet.",
+  "@membersEmpty": {
+    "description": "Message shown when the project has no members."
+  },
+  "membersLoadFailed": "Could not load the members. Try again.",
+  "@membersLoadFailed": {
+    "description": "Error shown when loading the member list fails."
+  },
+  "membersAddHeading": "Add member",
+  "@membersAddHeading": {
+    "description": "Heading of the add-member form shown to a project creator."
+  },
+  "membersEmail": "Email",
+  "@membersEmail": {
+    "description": "Label of the email field in the add-member form."
+  },
+  "membersRole": "Role",
+  "@membersRole": {
+    "description": "Label of the role selector in the add-member form."
+  },
+  "membersAdd": "Add member",
+  "@membersAdd": {
+    "description": "Button that adds the member entered in the add-member form."
+  },
+  "membersEmailRequired": "Enter a valid email.",
+  "@membersEmailRequired": {
+    "description": "Error shown when the add-member email is empty or malformed."
+  },
+  "membersRoleRequired": "Select a role.",
+  "@membersRoleRequired": {
+    "description": "Error shown when no role is selected in the add-member form."
+  },
+  "membersAddFailed": "Could not add the member. Try again.",
+  "@membersAddFailed": {
+    "description": "Error shown when adding a member fails."
+  },
+  "membershipRoleCreator": "Creator",
+  "@membershipRoleCreator": {
+    "description": "Label of the Membership role assigned to a project's creator."
+  },
+  "membershipRoleCollector": "Collector",
+  "@membershipRoleCollector": {
+    "description": "Label of the Membership collector role."
+  },
+  "membershipRoleValidator": "Validator",
+  "@membershipRoleValidator": {
+    "description": "Label of the Membership validator role."
   }
 }

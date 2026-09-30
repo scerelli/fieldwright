@@ -111,5 +111,18 @@
   "protocolVersionDetectionMethodsRequired": "Inserisci almeno un metodo di rilevamento.",
   "protocolVersionEffortRequired": "Seleziona almeno un campo di sforzo obbligatorio.",
   "protocolVersionInvalidCovariates": "Inserisci ogni covariata come nome:tipo[:unità], oppure lascia vuoto il campo.",
-  "protocolVersionCreateFailed": "Impossibile salvare la versione del protocollo. Riprova."
+  "protocolVersionCreateFailed": "Impossibile salvare la versione del protocollo. Riprova.",
+  "membersTitle": "Membri",
+  "membersEmpty": "Nessun membro.",
+  "membersLoadFailed": "Impossibile caricare i membri. Riprova.",
+  "membersAddHeading": "Aggiungi membro",
+  "membersEmail": "Email",
+  "membersRole": "Ruolo",
+  "membersAdd": "Aggiungi membro",
+  "membersEmailRequired": "Inserisci un'email valida.",
+  "membersRoleRequired": "Seleziona un ruolo.",
+  "membersAddFailed": "Impossibile aggiungere il membro. Riprova.",
+  "membershipRoleCreator": "Creatore",
+  "membershipRoleCollector": "Raccoglitore",
+  "membershipRoleValidator": "Validatore"
 }

@@ -769,6 +769,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not save the protocol version. Try again.'**
   String get protocolVersionCreateFailed;
+
+  /// Title of the members screen listing a project's members.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get membersTitle;
+
+  /// Message shown when the project has no members.
+  ///
+  /// In en, this message translates to:
+  /// **'No members yet.'**
+  String get membersEmpty;
+
+  /// Error shown when loading the member list fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the members. Try again.'**
+  String get membersLoadFailed;
+
+  /// Heading of the add-member form shown to a project creator.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get membersAddHeading;
+
+  /// Label of the email field in the add-member form.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get membersEmail;
+
+  /// Label of the role selector in the add-member form.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get membersRole;
+
+  /// Button that adds the member entered in the add-member form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get membersAdd;
+
+  /// Error shown when the add-member email is empty or malformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email.'**
+  String get membersEmailRequired;
+
+  /// Error shown when no role is selected in the add-member form.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a role.'**
+  String get membersRoleRequired;
+
+  /// Error shown when adding a member fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add the member. Try again.'**
+  String get membersAddFailed;
+
+  /// Label of the Membership role assigned to a project's creator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator'**
+  String get membershipRoleCreator;
+
+  /// Label of the Membership collector role.
+  ///
+  /// In en, this message translates to:
+  /// **'Collector'**
+  String get membershipRoleCollector;
+
+  /// Label of the Membership validator role.
+  ///
+  /// In en, this message translates to:
+  /// **'Validator'**
+  String get membershipRoleValidator;
 }
 
 class _AppLocalizationsDelegate
