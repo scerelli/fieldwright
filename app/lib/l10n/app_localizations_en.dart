@@ -197,12 +197,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get opportunisticPresenceOnly => 'Detected (opportunistic)';
 
   @override
-  String accountCount(int count) {
-    return 'Account count: $count';
-  }
+  String get authEmail => 'Email';
 
   @override
-  String get incrementAccount => 'Increment Account';
+  String get authPassword => 'Password';
+
+  @override
+  String get authSignIn => 'Sign in';
+
+  @override
+  String get authSignInFailed =>
+      'Sign-in failed. Check your email and password.';
+
+  @override
+  String get authSignOut => 'Sign out';
+
+  @override
+  String authSignedInAs(String name) {
+    return 'Signed in as $name';
+  }
 
   @override
   String get evidencePhoto => 'Photo';

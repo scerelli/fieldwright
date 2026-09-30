@@ -247,18 +247,34 @@
   "@opportunisticPresenceOnly": {
     "description": "Label of an opportunistic Detection, which is presence-only and has no not-detected state."
   },
-  "accountCount": "Account count: {count}",
-  "@accountCount": {
-    "description": "Placeholder counter shown on the Account screen.",
+  "authEmail": "Email",
+  "@authEmail": {
+    "description": "Label of the email field on the Account sign-in form."
+  },
+  "authPassword": "Password",
+  "@authPassword": {
+    "description": "Label of the password field on the Account sign-in form."
+  },
+  "authSignIn": "Sign in",
+  "@authSignIn": {
+    "description": "Button that submits the sign-in form."
+  },
+  "authSignInFailed": "Sign-in failed. Check your email and password.",
+  "@authSignInFailed": {
+    "description": "Error shown on the Account screen when sign-in is rejected."
+  },
+  "authSignOut": "Sign out",
+  "@authSignOut": {
+    "description": "Button that ends the signed-in state and returns to the form."
+  },
+  "authSignedInAs": "Signed in as {name}",
+  "@authSignedInAs": {
+    "description": "Shows the name of the signed-in person on the Account screen.",
     "placeholders": {
-      "count": {
-        "type": "int"
+      "name": {
+        "type": "String"
       }
     }
-  },
-  "incrementAccount": "Increment Account",
-  "@incrementAccount": {
-    "description": "Placeholder increment button on the Account screen."
   },
   "evidencePhoto": "Photo",
   "@evidencePhoto": {

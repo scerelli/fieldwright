@@ -446,17 +446,41 @@ abstract class AppLocalizations {
   /// **'Detected (opportunistic)'**
   String get opportunisticPresenceOnly;
 
-  /// Placeholder counter shown on the Account screen.
+  /// Label of the email field on the Account sign-in form.
   ///
   /// In en, this message translates to:
-  /// **'Account count: {count}'**
-  String accountCount(int count);
+  /// **'Email'**
+  String get authEmail;
 
-  /// Placeholder increment button on the Account screen.
+  /// Label of the password field on the Account sign-in form.
   ///
   /// In en, this message translates to:
-  /// **'Increment Account'**
-  String get incrementAccount;
+  /// **'Password'**
+  String get authPassword;
+
+  /// Button that submits the sign-in form.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authSignIn;
+
+  /// Error shown on the Account screen when sign-in is rejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in failed. Check your email and password.'**
+  String get authSignInFailed;
+
+  /// Button that ends the signed-in state and returns to the form.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get authSignOut;
+
+  /// Shows the name of the signed-in person on the Account screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {name}'**
+  String authSignedInAs(String name);
 
   /// Evidence captured as a photo; tooltip of the photo capture affordance on a Detection.
   ///
