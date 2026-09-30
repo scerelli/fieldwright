@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/scerelli/fieldwright/packages/protocol/schema/protocol.schema.json",
+  "title": "Protocol",
+  "description": "The versioned protocol document shared by app/ and server/ (ADR-0009): taxonomic scope, target list or complete-list mode, allowed detection methods, and required effort and covariate fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolId",
+    "version",
+    "taxonomicScope",
+    "detectionMethods",
+    "requiredEffortFields"
+  ],
+  "properties": {
+    "protocolId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identity of the Protocol across its versions."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version number of this Protocol version."
+    },
+    "taxonomicScope": {
+      "$ref": "#/$defs/TaxonomicScope"
+    },
+    "targetList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/TargetTaxon"
+      },
+      "description": "The taxa a Visit must record a Detection for. Omit it for complete-list mode, where the taxonomic scope defines them."
+    },
+    "detectionMethods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/DetectionMethod"
+      },
+      "description": "The Detection methods a Visit may choose from."
+    },
+    "requiredEffortFields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/SamplingEffortField"
+      },
+      "description": "The Sampling effort fields a Visit must record."
+    },
+    "visitCovariates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CovariateDefinition"
+      },
+      "description": "Covariate definitions a Visit value set must carry."
+    },
+    "siteCovariates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CovariateDefinition"
+      },
+      "description": "Covariate definitions a Site value set must carry."
+    }
+  },
+  "$defs": {
+    "TaxonomicScope": {
+      "title": "TaxonomicScope",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taxa"],
+      "properties": {
+        "taxa": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Taxon identifiers in scope, resolvable against the Project's pinned Taxonomic reference (INV-008)."
+        }
+      }
+    },
+    "TargetTaxon": {
+      "title": "TargetTaxon",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taxonRef"],
+      "properties": {
+        "taxonRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DetectionMethod": {
+      "title": "DetectionMethod",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SamplingEffortField": {
+      "title": "SamplingEffortField",
+      "type": "string",
+      "enum": ["start", "duration", "observers", "detectionMethods"],
+      "description": "A Sampling effort field a Protocol version may require (INV-005)."
+    },
+    "CovariateDefinition": {
+      "title": "CovariateDefinition",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": ["number", "text", "boolean", "date", "enum"]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "$ref": "#/$defs/CovariateOptions"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["options"],
+            "properties": {
+              "options": {
+                "$ref": "#/$defs/CovariateOptions"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CovariateOptions": {
+      "title": "CovariateOptions",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Allowed values when a Covariate definition's type is \"enum\"."
+    }
+  }
+}
