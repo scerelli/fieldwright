@@ -976,16 +976,293 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
   }
 }
 
+class $DetectionsTable extends Detections
+    with TableInfo<$DetectionsTable, DetectionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DetectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  static const VerificationMeta _taxonRefMeta = const VerificationMeta(
+    'taxonRef',
+  );
+  @override
+  late final GeneratedColumn<String> taxonRef = GeneratedColumn<String>(
+    'taxon_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detectedMeta = const VerificationMeta(
+    'detected',
+  );
+  @override
+  late final GeneratedColumn<bool> detected = GeneratedColumn<bool>(
+    'detected',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("detected" IN (0, 1))',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visitId, taxonRef, detected];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'detections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DetectionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('taxon_ref')) {
+      context.handle(
+        _taxonRefMeta,
+        taxonRef.isAcceptableOrUnknown(data['taxon_ref']!, _taxonRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonRefMeta);
+    }
+    if (data.containsKey('detected')) {
+      context.handle(
+        _detectedMeta,
+        detected.isAcceptableOrUnknown(data['detected']!, _detectedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_detectedMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visitId, taxonRef};
+  @override
+  DetectionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DetectionRow(
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      taxonRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon_ref'],
+      )!,
+      detected: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}detected'],
+      )!,
+    );
+  }
+
+  @override
+  $DetectionsTable createAlias(String alias) {
+    return $DetectionsTable(attachedDatabase, alias);
+  }
+}
+
+class DetectionRow extends DataClass implements Insertable<DetectionRow> {
+  final String visitId;
+  final String taxonRef;
+  final bool detected;
+  const DetectionRow({
+    required this.visitId,
+    required this.taxonRef,
+    required this.detected,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visit_id'] = Variable<String>(visitId);
+    map['taxon_ref'] = Variable<String>(taxonRef);
+    map['detected'] = Variable<bool>(detected);
+    return map;
+  }
+
+  DetectionsCompanion toCompanion(bool nullToAbsent) {
+    return DetectionsCompanion(
+      visitId: Value(visitId),
+      taxonRef: Value(taxonRef),
+      detected: Value(detected),
+    );
+  }
+
+  factory DetectionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DetectionRow(
+      visitId: serializer.fromJson<String>(json['visitId']),
+      taxonRef: serializer.fromJson<String>(json['taxonRef']),
+      detected: serializer.fromJson<bool>(json['detected']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visitId': serializer.toJson<String>(visitId),
+      'taxonRef': serializer.toJson<String>(taxonRef),
+      'detected': serializer.toJson<bool>(detected),
+    };
+  }
+
+  DetectionRow copyWith({String? visitId, String? taxonRef, bool? detected}) =>
+      DetectionRow(
+        visitId: visitId ?? this.visitId,
+        taxonRef: taxonRef ?? this.taxonRef,
+        detected: detected ?? this.detected,
+      );
+  DetectionRow copyWithCompanion(DetectionsCompanion data) {
+    return DetectionRow(
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
+      detected: data.detected.present ? data.detected.value : this.detected,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectionRow(')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('detected: $detected')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visitId, taxonRef, detected);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DetectionRow &&
+          other.visitId == this.visitId &&
+          other.taxonRef == this.taxonRef &&
+          other.detected == this.detected);
+}
+
+class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
+  final Value<String> visitId;
+  final Value<String> taxonRef;
+  final Value<bool> detected;
+  final Value<int> rowid;
+  const DetectionsCompanion({
+    this.visitId = const Value.absent(),
+    this.taxonRef = const Value.absent(),
+    this.detected = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DetectionsCompanion.insert({
+    required String visitId,
+    required String taxonRef,
+    required bool detected,
+    this.rowid = const Value.absent(),
+  }) : visitId = Value(visitId),
+       taxonRef = Value(taxonRef),
+       detected = Value(detected);
+  static Insertable<DetectionRow> custom({
+    Expression<String>? visitId,
+    Expression<String>? taxonRef,
+    Expression<bool>? detected,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visitId != null) 'visit_id': visitId,
+      if (taxonRef != null) 'taxon_ref': taxonRef,
+      if (detected != null) 'detected': detected,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DetectionsCompanion copyWith({
+    Value<String>? visitId,
+    Value<String>? taxonRef,
+    Value<bool>? detected,
+    Value<int>? rowid,
+  }) {
+    return DetectionsCompanion(
+      visitId: visitId ?? this.visitId,
+      taxonRef: taxonRef ?? this.taxonRef,
+      detected: detected ?? this.detected,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (taxonRef.present) {
+      map['taxon_ref'] = Variable<String>(taxonRef.value);
+    }
+    if (detected.present) {
+      map['detected'] = Variable<bool>(detected.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectionsCompanion(')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('detected: $detected, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SitesTable sites = $SitesTable(this);
   late final $VisitsTable visits = $VisitsTable(this);
+  late final $DetectionsTable detections = $DetectionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [sites, visits];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    sites,
+    visits,
+    detections,
+  ];
 }
 
 typedef $$SitesTableCreateCompanionBuilder = SitesCompanion Function({
@@ -1252,6 +1529,29 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<int> rowid,
 });
 
+final class $$VisitsTableReferences
+    extends BaseReferences<_$AppDatabase, $VisitsTable, VisitRow> {
+  $$VisitsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$DetectionsTable, List<DetectionRow>>
+  _detectionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.detections,
+    aliasName: 'visits__id__detections__visit_id',
+  );
+
+  $$DetectionsTableProcessedTableManager get detectionsRefs {
+    final manager = $$DetectionsTableTableManager(
+      $_db,
+      $_db.detections,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_detectionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$VisitsTableFilterComposer
     extends Composer<_$AppDatabase, $VisitsTable> {
   $$VisitsTableFilterComposer({
@@ -1296,6 +1596,31 @@ class $$VisitsTableFilterComposer
     column: $table.effortEndedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> detectionsRefs(
+    Expression<bool> Function($$DetectionsTableFilterComposer f) f,
+  ) {
+    final $$DetectionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detections,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectionsTableFilterComposer(
+            $db: $db,
+            $table: $db.detections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableOrderingComposer
@@ -1380,6 +1705,31 @@ class $$VisitsTableAnnotationComposer
     column: $table.effortEndedAt,
     builder: (column) => column,
   );
+
+  Expression<T> detectionsRefs<T extends Object>(
+    Expression<T> Function($$DetectionsTableAnnotationComposer a) f,
+  ) {
+    final $$DetectionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detections,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.detections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableTableManager
@@ -1393,9 +1743,9 @@ class $$VisitsTableTableManager
           $$VisitsTableAnnotationComposer,
           $$VisitsTableCreateCompanionBuilder,
           $$VisitsTableUpdateCompanionBuilder,
-          (VisitRow, BaseReferences<_$AppDatabase, $VisitsTable, VisitRow>),
+          (VisitRow, $$VisitsTableReferences),
           VisitRow,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool detectionsRefs})
         > {
   $$VisitsTableTableManager(_$AppDatabase db, $VisitsTable table)
     : super(
@@ -1452,15 +1802,36 @@ class $$VisitsTableTableManager
               .map(
                 (e) => (
                   e.readTable<$VisitsTable, VisitRow>(table),
-                  BaseReferences<_$AppDatabase, $VisitsTable, VisitRow>(
-                    db,
-                    table,
-                    e,
-                  ),
+                  $$VisitsTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({detectionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (detectionsRefs) db.detections],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (detectionsRefs)
+                    await $_getPrefetchedData<
+                      VisitRow,
+                      $VisitsTable,
+                      DetectionRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$VisitsTableReferences
+                          ._detectionsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$VisitsTableReferences(db, table, p0).detectionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.visitId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -1475,9 +1846,284 @@ typedef $$VisitsTableProcessedTableManager =
       $$VisitsTableAnnotationComposer,
       $$VisitsTableCreateCompanionBuilder,
       $$VisitsTableUpdateCompanionBuilder,
-      (VisitRow, BaseReferences<_$AppDatabase, $VisitsTable, VisitRow>),
+      (VisitRow, $$VisitsTableReferences),
       VisitRow,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool detectionsRefs})
+    >;
+typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
+  required String visitId,
+  required String taxonRef,
+  required bool detected,
+  Value<int> rowid,
+});
+typedef $$DetectionsTableUpdateCompanionBuilder = DetectionsCompanion Function({
+  Value<String> visitId,
+  Value<String> taxonRef,
+  Value<bool> detected,
+  Value<int> rowid,
+});
+
+final class $$DetectionsTableReferences
+    extends BaseReferences<_$AppDatabase, $DetectionsTable, DetectionRow> {
+  $$DetectionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('detections__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DetectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $DetectionsTable> {
+  $$DetectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get detected => $composableBuilder(
+    column: $table.detected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DetectionsTable> {
+  $$DetectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get detected => $composableBuilder(
+    column: $table.detected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DetectionsTable> {
+  $$DetectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get taxonRef =>
+      $composableBuilder(column: $table.taxonRef, builder: (column) => column);
+
+  GeneratedColumn<bool> get detected =>
+      $composableBuilder(column: $table.detected, builder: (column) => column);
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DetectionsTable,
+          DetectionRow,
+          $$DetectionsTableFilterComposer,
+          $$DetectionsTableOrderingComposer,
+          $$DetectionsTableAnnotationComposer,
+          $$DetectionsTableCreateCompanionBuilder,
+          $$DetectionsTableUpdateCompanionBuilder,
+          (DetectionRow, $$DetectionsTableReferences),
+          DetectionRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$DetectionsTableTableManager(_$AppDatabase db, $DetectionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DetectionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DetectionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DetectionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> visitId = const Value.absent(),
+                Value<String> taxonRef = const Value.absent(),
+                Value<bool> detected = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DetectionsCompanion(
+                visitId: visitId,
+                taxonRef: taxonRef,
+                detected: detected,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String visitId,
+                required String taxonRef,
+                required bool detected,
+                Value<int> rowid = const Value.absent(),
+              }) => DetectionsCompanion.insert(
+                visitId: visitId,
+                taxonRef: taxonRef,
+                detected: detected,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DetectionsTable, DetectionRow>(table),
+                  $$DetectionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$DetectionsTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$DetectionsTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DetectionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DetectionsTable,
+      DetectionRow,
+      $$DetectionsTableFilterComposer,
+      $$DetectionsTableOrderingComposer,
+      $$DetectionsTableAnnotationComposer,
+      $$DetectionsTableCreateCompanionBuilder,
+      $$DetectionsTableUpdateCompanionBuilder,
+      (DetectionRow, $$DetectionsTableReferences),
+      DetectionRow,
+      PrefetchHooks Function({bool visitId})
     >;
 
 class $AppDatabaseManager {
@@ -1487,4 +2133,6 @@ class $AppDatabaseManager {
       $$SitesTableTableManager(_db, _db.sites);
   $$VisitsTableTableManager get visits =>
       $$VisitsTableTableManager(_db, _db.visits);
+  $$DetectionsTableTableManager get detections =>
+      $$DetectionsTableTableManager(_db, _db.detections);
 }

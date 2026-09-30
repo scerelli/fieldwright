@@ -1,13 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../protocol/protocol.dart';
+import 'detection_list.dart';
 import 'effort_timer.dart';
 import 'visit.dart';
 
 class CaptureScreen extends StatelessWidget {
-  const CaptureScreen({super.key, required this.visit, this.clock});
+  const CaptureScreen({
+    super.key,
+    required this.visit,
+    this.protocol,
+    this.clock,
+  });
 
   final Visit visit;
+  final ProtocolDocument? protocol;
   final DateTime Function()? clock;
 
   @override
@@ -19,30 +27,26 @@ class CaptureScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.captureTitle)),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.captureState(stateLabel),
-              key: const Key('capture_state'),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.captureEffortStarted(
-                visit.effort.startedAt.toIso8601String(),
-              ),
-              key: const Key('capture_effort_started'),
-            ),
-            const SizedBox(height: 8),
-            EffortTimer(
-              startedAt: visit.effort.startedAt,
-              endedAt: visit.effort.endedAt,
-              clock: clock,
-            ),
+        children: [
+          Text(l10n.captureState(stateLabel), key: const Key('capture_state')),
+          const SizedBox(height: 8),
+          Text(
+            l10n.captureEffortStarted(visit.effort.startedAt.toIso8601String()),
+            key: const Key('capture_effort_started'),
+          ),
+          const SizedBox(height: 8),
+          EffortTimer(
+            startedAt: visit.effort.startedAt,
+            endedAt: visit.effort.endedAt,
+            clock: clock,
+          ),
+          if (protocol != null) ...[
+            const SizedBox(height: 16),
+            DetectionList(protocol: protocol!, visitId: visit.id),
           ],
-        ),
+        ],
       ),
     );
   }
