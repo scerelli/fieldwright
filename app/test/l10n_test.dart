@@ -22,7 +22,10 @@ void main() {
     }
 
     expect(find.widgetWithText(AppBar, 'Progetti'), findsOneWidget);
-    expect(find.text('Conteggio progetti: 0'), findsOneWidget);
-    expect(find.text('Incrementa progetti'), findsOneWidget);
+    expect(find.text('Nessun progetto'), findsOneWidget);
+    expect(
+      find.text('Crea o unisciti a un progetto per iniziare.'),
+      findsOneWidget,
+    );
   });
 }
