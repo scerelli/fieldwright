@@ -247,4 +247,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get measurementSave => 'Save measurements';
+
+  @override
+  String get projectsCreateProject => 'Create project';
+
+  @override
+  String get projectEditorNewTitle => 'New project';
+
+  @override
+  String get projectEditorName => 'Project name';
+
+  @override
+  String get projectEditorReferenceId => 'Taxonomic reference';
+
+  @override
+  String get projectEditorReferenceVersion => 'Taxonomic reference version';
+
+  @override
+  String get projectEditorValidation => 'Validation';
+
+  @override
+  String get projectEditorObfuscation => 'Sensitive-taxa obfuscation';
+
+  @override
+  String get projectEditorSave => 'Save project';
+
+  @override
+  String get projectEditorNameRequired => 'Enter a project name.';
+
+  @override
+  String get projectEditorReferenceRequired => 'Select a taxonomic reference.';
+
+  @override
+  String get projectEditorVersionRequired =>
+      'Enter a taxonomic reference version.';
+
+  @override
+  String get projectEditorCreateFailed =>
+      'Could not create the project. Try again.';
 }

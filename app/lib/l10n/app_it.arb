@@ -73,5 +73,17 @@
   "measurementLowConfidence": "Bassa affidabilità (sensore non calibrato)",
   "measurementMethod": "Metodo",
   "measurementMissingMethod": "Seleziona un metodo per ogni valore.",
-  "measurementSave": "Salva misurazioni"
+  "measurementSave": "Salva misurazioni",
+  "projectsCreateProject": "Crea progetto",
+  "projectEditorNewTitle": "Nuovo progetto",
+  "projectEditorName": "Nome del progetto",
+  "projectEditorReferenceId": "Riferimento tassonomico",
+  "projectEditorReferenceVersion": "Versione del riferimento tassonomico",
+  "projectEditorValidation": "Validazione",
+  "projectEditorObfuscation": "Oscuramento dei taxa sensibili",
+  "projectEditorSave": "Salva progetto",
+  "projectEditorNameRequired": "Inserisci un nome del progetto.",
+  "projectEditorReferenceRequired": "Seleziona un riferimento tassonomico.",
+  "projectEditorVersionRequired": "Inserisci una versione del riferimento tassonomico.",
+  "projectEditorCreateFailed": "Impossibile creare il progetto. Riprova."
 }
