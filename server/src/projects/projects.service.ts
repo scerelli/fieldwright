@@ -40,6 +40,15 @@ export interface AddMemberInput {
   role: GrantableRole;
 }
 
+/**
+ * A Membership as the roster endpoint returns it: the stored Membership plus
+ * the person's email, which references an external person identity and so is
+ * not a column of `membership` itself.
+ */
+export interface ProjectMember extends Membership {
+  email: string;
+}
+
 @Injectable()
 export class ProjectsService {
   constructor(@Inject(DATABASE) private readonly db: NodePgDatabase) {}
@@ -103,6 +112,30 @@ export class ProjectsService {
     return created;
   }
 
+  /**
+   * Lists a Project's Memberships to a member of that Project. Anyone who is
+   * not a member is rejected with 403, so the roster is never shown to an
+   * outsider. The person's email travels with each Membership for display.
+   */
+  async listMembers(
+    personId: string,
+    projectId: string,
+  ): Promise<ProjectMember[]> {
+    await this.assertMember(personId, projectId);
+
+    return this.db
+      .select({
+        id: membership.id,
+        personId: membership.personId,
+        projectId: membership.projectId,
+        role: membership.role,
+        email: user.email,
+      })
+      .from(membership)
+      .innerJoin(user, eq(user.id, membership.personId))
+      .where(eq(membership.projectId, projectId));
+  }
+
   private async assertCreator(
     personId: string,
     projectId: string,
@@ -121,6 +154,26 @@ export class ProjectsService {
 
     if (row === undefined) {
       throw new ForbiddenException('only the project creator can add members');
+    }
+  }
+
+  private async assertMember(
+    personId: string,
+    projectId: string,
+  ): Promise<void> {
+    const [row] = await this.db
+      .select({ id: membership.id })
+      .from(membership)
+      .where(
+        and(
+          eq(membership.personId, personId),
+          eq(membership.projectId, projectId),
+        ),
+      )
+      .limit(1);
+
+    if (row === undefined) {
+      throw new ForbiddenException('only project members can list members');
     }
   }
 }
