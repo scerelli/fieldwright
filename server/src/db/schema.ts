@@ -187,3 +187,179 @@ export const surveyPeriod = pgTable(
 );
 
 export type SurveyPeriod = typeof surveyPeriod.$inferSelect;
+
+/**
+ * Site (DOMAIN.md): a place a survey happens, scoped to exactly one Project
+ * (INV-012). Epic #4 built the client surface, so this is the minimal server
+ * row the Visit's Site foreign key needs: an identity, its Project, an optional
+ * name and its geometry as GeoJSON text. The full Site lifecycle and origin
+ * are added by the server `sites` module.
+ */
+export const site = pgTable('site', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
+  name: text('name'),
+  geom: text('geom'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Site = typeof site.$inferSelect;
+
+/**
+ * Visit lifecycle (DOMAIN.md): in progress on the device, ended by the
+ * collector, submitted immutably, then validated or rejected when the Project
+ * has validation enabled.
+ */
+export const visitState = pgEnum('visit_state', [
+  'in_progress',
+  'ended',
+  'submitted',
+  'validated',
+  'rejected',
+]);
+
+/**
+ * Visit (DOMAIN.md): the unit of offline capture, submission and immutability.
+ * Its id is a client-generated UUIDv7. It references exactly one Site, one
+ * Survey period and one Protocol version (INV-006), enforced by the non-null
+ * foreign keys below. `effort` holds the Sampling effort fields the Protocol
+ * version requires; `submitted_at` is the submission instant.
+ */
+export const visit = pgTable('visit', {
+  id: uuid('id').primaryKey(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
+  siteId: uuid('site_id')
+    .notNull()
+    .references(() => site.id, { onDelete: 'cascade' }),
+  surveyPeriodId: uuid('survey_period_id')
+    .notNull()
+    .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
+  protocolVersionId: uuid('protocol_version_id')
+    .notNull()
+    .references(() => protocolVersion.id, { onDelete: 'cascade' }),
+  state: visitState('state').notNull(),
+  effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
+  startedAt: timestamp('started_at').notNull(),
+  endedAt: timestamp('ended_at'),
+  submittedAt: timestamp('submitted_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Visit = typeof visit.$inferSelect;
+
+/**
+ * Detection (DOMAIN.md): one taxon detected, or searched for and not detected,
+ * in one Visit. A non-detection is a Detection with `detected = false`. A
+ * target-taxon Detection is unique per Visit; opportunistic Detections are
+ * not, and never imply a non-detection (INV-003). Counts are never negative.
+ */
+export const detection = pgTable(
+  'detection',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    visitId: uuid('visit_id')
+      .notNull()
+      .references(() => visit.id, { onDelete: 'cascade' }),
+    taxon: text('taxon').notNull(),
+    detected: boolean('detected').notNull(),
+    method: text('method').notNull(),
+    count: integer('count'),
+    opportunistic: boolean('opportunistic').default(false).notNull(),
+  },
+  (table) => [
+    check(
+      'detection_count_non_negative',
+      sql`${table.count} is null or ${table.count} >= 0`,
+    ),
+    uniqueIndex('detection_visit_taxon_target_key')
+      .on(table.visitId, table.taxon)
+      .where(sql`not ${table.opportunistic}`),
+  ],
+);
+
+export type Detection = typeof detection.$inferSelect;
+
+/**
+ * Measurement provenance (DOMAIN.md): how a Measurement was obtained. A
+ * Measurement without a method is invalid (INV-010), enforced by the check on
+ * the `measurement` table.
+ */
+export interface MeasurementProvenance {
+  method: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Measurement (DOMAIN.md): a value with a unit and its Provenance. It is owned
+ * by the Visit or by one of its Detections, so `detection_id` is null for a
+ * visit-level Measurement and set for a detection-level one.
+ */
+export const measurement = pgTable(
+  'measurement',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    visitId: uuid('visit_id')
+      .notNull()
+      .references(() => visit.id, { onDelete: 'cascade' }),
+    detectionId: uuid('detection_id').references(() => detection.id, {
+      onDelete: 'cascade',
+    }),
+    value: text('value').notNull(),
+    unit: text('unit').notNull(),
+    provenance: jsonb('provenance').$type<MeasurementProvenance>().notNull(),
+  },
+  (table) => [
+    check(
+      'measurement_provenance_method',
+      sql`${table.provenance}->>'method' is not null`,
+    ),
+  ],
+);
+
+export type Measurement = typeof measurement.$inferSelect;
+
+/**
+ * Evidence (DOMAIN.md): a photo or audio recording attached to a Visit as proof
+ * of a Detection. Immutable once attached: the store has no update path.
+ */
+export const evidenceKind = pgEnum('evidence_kind', ['photo', 'audio']);
+
+export const evidence = pgTable('evidence', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  visitId: uuid('visit_id')
+    .notNull()
+    .references(() => visit.id, { onDelete: 'cascade' }),
+  detectionId: uuid('detection_id').references(() => detection.id, {
+    onDelete: 'cascade',
+  }),
+  kind: evidenceKind('kind').notNull(),
+  storageKey: text('storage_key').notNull(),
+  sha256: text('sha256').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Evidence = typeof evidence.$inferSelect;
+
+/**
+ * Correction (DOMAIN.md): an append-only change to a submitted Visit carrying
+ * its author, time, reason and payload. It never mutates the submitted Visit
+ * (INV-001, INV-013); `author_id` references the Better Auth `user`.
+ */
+export const correction = pgTable('correction', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  visitId: uuid('visit_id')
+    .notNull()
+    .references(() => visit.id, { onDelete: 'cascade' }),
+  authorId: text('author_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'restrict' }),
+  reason: text('reason').notNull(),
+  payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Correction = typeof correction.$inferSelect;
