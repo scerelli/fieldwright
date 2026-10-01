@@ -329,7 +329,7 @@ CREATE TABLE evidences (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 12);
+        expect(version.data['user_version'], 13);
 
         final tables = await database
             .customSelect(

@@ -1483,6 +1483,17 @@ class $EvidencesTable extends Evidences
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _storageKeyMeta = const VerificationMeta(
+    'storageKey',
+  );
+  @override
+  late final GeneratedColumn<String> storageKey = GeneratedColumn<String>(
+    'storage_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1492,6 +1503,7 @@ class $EvidencesTable extends Evidences
     filePath,
     capturedAt,
     contentHash,
+    storageKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1553,6 +1565,12 @@ class $EvidencesTable extends Evidences
     } else if (isInserting) {
       context.missing(_contentHashMeta);
     }
+    if (data.containsKey('storage_key')) {
+      context.handle(
+        _storageKeyMeta,
+        storageKey.isAcceptableOrUnknown(data['storage_key']!, _storageKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -1592,6 +1610,10 @@ class $EvidencesTable extends Evidences
         DriftSqlType.string,
         data['${effectivePrefix}content_hash'],
       )!,
+      storageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}storage_key'],
+      ),
     );
   }
 
@@ -1612,6 +1634,11 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
   final String filePath;
   final DateTime capturedAt;
   final String contentHash;
+
+  /// The content-addressed key the media API returned when this Evidence was
+  /// uploaded, or null while it has never been uploaded. It is the transport
+  /// reference the submission's evidence manifest carries.
+  final String? storageKey;
   const EvidenceRow({
     required this.id,
     required this.visitId,
@@ -1620,6 +1647,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     required this.filePath,
     required this.capturedAt,
     required this.contentHash,
+    this.storageKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1635,6 +1663,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     map['file_path'] = Variable<String>(filePath);
     map['captured_at'] = Variable<DateTime>(capturedAt);
     map['content_hash'] = Variable<String>(contentHash);
+    if (!nullToAbsent || storageKey != null) {
+      map['storage_key'] = Variable<String>(storageKey);
+    }
     return map;
   }
 
@@ -1647,6 +1678,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       filePath: Value(filePath),
       capturedAt: Value(capturedAt),
       contentHash: Value(contentHash),
+      storageKey: storageKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storageKey),
     );
   }
 
@@ -1665,6 +1699,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       filePath: serializer.fromJson<String>(json['filePath']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
       contentHash: serializer.fromJson<String>(json['contentHash']),
+      storageKey: serializer.fromJson<String?>(json['storageKey']),
     );
   }
   @override
@@ -1680,6 +1715,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       'filePath': serializer.toJson<String>(filePath),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
       'contentHash': serializer.toJson<String>(contentHash),
+      'storageKey': serializer.toJson<String?>(storageKey),
     };
   }
 
@@ -1691,6 +1727,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     String? filePath,
     DateTime? capturedAt,
     String? contentHash,
+    Value<String?> storageKey = const Value.absent(),
   }) => EvidenceRow(
     id: id ?? this.id,
     visitId: visitId ?? this.visitId,
@@ -1699,6 +1736,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     filePath: filePath ?? this.filePath,
     capturedAt: capturedAt ?? this.capturedAt,
     contentHash: contentHash ?? this.contentHash,
+    storageKey: storageKey.present ? storageKey.value : this.storageKey,
   );
   EvidenceRow copyWithCompanion(EvidencesCompanion data) {
     return EvidenceRow(
@@ -1713,6 +1751,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       contentHash: data.contentHash.present
           ? data.contentHash.value
           : this.contentHash,
+      storageKey: data.storageKey.present
+          ? data.storageKey.value
+          : this.storageKey,
     );
   }
 
@@ -1725,7 +1766,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           ..write('kind: $kind, ')
           ..write('filePath: $filePath, ')
           ..write('capturedAt: $capturedAt, ')
-          ..write('contentHash: $contentHash')
+          ..write('contentHash: $contentHash, ')
+          ..write('storageKey: $storageKey')
           ..write(')'))
         .toString();
   }
@@ -1739,6 +1781,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     filePath,
     capturedAt,
     contentHash,
+    storageKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -1750,7 +1793,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           other.kind == this.kind &&
           other.filePath == this.filePath &&
           other.capturedAt == this.capturedAt &&
-          other.contentHash == this.contentHash);
+          other.contentHash == this.contentHash &&
+          other.storageKey == this.storageKey);
 }
 
 class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
@@ -1761,6 +1805,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
   final Value<String> filePath;
   final Value<DateTime> capturedAt;
   final Value<String> contentHash;
+  final Value<String?> storageKey;
   final Value<int> rowid;
   const EvidencesCompanion({
     this.id = const Value.absent(),
@@ -1770,6 +1815,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     this.filePath = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.contentHash = const Value.absent(),
+    this.storageKey = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EvidencesCompanion.insert({
@@ -1780,6 +1826,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     required String filePath,
     required DateTime capturedAt,
     required String contentHash,
+    this.storageKey = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        visitId = Value(visitId),
@@ -1796,6 +1843,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     Expression<String>? filePath,
     Expression<DateTime>? capturedAt,
     Expression<String>? contentHash,
+    Expression<String>? storageKey,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1806,6 +1854,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
       if (filePath != null) 'file_path': filePath,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (contentHash != null) 'content_hash': contentHash,
+      if (storageKey != null) 'storage_key': storageKey,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1818,6 +1867,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     Value<String>? filePath,
     Value<DateTime>? capturedAt,
     Value<String>? contentHash,
+    Value<String?>? storageKey,
     Value<int>? rowid,
   }) {
     return EvidencesCompanion(
@@ -1828,6 +1878,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
       filePath: filePath ?? this.filePath,
       capturedAt: capturedAt ?? this.capturedAt,
       contentHash: contentHash ?? this.contentHash,
+      storageKey: storageKey ?? this.storageKey,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1858,6 +1909,9 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     if (contentHash.present) {
       map['content_hash'] = Variable<String>(contentHash.value);
     }
+    if (storageKey.present) {
+      map['storage_key'] = Variable<String>(storageKey.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1874,6 +1928,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
           ..write('filePath: $filePath, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('contentHash: $contentHash, ')
+          ..write('storageKey: $storageKey, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6320,6 +6375,7 @@ typedef $$EvidencesTableCreateCompanionBuilder = EvidencesCompanion Function({
   required String filePath,
   required DateTime capturedAt,
   required String contentHash,
+  Value<String?> storageKey,
   Value<int> rowid,
 });
 typedef $$EvidencesTableUpdateCompanionBuilder = EvidencesCompanion Function({
@@ -6330,6 +6386,7 @@ typedef $$EvidencesTableUpdateCompanionBuilder = EvidencesCompanion Function({
   Value<String> filePath,
   Value<DateTime> capturedAt,
   Value<String> contentHash,
+  Value<String?> storageKey,
   Value<int> rowid,
 });
 
@@ -6392,6 +6449,11 @@ class $$EvidencesTableFilterComposer
 
   ColumnFilters<String> get contentHash => $composableBuilder(
     column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6458,6 +6520,11 @@ class $$EvidencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$VisitsTableOrderingComposer get visitId {
     final $$VisitsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6510,6 +6577,11 @@ class $$EvidencesTableAnnotationComposer
 
   GeneratedColumn<String> get contentHash => $composableBuilder(
     column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
     builder: (column) => column,
   );
 
@@ -6572,6 +6644,7 @@ class $$EvidencesTableTableManager
                 Value<String> filePath = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<String> contentHash = const Value.absent(),
+                Value<String?> storageKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidencesCompanion(
                 id: id,
@@ -6581,6 +6654,7 @@ class $$EvidencesTableTableManager
                 filePath: filePath,
                 capturedAt: capturedAt,
                 contentHash: contentHash,
+                storageKey: storageKey,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6592,6 +6666,7 @@ class $$EvidencesTableTableManager
                 required String filePath,
                 required DateTime capturedAt,
                 required String contentHash,
+                Value<String?> storageKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidencesCompanion.insert(
                 id: id,
@@ -6601,6 +6676,7 @@ class $$EvidencesTableTableManager
                 filePath: filePath,
                 capturedAt: capturedAt,
                 contentHash: contentHash,
+                storageKey: storageKey,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
