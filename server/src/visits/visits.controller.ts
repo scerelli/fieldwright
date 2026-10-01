@@ -50,6 +50,7 @@ import {
 import {
   VisitsService,
   type StoreSubmittedVisitInput,
+  type VisitValidationState,
 } from './visits.service.js';
 
 export class DeterminationDto {
@@ -308,6 +309,25 @@ export class VisitsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Correction[]> {
     return this.visits.listCorrections(person.id, id);
+  }
+
+  /**
+   * Reads a stored Visit's Validation state (GLOSSARY.md Visit, Validation;
+   * INV-013): its `state`, `validatorId` and `validatedAt`, so the client can
+   * display a Visit's Validation status. A Visit id that does not exist is
+   * refused with 404. Read authorization mirrors the Corrections read — a
+   * `collector` or `validator` Membership in the Visit's Project is required —
+   * so a Visit is never disclosed to a non-Member; anyone else is refused with
+   * 403. A `submitted` Visit with no Validation has a null `validatorId` and
+   * `validatedAt`.
+   */
+  @UseGuards(AuthGuard)
+  @Get(':id')
+  async getVisit(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<VisitValidationState> {
+    return this.visits.getVisit(person.id, id);
   }
 
   private async findVisit(id: string): Promise<Visit | undefined> {

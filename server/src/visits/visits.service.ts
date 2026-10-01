@@ -91,6 +91,18 @@ export interface RecordCorrectionInput {
   payload: Record<string, unknown>;
 }
 
+/**
+ * A stored Visit's Validation state as read through the versioned API
+ * (GLOSSARY.md Validation, INV-013): its lifecycle `state`, the validating
+ * Person's id and the Validation instant, both null until a Validation is
+ * recorded.
+ */
+export interface VisitValidationState {
+  state: Visit['state'];
+  validatorId: string | null;
+  validatedAt: Date | null;
+}
+
 export interface StoreSubmittedVisitInput {
   id: string;
   projectId: string;
@@ -461,5 +473,51 @@ export class VisitsService {
       .from(correction)
       .where(eq(correction.visitId, visitId))
       .orderBy(asc(correction.createdAt));
+  }
+
+  /**
+   * Reads a stored Visit's Validation state (GLOSSARY.md Visit, Validation;
+   * INV-013): its `state`, `validatorId` and `validatedAt`. The Visit must
+   * exist — a missing id is refused with 404 — and the reader must hold the
+   * `collector` or `validator` Membership in the Visit's Project, mirroring
+   * the Corrections read in `listCorrections` so a Visit is never disclosed to
+   * a non-Member; anyone else is refused with 403. A `submitted` Visit with no
+   * Validation carries a null `validatorId` and `validatedAt`.
+   */
+  async getVisit(
+    personId: string,
+    visitId: string,
+  ): Promise<VisitValidationState> {
+    const [current] = await this.db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, visitId))
+      .limit(1);
+    if (current === undefined) {
+      throw new NotFoundException(`Visit ${visitId} does not exist`);
+    }
+
+    const [member] = await this.db
+      .select({ id: membership.id })
+      .from(membership)
+      .where(
+        and(
+          eq(membership.personId, personId),
+          eq(membership.projectId, current.projectId),
+          inArray(membership.role, ['collector', 'validator']),
+        ),
+      )
+      .limit(1);
+    if (member === undefined) {
+      throw new ForbiddenException(
+        'only a collector or validator may read a Visit',
+      );
+    }
+
+    return {
+      state: current.state,
+      validatorId: current.validatorId,
+      validatedAt: current.validatedAt,
+    };
   }
 }
