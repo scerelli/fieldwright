@@ -13,6 +13,21 @@ export const MEDIA_STORAGE = 'MEDIA_STORAGE';
 export interface StoredMedia {
   storageKey: string;
   sha256: string;
+  /**
+   * A presigned S3 URL the client PUTs the bytes to, when an S3 backend is
+   * configured and the object is not stored yet. Absent for the volume
+   * backend (bytes are stored here) and for an S3 object already present, so
+   * an existing Evidence file is never overwritten (ADR-0012).
+   */
+  uploadUrl?: string;
+  /**
+   * Headers the client must send with the `uploadUrl` PUT. The URL is signed
+   * with an `If-None-Match: *` precondition and an `x-amz-checksum-sha256`
+   * content checksum bound to the exact bytes and length the API received, so
+   * a PUT must carry these or the object store rejects it; `Content-Length` is
+   * set by the HTTP client from the body. Absent for the volume backend.
+   */
+  uploadHeaders?: Record<string, string>;
 }
 
 export interface MediaStorage {
