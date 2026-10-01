@@ -1,9 +1,10 @@
 /**
  * The served application's root module (ARCHITECTURE.md): wires the database,
- * queue, identity, projects, protocol-versions, survey-periods, visits and
- * sync modules so the running server exposes the auth, projects,
- * protocol-versions, survey-periods, versioned visit-submission and versioned
- * config-pull endpoints and its readiness check reflects Postgres and Redis.
+ * queue, identity, projects, protocol-versions, survey-periods, visits, media
+ * and sync modules so the running server exposes the auth, projects,
+ * protocol-versions, survey-periods, versioned visit-submission, Evidence-media
+ * and versioned config-pull endpoints and its readiness check reflects Postgres
+ * and Redis.
  *
  * Connection strings and secrets come from the environment (`DATABASE_URL`,
  * `REDIS_URL`, `BETTER_AUTH_SECRET`), as the Compose deployment supplies them.
@@ -14,6 +15,7 @@ import { DatabaseModule } from './db/database.module.js';
 import { QUERY_EXECUTOR, type QueryExecutor } from './db/database.provider.js';
 import { HealthModule } from './health/health.module.js';
 import { HealthService } from './health/health.service.js';
+import { MediaModule } from './media/media.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { ProtocolVersionsModule } from './protocol-versions/protocol-versions.module.js';
 import { QueueModule } from './queue/queue.module.js';
@@ -30,6 +32,7 @@ import { VisitsModule } from './visits/visits.module.js';
     ProtocolVersionsModule,
     SurveyPeriodsModule,
     VisitsModule,
+    MediaModule,
     SyncModule,
     HealthModule,
   ],
