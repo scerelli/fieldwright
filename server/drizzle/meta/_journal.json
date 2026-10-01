@@ -85,6 +85,13 @@
       "when": 1790844845003,
       "tag": "0011_low_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790857069030,
+      "tag": "0012_visit_validation_columns",
+      "breakpoints": true
     }
   ]
 }
