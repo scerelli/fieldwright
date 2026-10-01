@@ -172,6 +172,38 @@
   "@visitStateEnded": {
     "description": "Visit state label once the collector has ended the visit."
   },
+  "visitDetailTitle": "Visit details",
+  "@visitDetailTitle": {
+    "description": "Title of the Visit detail screen."
+  },
+  "visitDetailStatus": "Validation status",
+  "@visitDetailStatus": {
+    "description": "Label of a Visit's Validation status on the Visit detail screen."
+  },
+  "visitStatusSubmitted": "Submitted",
+  "@visitStatusSubmitted": {
+    "description": "Visit Validation status once submitted but not yet validated (INV-013)."
+  },
+  "visitStatusValidated": "Validated",
+  "@visitStatusValidated": {
+    "description": "Visit Validation status once a validator accepts the submitted Visit (INV-013)."
+  },
+  "visitStatusRejected": "Rejected",
+  "@visitStatusRejected": {
+    "description": "Visit Validation status once a validator rejects the submitted Visit (INV-013)."
+  },
+  "visitDetailCorrectionsHeading": "Corrections",
+  "@visitDetailCorrectionsHeading": {
+    "description": "Heading of the Corrections list on the Visit detail screen."
+  },
+  "visitDetailCorrectionsEmpty": "This visit has no corrections.",
+  "@visitDetailCorrectionsEmpty": {
+    "description": "Empty state shown when a Visit has no Corrections."
+  },
+  "visitDetailLoadFailed": "Could not load the visit. Try again.",
+  "@visitDetailLoadFailed": {
+    "description": "Error shown when loading a Visit's Validation status or Corrections fails."
+  },
   "captureTitle": "Visit",
   "@captureTitle": {
     "description": "Title of the capture screen for the in-progress visit."
@@ -275,6 +307,38 @@
         "type": "String"
       }
     }
+  },
+  "authName": "Name",
+  "@authName": {
+    "description": "Label of the name field on the Account sign-up form."
+  },
+  "authSignUp": "Create account",
+  "@authSignUp": {
+    "description": "Button that submits the Account sign-up form."
+  },
+  "authSwitchToSignUp": "Create an account",
+  "@authSwitchToSignUp": {
+    "description": "Link on the Account sign-in form that reveals the sign-up form."
+  },
+  "authSwitchToSignIn": "Back to sign in",
+  "@authSwitchToSignIn": {
+    "description": "Link on the Account sign-up form that returns to the sign-in form."
+  },
+  "authNameRequired": "Enter your name.",
+  "@authNameRequired": {
+    "description": "Error shown when the sign-up name is empty."
+  },
+  "authEmailInvalid": "Enter a valid email.",
+  "@authEmailInvalid": {
+    "description": "Error shown when the sign-up email is malformed."
+  },
+  "authPasswordTooShort": "Use at least 8 characters.",
+  "@authPasswordTooShort": {
+    "description": "Error shown when the sign-up password is shorter than the minimum."
+  },
+  "authSignUpFailed": "Could not create the account. Check your details and try again.",
+  "@authSignUpFailed": {
+    "description": "Error shown when the sign-up request is rejected, such as an already-registered email."
   },
   "evidencePhoto": "Photo",
   "@evidencePhoto": {

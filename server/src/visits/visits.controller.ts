@@ -10,7 +10,12 @@
 import {
   Body,
   Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
   Inject,
+  Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
   UsePipes,
@@ -33,12 +38,19 @@ import {
 } from 'class-validator';
 import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { AuthGuard } from '../auth/auth.guard.js';
+import { AuthGuard, type Person } from '../auth/auth.guard.js';
+import { CurrentPerson } from '../auth/current-person.decorator.js';
 import { DATABASE } from '../db/database.provider.js';
-import { visit, type MeasurementProvenance, type Visit } from '../db/schema.js';
+import {
+  visit,
+  type Correction,
+  type MeasurementProvenance,
+  type Visit,
+} from '../db/schema.js';
 import {
   VisitsService,
   type StoreSubmittedVisitInput,
+  type VisitValidationState,
 } from './visits.service.js';
 
 export class DeterminationDto {
@@ -177,6 +189,29 @@ export class SubmitVisitDto {
   evidence?: EvidenceDto[];
 }
 
+/**
+ * The Validation a validator records against a submitted Visit (GLOSSARY.md
+ * Validation): acceptance (`validated`) or rejection (`rejected`).
+ */
+export class ApplyValidationDto {
+  @IsIn(['validated', 'rejected'])
+  state!: 'validated' | 'rejected';
+}
+
+/**
+ * The Correction a collector or validator records against a stored Visit
+ * (GLOSSARY.md Correction): the reason and the change payload. The author and
+ * the recording time are resolved server-side, so the body carries neither.
+ */
+export class RecordCorrectionDto {
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @IsObject()
+  payload!: Record<string, unknown>;
+}
+
 @Controller('api/v1/visits')
 @UsePipes(
   new ValidationPipe({
@@ -214,6 +249,85 @@ export class VisitsController {
       }
       return existing;
     }
+  }
+
+  /**
+   * Records a Validation against a `submitted` Visit: acceptance (`validated`)
+   * or rejection (`rejected`) (INV-013). Requires the `validator` Membership
+   * in the Visit's Project; a Project with validation disabled, or a Visit
+   * that is not `submitted`, is refused and left unchanged. The change writes
+   * only the Visit's validation columns, so a rejected Visit keeps its
+   * submitted data (INV-001).
+   */
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/validation')
+  async applyValidation(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ApplyValidationDto,
+  ): Promise<Visit> {
+    return this.visits.applyValidation(person.id, id, dto.state);
+  }
+
+  /**
+   * Records a Correction against a stored Visit (GLOSSARY.md Correction,
+   * INV-001): one append-only `correction` row carrying the authenticated
+   * author, the recording time, the reason and the change payload. The stored
+   * Visit is never touched — every one of its
+   * columns is left exactly as submitted. Requires a `collector` or
+   * `validator` Membership in the Visit's Project; a Visit in `in_progress` or
+   * `ended` is not yet stored and is refused.
+   */
+  @UseGuards(AuthGuard)
+  @Post(':id/corrections')
+  async recordCorrection(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RecordCorrectionDto,
+  ): Promise<Correction> {
+    return this.visits.recordCorrection(person.id, id, {
+      reason: dto.reason,
+      payload: dto.payload,
+    });
+  }
+
+  /**
+   * Lists a stored Visit's Corrections (GLOSSARY.md Correction, INV-001),
+   * oldest first, each carrying its author, `createdAt`, `reason` and
+   * `payload`; a stored Visit with no Corrections returns an empty list, and a
+   * Visit id that does not exist is refused with 404. Read authorization
+   * mirrors `recordCorrection`'s write path — a `collector` or `validator`
+   * Membership in the Visit's Project is required — so a Visit's Corrections
+   * are read by the same people who may record them; anyone else is refused
+   * with 403.
+   */
+  @UseGuards(AuthGuard)
+  @Get(':id/corrections')
+  async listCorrections(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Correction[]> {
+    return this.visits.listCorrections(person.id, id);
+  }
+
+  /**
+   * Reads a stored Visit's Validation state (GLOSSARY.md Visit, Validation;
+   * INV-013): its `state`, `validatorId` and `validatedAt`, so the client can
+   * display a Visit's Validation status. A Visit id that does not exist is
+   * refused with 404. Read authorization mirrors the Corrections read — a
+   * `collector` or `validator` Membership in the Visit's Project is required —
+   * so a Visit is never disclosed to a non-Member; anyone else is refused with
+   * 403. A `submitted` Visit with no Validation has a null `validatorId` and
+   * `validatedAt`.
+   */
+  @UseGuards(AuthGuard)
+  @Get(':id')
+  async getVisit(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<VisitValidationState> {
+    return this.visits.getVisit(person.id, id);
   }
 
   private async findVisit(id: string): Promise<Visit | undefined> {

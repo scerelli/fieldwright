@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   BadRequestException,
@@ -18,13 +19,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
+  correction,
   detection,
+  determination,
   evidence,
   measurement,
   project,
   protocolVersion,
   site,
   surveyPeriod,
+  user,
   visit,
   type MeasurementProvenance,
 } from '../src/db/schema.js';
@@ -42,6 +46,58 @@ function runDrizzleKitMigrate(databaseUrl: string) {
     env: { ...process.env, DATABASE_URL: databaseUrl },
     encoding: 'utf8',
   });
+}
+
+interface JournalEntry {
+  tag: string;
+  when: number;
+}
+
+const journal = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL('../drizzle/meta/_journal.json', import.meta.url)),
+    'utf8',
+  ),
+) as { entries: JournalEntry[] };
+
+// The `created_at` drizzle-kit writes for a migration is its journal `when`;
+// matching on it lets a test un-record exactly one migration so `migrate`
+// re-applies it.
+function migrationTimestamp(tag: string): number {
+  const entry = journal.entries.find((candidate) => candidate.tag === tag);
+  if (entry === undefined) {
+    throw new Error(`migration ${tag} is not in the drizzle journal`);
+  }
+  return entry.when;
+}
+
+// drizzle wraps a driver error in a DrizzleQueryError whose `cause` is the
+// original `pg` error, which carries the Postgres SQLSTATE on `code`.
+function sqlStateOf(error: unknown): unknown {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === 'string') {
+      return code;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
+// Asserts the database refused the statement with `restrict_violation`
+// (SQLSTATE 23001), not merely that it failed for any reason.
+async function expectRestrictViolation(
+  run: () => Promise<unknown>,
+): Promise<void> {
+  let thrown: unknown;
+  try {
+    await run();
+  } catch (error) {
+    thrown = error;
+  }
+  expect(thrown, 'expected the database to reject the mutation').toBeDefined();
+  expect(sqlStateOf(thrown)).toBe('23001');
 }
 
 @Module({
@@ -139,6 +195,31 @@ describe('Visit store', () => {
       surveyPeriodId: createdPeriod.id,
       protocolVersionId: createdProtocol.id,
     };
+  }
+
+  async function seedPerson(): Promise<{ id: string }> {
+    const [created] = await db
+      .insert(user)
+      .values({
+        id: randomUUID(),
+        name: 'V. Validator',
+        email: `validator-${randomUUID()}@example.com`,
+      })
+      .returning();
+    return { id: created.id };
+  }
+
+  async function storeSubmittedVisit(refs: SeedReferences): Promise<string> {
+    const id = randomUUID();
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+    return id;
   }
 
   it('stores a submitted Visit with its Detections, Measurements and Evidence', async () => {
@@ -492,6 +573,402 @@ describe('Visit store', () => {
     expect(evidenceRows.find((row) => row.kind === 'photo')!.detectionId).toBe(
       byTaxon['Sylvia borin']!.id,
     );
+  });
+
+  it('rejects an UPDATE or a DELETE of a submitted Visit row at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+
+    await expect(
+      db.execute(sql`update visit set effort = '{}'::jsonb where id = ${id}`),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`delete from visit where id = ${id}`),
+    ).rejects.toThrow();
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      1,
+    );
+  });
+
+  it('rejects an UPDATE of a stored Determination at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+      detections: [
+        {
+          taxon: 'Anthus trivialis',
+          detected: true,
+          method: 'visual',
+          determinations: [
+            {
+              taxon: 'Anthus trivialis',
+              determiner: 'A. Determiner',
+              date: '2026-04-01',
+            },
+          ],
+        },
+      ],
+    });
+
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const [storedDetermination] = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.detectionId, storedDetection!.id));
+    expect(storedDetermination).toBeDefined();
+
+    await expect(
+      db.execute(
+        sql`update determination set taxon = 'Corvus corax' where id = ${storedDetermination!.id}`,
+      ),
+    ).rejects.toThrow();
+
+    const rows = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.id, storedDetermination!.id));
+    expect(rows[0]!.taxon).toBe('Anthus trivialis');
+  });
+
+  it('rejects an UPDATE of a stored Correction at the database (INV-001, INV-013)', async () => {
+    const refs = await seedReferences();
+    const author = await seedPerson();
+    const visitId = await storeSubmittedVisit(refs);
+
+    const [stored] = await db
+      .insert(correction)
+      .values({
+        visitId,
+        authorId: author.id,
+        reason: 'Anthus trivialis misidentified',
+        payload: { taxon: 'Anthus pratensis' },
+      })
+      .returning();
+
+    await expectRestrictViolation(() =>
+      db.execute(
+        sql`update correction set reason = 'changed' where id = ${stored!.id}`,
+      ),
+    );
+
+    const [unchanged] = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.id, stored!.id));
+    expect(unchanged!.reason).toBe('Anthus trivialis misidentified');
+    expect(unchanged!.payload).toEqual({ taxon: 'Anthus pratensis' });
+  });
+
+  it('rejects a DELETE of a stored Correction at the database (INV-001, INV-013)', async () => {
+    const refs = await seedReferences();
+    const author = await seedPerson();
+    const visitId = await storeSubmittedVisit(refs);
+
+    const [stored] = await db
+      .insert(correction)
+      .values({
+        visitId,
+        authorId: author.id,
+        reason: 'Site recorded in error',
+        payload: { note: 'remove' },
+      })
+      .returning();
+
+    await expectRestrictViolation(() =>
+      db.execute(sql`delete from correction where id = ${stored!.id}`),
+    );
+
+    const remaining = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.id, stored!.id));
+    expect(remaining).toHaveLength(1);
+  });
+
+  it('permits a submitted Visit to become validated or rejected, recording the validator and time (INV-013)', async () => {
+    const refs = await seedReferences();
+    const validator = await seedPerson();
+
+    for (const state of ['validated', 'rejected'] as const) {
+      const id = await storeSubmittedVisit(refs);
+
+      await db.execute(
+        sql`update visit set state = ${state}, validator_id = ${validator.id}, validated_at = timestamp '2026-04-02 10:00:00' where id = ${id}`,
+      );
+
+      const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+      expect(stored!.state).toBe(state);
+      expect(stored!.validatorId).toBe(validator.id);
+
+      const [recorded] = (
+        await db.execute(
+          sql`select to_char("validated_at", 'YYYY-MM-DD"T"HH24:MI:SS') as "validated_at" from "visit" where "id" = ${id}`,
+        )
+      ).rows as Array<{ validated_at: string }>;
+      expect(recorded!.validated_at).toBe('2026-04-02T10:00:00');
+    }
+  });
+
+  it('rejects a Validation that does not record the validator and the time (INV-013)', async () => {
+    const refs = await seedReferences();
+    const validator = await seedPerson();
+    const id = await storeSubmittedVisit(refs);
+
+    await expect(
+      db.execute(
+        sql`update visit set state = 'validated', validated_at = now() where id = ${id}`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(
+        sql`update visit set state = 'validated', validator_id = ${validator.id} where id = ${id}`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`update visit set state = 'validated' where id = ${id}`),
+    ).rejects.toThrow();
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.state).toBe('submitted');
+    expect(stored!.validatorId).toBeNull();
+    expect(stored!.validatedAt).toBeNull();
+  });
+
+  it('rejects an UPDATE of a stored Visit that changes any column but state, validator_id or validated_at (INV-001)', async () => {
+    const refs = await seedReferences();
+    const validator = await seedPerson();
+    const id = await storeSubmittedVisit(refs);
+
+    await expect(
+      db.execute(
+        sql`update visit set effort = '{"changed":true}'::jsonb where id = ${id}`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`update visit set submitted_at = now() where id = ${id}`),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(
+        sql`update visit set state = 'validated', validator_id = ${validator.id}, validated_at = now(), effort = '{"changed":true}'::jsonb where id = ${id}`,
+      ),
+    ).rejects.toThrow();
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.state).toBe('submitted');
+    expect(stored!.effort).toEqual({});
+  });
+
+  it('rejects an UPDATE of a validated or rejected Visit (INV-013)', async () => {
+    const refs = await seedReferences();
+    const validator = await seedPerson();
+
+    for (const state of ['validated', 'rejected'] as const) {
+      const id = await storeSubmittedVisit(refs);
+      await db.execute(
+        sql`update visit set state = ${state}, validator_id = ${validator.id}, validated_at = now() where id = ${id}`,
+      );
+
+      await expect(
+        db.execute(sql`update visit set state = 'rejected' where id = ${id}`),
+      ).rejects.toThrow();
+      await expect(
+        db.execute(
+          sql`update visit set validator_id = ${validator.id} where id = ${id}`,
+        ),
+      ).rejects.toThrow();
+
+      const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+      expect(stored!.state).toBe(state);
+    }
+  });
+
+  it('rejects a DELETE of a submitted, validated or rejected Visit (INV-013)', async () => {
+    const refs = await seedReferences();
+    const validator = await seedPerson();
+
+    const submitted = await storeSubmittedVisit(refs);
+    const validated = await storeSubmittedVisit(refs);
+    await db.execute(
+      sql`update visit set state = 'validated', validator_id = ${validator.id}, validated_at = now() where id = ${validated}`,
+    );
+    const rejected = await storeSubmittedVisit(refs);
+    await db.execute(
+      sql`update visit set state = 'rejected', validator_id = ${validator.id}, validated_at = now() where id = ${rejected}`,
+    );
+
+    for (const id of [submitted, validated, rejected]) {
+      await expect(
+        db.execute(sql`delete from visit where id = ${id}`),
+      ).rejects.toThrow();
+    }
+
+    const remaining = await db.select().from(visit);
+    expect(remaining.map((row) => row.id)).toEqual(
+      expect.arrayContaining([submitted, validated, rejected]),
+    );
+  });
+
+  it('rejects a Visit whose ended_at or submitted_at precedes started_at at the database', async () => {
+    const refs = await seedReferences();
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const beforeStart = new Date('2026-04-01T07:00:00Z');
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: beforeStart,
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: null,
+        submittedAt: beforeStart,
+      }),
+    ).rejects.toThrow();
+
+    expect(
+      await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
+    ).toHaveLength(0);
+  });
+
+  it('rejects a Measurement whose Provenance has no method at the database', async () => {
+    const refs = await seedReferences();
+    const visitId = randomUUID();
+    await db.insert(visit).values({
+      id: visitId,
+      ...refs,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+      state: 'submitted',
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: null,
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+    });
+
+    const withoutMethod: MeasurementProvenance[] = [
+      {} as MeasurementProvenance,
+      { method: '' },
+      { method: '   ' },
+    ];
+    for (const provenance of withoutMethod) {
+      await expect(
+        db
+          .insert(measurement)
+          .values({ visitId, value: '1', unit: 'count', provenance }),
+      ).rejects.toThrow();
+    }
+
+    expect(
+      await db
+        .select()
+        .from(measurement)
+        .where(eq(measurement.visitId, visitId)),
+    ).toHaveLength(0);
+  });
+
+  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    // Reproduce a database on the pre-0011 schema that already holds a
+    // submitted Visit: drop the columns the migration adds, and un-record the
+    // migration (and every later one, since drizzle re-applies from a
+    // high-water mark) so they are pending again.
+    await db.execute(
+      sql`alter table "visit" drop column "taxonomic_reference_id", drop column "taxonomic_reference_version", drop column "validator_id", drop column "validated_at"`,
+    );
+    await db.execute(
+      sql`delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0011_low_roland_deschain')}`,
+    );
+    await db.execute(sql`
+      insert into "visit"
+        ("id", "project_id", "site_id", "survey_period_id", "protocol_version_id", "state", "effort", "started_at", "submitted_at")
+      values
+        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+    `);
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    const [owner] = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, refs.projectId));
+    expect(stored!.taxonomicReferenceId).toBe(owner!.taxonomicReferenceId);
+    expect(stored!.taxonomicReferenceVersion).toBe(
+      owner!.taxonomicReferenceVersion,
+    );
+  });
+
+  it('adds the Visit Validation columns on a database that already holds a submitted Visit (INV-013)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+
+    // Reproduce a database on the pre-0012 schema that already holds a
+    // submitted Visit: drop the columns the migration adds, and un-record it
+    // (and every later migration, since drizzle re-applies from a high-water
+    // mark) so it is pending again.
+    await db.execute(
+      sql`alter table "visit" drop column "validator_id", drop column "validated_at"`,
+    );
+    await db.execute(
+      sql`delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0012_visit_validation_columns')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored).toBeDefined();
+    expect(stored!.state).toBe('submitted');
+    expect(stored!.validatorId).toBeNull();
+    expect(stored!.validatedAt).toBeNull();
   });
 
   it('applies the Visit schema through a forward-only migration', async () => {

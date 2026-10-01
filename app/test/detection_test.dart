@@ -588,7 +588,7 @@ void main() {
 
   group('migration', () {
     test(
-      'migrates a version 9 client schema to version 10 adding method and count',
+      'migrates a version 11 client schema to version 12 adding method and count',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -622,7 +622,7 @@ CREATE TABLE detections (
                 "INSERT INTO detections (visit_id, taxon_ref, detected, opportunistic) "
                 "VALUES ('visit-1', 'Aves|Turdus|merula', 1, 0);",
               );
-              raw.execute('PRAGMA user_version = 9');
+              raw.execute('PRAGMA user_version = 11');
             },
           ),
         );
@@ -631,7 +631,7 @@ CREATE TABLE detections (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 10);
+        expect(version.data['user_version'], 12);
 
         final columns = await database
             .customSelect('PRAGMA table_info(detections)')
@@ -663,7 +663,7 @@ CREATE TABLE detections (
     );
 
     test(
-      'migrates a version 4 client schema to version 10 forward-only',
+      'migrates a version 4 client schema to version 12 forward-only',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -705,7 +705,7 @@ CREATE TABLE visits (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 10);
+        expect(version.data['user_version'], 12);
 
         final tables = await database
             .customSelect(

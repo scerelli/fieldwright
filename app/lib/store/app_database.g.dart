@@ -1880,6 +1880,590 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
   }
 }
 
+class $DeterminationsTable extends Determinations
+    with TableInfo<$DeterminationsTable, DeterminationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeterminationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  static const VerificationMeta _taxonRefMeta = const VerificationMeta(
+    'taxonRef',
+  );
+  @override
+  late final GeneratedColumn<String> taxonRef = GeneratedColumn<String>(
+    'taxon_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taxonMeta = const VerificationMeta('taxon');
+  @override
+  late final GeneratedColumn<String> taxon = GeneratedColumn<String>(
+    'taxon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DeterminationQualifier?, String>
+  qualifier =
+      GeneratedColumn<String>(
+        'qualifier',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<DeterminationQualifier?>(
+        $DeterminationsTable.$converterqualifiern,
+      );
+  static const VerificationMeta _specimenCodeMeta = const VerificationMeta(
+    'specimenCode',
+  );
+  @override
+  late final GeneratedColumn<String> specimenCode = GeneratedColumn<String>(
+    'specimen_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _determinerMeta = const VerificationMeta(
+    'determiner',
+  );
+  @override
+  late final GeneratedColumn<String> determiner = GeneratedColumn<String>(
+    'determiner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _replacesIdMeta = const VerificationMeta(
+    'replacesId',
+  );
+  @override
+  late final GeneratedColumn<String> replacesId = GeneratedColumn<String>(
+    'replaces_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitId,
+    taxonRef,
+    taxon,
+    qualifier,
+    specimenCode,
+    determiner,
+    date,
+    replacesId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'determinations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeterminationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('taxon_ref')) {
+      context.handle(
+        _taxonRefMeta,
+        taxonRef.isAcceptableOrUnknown(data['taxon_ref']!, _taxonRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonRefMeta);
+    }
+    if (data.containsKey('taxon')) {
+      context.handle(
+        _taxonMeta,
+        taxon.isAcceptableOrUnknown(data['taxon']!, _taxonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonMeta);
+    }
+    if (data.containsKey('specimen_code')) {
+      context.handle(
+        _specimenCodeMeta,
+        specimenCode.isAcceptableOrUnknown(
+          data['specimen_code']!,
+          _specimenCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('determiner')) {
+      context.handle(
+        _determinerMeta,
+        determiner.isAcceptableOrUnknown(data['determiner']!, _determinerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_determinerMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('replaces_id')) {
+      context.handle(
+        _replacesIdMeta,
+        replacesId.isAcceptableOrUnknown(data['replaces_id']!, _replacesIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeterminationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeterminationRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      taxonRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon_ref'],
+      )!,
+      taxon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon'],
+      )!,
+      qualifier: $DeterminationsTable.$converterqualifiern.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}qualifier'],
+        ),
+      ),
+      specimenCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}specimen_code'],
+      ),
+      determiner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}determiner'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      replacesId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}replaces_id'],
+      ),
+    );
+  }
+
+  @override
+  $DeterminationsTable createAlias(String alias) {
+    return $DeterminationsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DeterminationQualifier, String, String>
+  $converterqualifier = const EnumNameConverter<DeterminationQualifier>(
+    DeterminationQualifier.values,
+  );
+  static JsonTypeConverter2<DeterminationQualifier?, String?, String?>
+  $converterqualifiern = JsonTypeConverter2.asNullable($converterqualifier);
+}
+
+class DeterminationRow extends DataClass
+    implements Insertable<DeterminationRow> {
+  final String id;
+  final String visitId;
+  final String taxonRef;
+  final String taxon;
+  final DeterminationQualifier? qualifier;
+  final String? specimenCode;
+  final String determiner;
+  final DateTime date;
+  final String? replacesId;
+  const DeterminationRow({
+    required this.id,
+    required this.visitId,
+    required this.taxonRef,
+    required this.taxon,
+    this.qualifier,
+    this.specimenCode,
+    required this.determiner,
+    required this.date,
+    this.replacesId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visit_id'] = Variable<String>(visitId);
+    map['taxon_ref'] = Variable<String>(taxonRef);
+    map['taxon'] = Variable<String>(taxon);
+    if (!nullToAbsent || qualifier != null) {
+      map['qualifier'] = Variable<String>(
+        $DeterminationsTable.$converterqualifiern.toSql(qualifier),
+      );
+    }
+    if (!nullToAbsent || specimenCode != null) {
+      map['specimen_code'] = Variable<String>(specimenCode);
+    }
+    map['determiner'] = Variable<String>(determiner);
+    map['date'] = Variable<DateTime>(date);
+    if (!nullToAbsent || replacesId != null) {
+      map['replaces_id'] = Variable<String>(replacesId);
+    }
+    return map;
+  }
+
+  DeterminationsCompanion toCompanion(bool nullToAbsent) {
+    return DeterminationsCompanion(
+      id: Value(id),
+      visitId: Value(visitId),
+      taxonRef: Value(taxonRef),
+      taxon: Value(taxon),
+      qualifier: qualifier == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qualifier),
+      specimenCode: specimenCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(specimenCode),
+      determiner: Value(determiner),
+      date: Value(date),
+      replacesId: replacesId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(replacesId),
+    );
+  }
+
+  factory DeterminationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeterminationRow(
+      id: serializer.fromJson<String>(json['id']),
+      visitId: serializer.fromJson<String>(json['visitId']),
+      taxonRef: serializer.fromJson<String>(json['taxonRef']),
+      taxon: serializer.fromJson<String>(json['taxon']),
+      qualifier: $DeterminationsTable.$converterqualifiern.fromJson(
+        serializer.fromJson<String?>(json['qualifier']),
+      ),
+      specimenCode: serializer.fromJson<String?>(json['specimenCode']),
+      determiner: serializer.fromJson<String>(json['determiner']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      replacesId: serializer.fromJson<String?>(json['replacesId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitId': serializer.toJson<String>(visitId),
+      'taxonRef': serializer.toJson<String>(taxonRef),
+      'taxon': serializer.toJson<String>(taxon),
+      'qualifier': serializer.toJson<String?>(
+        $DeterminationsTable.$converterqualifiern.toJson(qualifier),
+      ),
+      'specimenCode': serializer.toJson<String?>(specimenCode),
+      'determiner': serializer.toJson<String>(determiner),
+      'date': serializer.toJson<DateTime>(date),
+      'replacesId': serializer.toJson<String?>(replacesId),
+    };
+  }
+
+  DeterminationRow copyWith({
+    String? id,
+    String? visitId,
+    String? taxonRef,
+    String? taxon,
+    Value<DeterminationQualifier?> qualifier = const Value.absent(),
+    Value<String?> specimenCode = const Value.absent(),
+    String? determiner,
+    DateTime? date,
+    Value<String?> replacesId = const Value.absent(),
+  }) => DeterminationRow(
+    id: id ?? this.id,
+    visitId: visitId ?? this.visitId,
+    taxonRef: taxonRef ?? this.taxonRef,
+    taxon: taxon ?? this.taxon,
+    qualifier: qualifier.present ? qualifier.value : this.qualifier,
+    specimenCode: specimenCode.present ? specimenCode.value : this.specimenCode,
+    determiner: determiner ?? this.determiner,
+    date: date ?? this.date,
+    replacesId: replacesId.present ? replacesId.value : this.replacesId,
+  );
+  DeterminationRow copyWithCompanion(DeterminationsCompanion data) {
+    return DeterminationRow(
+      id: data.id.present ? data.id.value : this.id,
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
+      taxon: data.taxon.present ? data.taxon.value : this.taxon,
+      qualifier: data.qualifier.present ? data.qualifier.value : this.qualifier,
+      specimenCode: data.specimenCode.present
+          ? data.specimenCode.value
+          : this.specimenCode,
+      determiner: data.determiner.present
+          ? data.determiner.value
+          : this.determiner,
+      date: data.date.present ? data.date.value : this.date,
+      replacesId: data.replacesId.present
+          ? data.replacesId.value
+          : this.replacesId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeterminationRow(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('taxon: $taxon, ')
+          ..write('qualifier: $qualifier, ')
+          ..write('specimenCode: $specimenCode, ')
+          ..write('determiner: $determiner, ')
+          ..write('date: $date, ')
+          ..write('replacesId: $replacesId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    visitId,
+    taxonRef,
+    taxon,
+    qualifier,
+    specimenCode,
+    determiner,
+    date,
+    replacesId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeterminationRow &&
+          other.id == this.id &&
+          other.visitId == this.visitId &&
+          other.taxonRef == this.taxonRef &&
+          other.taxon == this.taxon &&
+          other.qualifier == this.qualifier &&
+          other.specimenCode == this.specimenCode &&
+          other.determiner == this.determiner &&
+          other.date == this.date &&
+          other.replacesId == this.replacesId);
+}
+
+class DeterminationsCompanion extends UpdateCompanion<DeterminationRow> {
+  final Value<String> id;
+  final Value<String> visitId;
+  final Value<String> taxonRef;
+  final Value<String> taxon;
+  final Value<DeterminationQualifier?> qualifier;
+  final Value<String?> specimenCode;
+  final Value<String> determiner;
+  final Value<DateTime> date;
+  final Value<String?> replacesId;
+  final Value<int> rowid;
+  const DeterminationsCompanion({
+    this.id = const Value.absent(),
+    this.visitId = const Value.absent(),
+    this.taxonRef = const Value.absent(),
+    this.taxon = const Value.absent(),
+    this.qualifier = const Value.absent(),
+    this.specimenCode = const Value.absent(),
+    this.determiner = const Value.absent(),
+    this.date = const Value.absent(),
+    this.replacesId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeterminationsCompanion.insert({
+    required String id,
+    required String visitId,
+    required String taxonRef,
+    required String taxon,
+    this.qualifier = const Value.absent(),
+    this.specimenCode = const Value.absent(),
+    required String determiner,
+    required DateTime date,
+    this.replacesId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitId = Value(visitId),
+       taxonRef = Value(taxonRef),
+       taxon = Value(taxon),
+       determiner = Value(determiner),
+       date = Value(date);
+  static Insertable<DeterminationRow> custom({
+    Expression<String>? id,
+    Expression<String>? visitId,
+    Expression<String>? taxonRef,
+    Expression<String>? taxon,
+    Expression<String>? qualifier,
+    Expression<String>? specimenCode,
+    Expression<String>? determiner,
+    Expression<DateTime>? date,
+    Expression<String>? replacesId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitId != null) 'visit_id': visitId,
+      if (taxonRef != null) 'taxon_ref': taxonRef,
+      if (taxon != null) 'taxon': taxon,
+      if (qualifier != null) 'qualifier': qualifier,
+      if (specimenCode != null) 'specimen_code': specimenCode,
+      if (determiner != null) 'determiner': determiner,
+      if (date != null) 'date': date,
+      if (replacesId != null) 'replaces_id': replacesId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeterminationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitId,
+    Value<String>? taxonRef,
+    Value<String>? taxon,
+    Value<DeterminationQualifier?>? qualifier,
+    Value<String?>? specimenCode,
+    Value<String>? determiner,
+    Value<DateTime>? date,
+    Value<String?>? replacesId,
+    Value<int>? rowid,
+  }) {
+    return DeterminationsCompanion(
+      id: id ?? this.id,
+      visitId: visitId ?? this.visitId,
+      taxonRef: taxonRef ?? this.taxonRef,
+      taxon: taxon ?? this.taxon,
+      qualifier: qualifier ?? this.qualifier,
+      specimenCode: specimenCode ?? this.specimenCode,
+      determiner: determiner ?? this.determiner,
+      date: date ?? this.date,
+      replacesId: replacesId ?? this.replacesId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (taxonRef.present) {
+      map['taxon_ref'] = Variable<String>(taxonRef.value);
+    }
+    if (taxon.present) {
+      map['taxon'] = Variable<String>(taxon.value);
+    }
+    if (qualifier.present) {
+      map['qualifier'] = Variable<String>(
+        $DeterminationsTable.$converterqualifiern.toSql(qualifier.value),
+      );
+    }
+    if (specimenCode.present) {
+      map['specimen_code'] = Variable<String>(specimenCode.value);
+    }
+    if (determiner.present) {
+      map['determiner'] = Variable<String>(determiner.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (replacesId.present) {
+      map['replaces_id'] = Variable<String>(replacesId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeterminationsCompanion(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('taxon: $taxon, ')
+          ..write('qualifier: $qualifier, ')
+          ..write('specimenCode: $specimenCode, ')
+          ..write('determiner: $determiner, ')
+          ..write('date: $date, ')
+          ..write('replacesId: $replacesId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MeasurementsTable extends Measurements
     with TableInfo<$MeasurementsTable, MeasurementRow> {
   @override
@@ -2287,6 +2871,1827 @@ class MeasurementsCompanion extends UpdateCompanion<MeasurementRow> {
   }
 }
 
+class $ProjectConfigsTable extends ProjectConfigs
+    with TableInfo<$ProjectConfigsTable, ProjectConfigRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProjectConfigsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _validationEnabledMeta = const VerificationMeta(
+    'validationEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> validationEnabled = GeneratedColumn<bool>(
+    'validation_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("validation_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _sensitiveTaxaObfuscationMeta =
+      const VerificationMeta('sensitiveTaxaObfuscation');
+  @override
+  late final GeneratedColumn<bool> sensitiveTaxaObfuscation =
+      GeneratedColumn<bool>(
+        'sensitive_taxa_obfuscation',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("sensitive_taxa_obfuscation" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _taxonomicReferenceIdMeta =
+      const VerificationMeta('taxonomicReferenceId');
+  @override
+  late final GeneratedColumn<String> taxonomicReferenceId =
+      GeneratedColumn<String>(
+        'taxonomic_reference_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _taxonomicReferenceVersionMeta =
+      const VerificationMeta('taxonomicReferenceVersion');
+  @override
+  late final GeneratedColumn<String> taxonomicReferenceVersion =
+      GeneratedColumn<String>(
+        'taxonomic_reference_version',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    projectId,
+    name,
+    validationEnabled,
+    sensitiveTaxaObfuscation,
+    taxonomicReferenceId,
+    taxonomicReferenceVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'project_configs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProjectConfigRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('validation_enabled')) {
+      context.handle(
+        _validationEnabledMeta,
+        validationEnabled.isAcceptableOrUnknown(
+          data['validation_enabled']!,
+          _validationEnabledMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_validationEnabledMeta);
+    }
+    if (data.containsKey('sensitive_taxa_obfuscation')) {
+      context.handle(
+        _sensitiveTaxaObfuscationMeta,
+        sensitiveTaxaObfuscation.isAcceptableOrUnknown(
+          data['sensitive_taxa_obfuscation']!,
+          _sensitiveTaxaObfuscationMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sensitiveTaxaObfuscationMeta);
+    }
+    if (data.containsKey('taxonomic_reference_id')) {
+      context.handle(
+        _taxonomicReferenceIdMeta,
+        taxonomicReferenceId.isAcceptableOrUnknown(
+          data['taxonomic_reference_id']!,
+          _taxonomicReferenceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonomicReferenceIdMeta);
+    }
+    if (data.containsKey('taxonomic_reference_version')) {
+      context.handle(
+        _taxonomicReferenceVersionMeta,
+        taxonomicReferenceVersion.isAcceptableOrUnknown(
+          data['taxonomic_reference_version']!,
+          _taxonomicReferenceVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonomicReferenceVersionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {projectId};
+  @override
+  ProjectConfigRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProjectConfigRow(
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      validationEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}validation_enabled'],
+      )!,
+      sensitiveTaxaObfuscation: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sensitive_taxa_obfuscation'],
+      )!,
+      taxonomicReferenceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxonomic_reference_id'],
+      )!,
+      taxonomicReferenceVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxonomic_reference_version'],
+      )!,
+    );
+  }
+
+  @override
+  $ProjectConfigsTable createAlias(String alias) {
+    return $ProjectConfigsTable(attachedDatabase, alias);
+  }
+}
+
+class ProjectConfigRow extends DataClass
+    implements Insertable<ProjectConfigRow> {
+  final String projectId;
+  final String name;
+  final bool validationEnabled;
+  final bool sensitiveTaxaObfuscation;
+  final String taxonomicReferenceId;
+  final String taxonomicReferenceVersion;
+  const ProjectConfigRow({
+    required this.projectId,
+    required this.name,
+    required this.validationEnabled,
+    required this.sensitiveTaxaObfuscation,
+    required this.taxonomicReferenceId,
+    required this.taxonomicReferenceVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['project_id'] = Variable<String>(projectId);
+    map['name'] = Variable<String>(name);
+    map['validation_enabled'] = Variable<bool>(validationEnabled);
+    map['sensitive_taxa_obfuscation'] = Variable<bool>(
+      sensitiveTaxaObfuscation,
+    );
+    map['taxonomic_reference_id'] = Variable<String>(taxonomicReferenceId);
+    map['taxonomic_reference_version'] = Variable<String>(
+      taxonomicReferenceVersion,
+    );
+    return map;
+  }
+
+  ProjectConfigsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectConfigsCompanion(
+      projectId: Value(projectId),
+      name: Value(name),
+      validationEnabled: Value(validationEnabled),
+      sensitiveTaxaObfuscation: Value(sensitiveTaxaObfuscation),
+      taxonomicReferenceId: Value(taxonomicReferenceId),
+      taxonomicReferenceVersion: Value(taxonomicReferenceVersion),
+    );
+  }
+
+  factory ProjectConfigRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProjectConfigRow(
+      projectId: serializer.fromJson<String>(json['projectId']),
+      name: serializer.fromJson<String>(json['name']),
+      validationEnabled: serializer.fromJson<bool>(json['validationEnabled']),
+      sensitiveTaxaObfuscation: serializer.fromJson<bool>(
+        json['sensitiveTaxaObfuscation'],
+      ),
+      taxonomicReferenceId: serializer.fromJson<String>(
+        json['taxonomicReferenceId'],
+      ),
+      taxonomicReferenceVersion: serializer.fromJson<String>(
+        json['taxonomicReferenceVersion'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'projectId': serializer.toJson<String>(projectId),
+      'name': serializer.toJson<String>(name),
+      'validationEnabled': serializer.toJson<bool>(validationEnabled),
+      'sensitiveTaxaObfuscation': serializer.toJson<bool>(
+        sensitiveTaxaObfuscation,
+      ),
+      'taxonomicReferenceId': serializer.toJson<String>(taxonomicReferenceId),
+      'taxonomicReferenceVersion': serializer.toJson<String>(
+        taxonomicReferenceVersion,
+      ),
+    };
+  }
+
+  ProjectConfigRow copyWith({
+    String? projectId,
+    String? name,
+    bool? validationEnabled,
+    bool? sensitiveTaxaObfuscation,
+    String? taxonomicReferenceId,
+    String? taxonomicReferenceVersion,
+  }) => ProjectConfigRow(
+    projectId: projectId ?? this.projectId,
+    name: name ?? this.name,
+    validationEnabled: validationEnabled ?? this.validationEnabled,
+    sensitiveTaxaObfuscation:
+        sensitiveTaxaObfuscation ?? this.sensitiveTaxaObfuscation,
+    taxonomicReferenceId: taxonomicReferenceId ?? this.taxonomicReferenceId,
+    taxonomicReferenceVersion:
+        taxonomicReferenceVersion ?? this.taxonomicReferenceVersion,
+  );
+  ProjectConfigRow copyWithCompanion(ProjectConfigsCompanion data) {
+    return ProjectConfigRow(
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      name: data.name.present ? data.name.value : this.name,
+      validationEnabled: data.validationEnabled.present
+          ? data.validationEnabled.value
+          : this.validationEnabled,
+      sensitiveTaxaObfuscation: data.sensitiveTaxaObfuscation.present
+          ? data.sensitiveTaxaObfuscation.value
+          : this.sensitiveTaxaObfuscation,
+      taxonomicReferenceId: data.taxonomicReferenceId.present
+          ? data.taxonomicReferenceId.value
+          : this.taxonomicReferenceId,
+      taxonomicReferenceVersion: data.taxonomicReferenceVersion.present
+          ? data.taxonomicReferenceVersion.value
+          : this.taxonomicReferenceVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectConfigRow(')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('validationEnabled: $validationEnabled, ')
+          ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
+          ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
+          ..write('taxonomicReferenceVersion: $taxonomicReferenceVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    projectId,
+    name,
+    validationEnabled,
+    sensitiveTaxaObfuscation,
+    taxonomicReferenceId,
+    taxonomicReferenceVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProjectConfigRow &&
+          other.projectId == this.projectId &&
+          other.name == this.name &&
+          other.validationEnabled == this.validationEnabled &&
+          other.sensitiveTaxaObfuscation == this.sensitiveTaxaObfuscation &&
+          other.taxonomicReferenceId == this.taxonomicReferenceId &&
+          other.taxonomicReferenceVersion == this.taxonomicReferenceVersion);
+}
+
+class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
+  final Value<String> projectId;
+  final Value<String> name;
+  final Value<bool> validationEnabled;
+  final Value<bool> sensitiveTaxaObfuscation;
+  final Value<String> taxonomicReferenceId;
+  final Value<String> taxonomicReferenceVersion;
+  final Value<int> rowid;
+  const ProjectConfigsCompanion({
+    this.projectId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.validationEnabled = const Value.absent(),
+    this.sensitiveTaxaObfuscation = const Value.absent(),
+    this.taxonomicReferenceId = const Value.absent(),
+    this.taxonomicReferenceVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectConfigsCompanion.insert({
+    required String projectId,
+    required String name,
+    required bool validationEnabled,
+    required bool sensitiveTaxaObfuscation,
+    required String taxonomicReferenceId,
+    required String taxonomicReferenceVersion,
+    this.rowid = const Value.absent(),
+  }) : projectId = Value(projectId),
+       name = Value(name),
+       validationEnabled = Value(validationEnabled),
+       sensitiveTaxaObfuscation = Value(sensitiveTaxaObfuscation),
+       taxonomicReferenceId = Value(taxonomicReferenceId),
+       taxonomicReferenceVersion = Value(taxonomicReferenceVersion);
+  static Insertable<ProjectConfigRow> custom({
+    Expression<String>? projectId,
+    Expression<String>? name,
+    Expression<bool>? validationEnabled,
+    Expression<bool>? sensitiveTaxaObfuscation,
+    Expression<String>? taxonomicReferenceId,
+    Expression<String>? taxonomicReferenceVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (projectId != null) 'project_id': projectId,
+      if (name != null) 'name': name,
+      if (validationEnabled != null) 'validation_enabled': validationEnabled,
+      if (sensitiveTaxaObfuscation != null)
+        'sensitive_taxa_obfuscation': sensitiveTaxaObfuscation,
+      if (taxonomicReferenceId != null)
+        'taxonomic_reference_id': taxonomicReferenceId,
+      if (taxonomicReferenceVersion != null)
+        'taxonomic_reference_version': taxonomicReferenceVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProjectConfigsCompanion copyWith({
+    Value<String>? projectId,
+    Value<String>? name,
+    Value<bool>? validationEnabled,
+    Value<bool>? sensitiveTaxaObfuscation,
+    Value<String>? taxonomicReferenceId,
+    Value<String>? taxonomicReferenceVersion,
+    Value<int>? rowid,
+  }) {
+    return ProjectConfigsCompanion(
+      projectId: projectId ?? this.projectId,
+      name: name ?? this.name,
+      validationEnabled: validationEnabled ?? this.validationEnabled,
+      sensitiveTaxaObfuscation:
+          sensitiveTaxaObfuscation ?? this.sensitiveTaxaObfuscation,
+      taxonomicReferenceId: taxonomicReferenceId ?? this.taxonomicReferenceId,
+      taxonomicReferenceVersion:
+          taxonomicReferenceVersion ?? this.taxonomicReferenceVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (validationEnabled.present) {
+      map['validation_enabled'] = Variable<bool>(validationEnabled.value);
+    }
+    if (sensitiveTaxaObfuscation.present) {
+      map['sensitive_taxa_obfuscation'] = Variable<bool>(
+        sensitiveTaxaObfuscation.value,
+      );
+    }
+    if (taxonomicReferenceId.present) {
+      map['taxonomic_reference_id'] = Variable<String>(
+        taxonomicReferenceId.value,
+      );
+    }
+    if (taxonomicReferenceVersion.present) {
+      map['taxonomic_reference_version'] = Variable<String>(
+        taxonomicReferenceVersion.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectConfigsCompanion(')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('validationEnabled: $validationEnabled, ')
+          ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
+          ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
+          ..write('taxonomicReferenceVersion: $taxonomicReferenceVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProtocolVersionsTable extends ProtocolVersions
+    with TableInfo<$ProtocolVersionsTable, ProtocolVersionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProtocolVersionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _protocolIdMeta = const VerificationMeta(
+    'protocolId',
+  );
+  @override
+  late final GeneratedColumn<String> protocolId = GeneratedColumn<String>(
+    'protocol_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _documentMeta = const VerificationMeta(
+    'document',
+  );
+  @override
+  late final GeneratedColumn<String> document = GeneratedColumn<String>(
+    'document',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _frozenAtMeta = const VerificationMeta(
+    'frozenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> frozenAt = GeneratedColumn<DateTime>(
+    'frozen_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectId,
+    protocolId,
+    version,
+    document,
+    frozenAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'protocol_versions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProtocolVersionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('protocol_id')) {
+      context.handle(
+        _protocolIdMeta,
+        protocolId.isAcceptableOrUnknown(data['protocol_id']!, _protocolIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_protocolIdMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_versionMeta);
+    }
+    if (data.containsKey('document')) {
+      context.handle(
+        _documentMeta,
+        document.isAcceptableOrUnknown(data['document']!, _documentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_documentMeta);
+    }
+    if (data.containsKey('frozen_at')) {
+      context.handle(
+        _frozenAtMeta,
+        frozenAt.isAcceptableOrUnknown(data['frozen_at']!, _frozenAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProtocolVersionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProtocolVersionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      protocolId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protocol_id'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      document: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document'],
+      )!,
+      frozenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}frozen_at'],
+      ),
+    );
+  }
+
+  @override
+  $ProtocolVersionsTable createAlias(String alias) {
+    return $ProtocolVersionsTable(attachedDatabase, alias);
+  }
+}
+
+class ProtocolVersionRow extends DataClass
+    implements Insertable<ProtocolVersionRow> {
+  final String id;
+  final String projectId;
+  final String protocolId;
+  final int version;
+  final String document;
+  final DateTime? frozenAt;
+  const ProtocolVersionRow({
+    required this.id,
+    required this.projectId,
+    required this.protocolId,
+    required this.version,
+    required this.document,
+    this.frozenAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['project_id'] = Variable<String>(projectId);
+    map['protocol_id'] = Variable<String>(protocolId);
+    map['version'] = Variable<int>(version);
+    map['document'] = Variable<String>(document);
+    if (!nullToAbsent || frozenAt != null) {
+      map['frozen_at'] = Variable<DateTime>(frozenAt);
+    }
+    return map;
+  }
+
+  ProtocolVersionsCompanion toCompanion(bool nullToAbsent) {
+    return ProtocolVersionsCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      protocolId: Value(protocolId),
+      version: Value(version),
+      document: Value(document),
+      frozenAt: frozenAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(frozenAt),
+    );
+  }
+
+  factory ProtocolVersionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProtocolVersionRow(
+      id: serializer.fromJson<String>(json['id']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      protocolId: serializer.fromJson<String>(json['protocolId']),
+      version: serializer.fromJson<int>(json['version']),
+      document: serializer.fromJson<String>(json['document']),
+      frozenAt: serializer.fromJson<DateTime?>(json['frozenAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'projectId': serializer.toJson<String>(projectId),
+      'protocolId': serializer.toJson<String>(protocolId),
+      'version': serializer.toJson<int>(version),
+      'document': serializer.toJson<String>(document),
+      'frozenAt': serializer.toJson<DateTime?>(frozenAt),
+    };
+  }
+
+  ProtocolVersionRow copyWith({
+    String? id,
+    String? projectId,
+    String? protocolId,
+    int? version,
+    String? document,
+    Value<DateTime?> frozenAt = const Value.absent(),
+  }) => ProtocolVersionRow(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    protocolId: protocolId ?? this.protocolId,
+    version: version ?? this.version,
+    document: document ?? this.document,
+    frozenAt: frozenAt.present ? frozenAt.value : this.frozenAt,
+  );
+  ProtocolVersionRow copyWithCompanion(ProtocolVersionsCompanion data) {
+    return ProtocolVersionRow(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      protocolId: data.protocolId.present
+          ? data.protocolId.value
+          : this.protocolId,
+      version: data.version.present ? data.version.value : this.version,
+      document: data.document.present ? data.document.value : this.document,
+      frozenAt: data.frozenAt.present ? data.frozenAt.value : this.frozenAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProtocolVersionRow(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('protocolId: $protocolId, ')
+          ..write('version: $version, ')
+          ..write('document: $document, ')
+          ..write('frozenAt: $frozenAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, projectId, protocolId, version, document, frozenAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProtocolVersionRow &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.protocolId == this.protocolId &&
+          other.version == this.version &&
+          other.document == this.document &&
+          other.frozenAt == this.frozenAt);
+}
+
+class ProtocolVersionsCompanion extends UpdateCompanion<ProtocolVersionRow> {
+  final Value<String> id;
+  final Value<String> projectId;
+  final Value<String> protocolId;
+  final Value<int> version;
+  final Value<String> document;
+  final Value<DateTime?> frozenAt;
+  final Value<int> rowid;
+  const ProtocolVersionsCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.protocolId = const Value.absent(),
+    this.version = const Value.absent(),
+    this.document = const Value.absent(),
+    this.frozenAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProtocolVersionsCompanion.insert({
+    required String id,
+    required String projectId,
+    required String protocolId,
+    required int version,
+    required String document,
+    this.frozenAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       projectId = Value(projectId),
+       protocolId = Value(protocolId),
+       version = Value(version),
+       document = Value(document);
+  static Insertable<ProtocolVersionRow> custom({
+    Expression<String>? id,
+    Expression<String>? projectId,
+    Expression<String>? protocolId,
+    Expression<int>? version,
+    Expression<String>? document,
+    Expression<DateTime>? frozenAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (protocolId != null) 'protocol_id': protocolId,
+      if (version != null) 'version': version,
+      if (document != null) 'document': document,
+      if (frozenAt != null) 'frozen_at': frozenAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProtocolVersionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? projectId,
+    Value<String>? protocolId,
+    Value<int>? version,
+    Value<String>? document,
+    Value<DateTime?>? frozenAt,
+    Value<int>? rowid,
+  }) {
+    return ProtocolVersionsCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      protocolId: protocolId ?? this.protocolId,
+      version: version ?? this.version,
+      document: document ?? this.document,
+      frozenAt: frozenAt ?? this.frozenAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (protocolId.present) {
+      map['protocol_id'] = Variable<String>(protocolId.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (document.present) {
+      map['document'] = Variable<String>(document.value);
+    }
+    if (frozenAt.present) {
+      map['frozen_at'] = Variable<DateTime>(frozenAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProtocolVersionsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('protocolId: $protocolId, ')
+          ..write('version: $version, ')
+          ..write('document: $document, ')
+          ..write('frozenAt: $frozenAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SurveyPeriodsTable extends SurveyPeriods
+    with TableInfo<$SurveyPeriodsTable, SurveyPeriodRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SurveyPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<String> endDate = GeneratedColumn<String>(
+    'end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectId,
+    name,
+    startDate,
+    endDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'survey_periods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SurveyPeriodRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SurveyPeriodRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SurveyPeriodRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}end_date'],
+      )!,
+    );
+  }
+
+  @override
+  $SurveyPeriodsTable createAlias(String alias) {
+    return $SurveyPeriodsTable(attachedDatabase, alias);
+  }
+}
+
+class SurveyPeriodRow extends DataClass implements Insertable<SurveyPeriodRow> {
+  final String id;
+  final String projectId;
+  final String name;
+  final String startDate;
+  final String endDate;
+  const SurveyPeriodRow({
+    required this.id,
+    required this.projectId,
+    required this.name,
+    required this.startDate,
+    required this.endDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['project_id'] = Variable<String>(projectId);
+    map['name'] = Variable<String>(name);
+    map['start_date'] = Variable<String>(startDate);
+    map['end_date'] = Variable<String>(endDate);
+    return map;
+  }
+
+  SurveyPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return SurveyPeriodsCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      name: Value(name),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+    );
+  }
+
+  factory SurveyPeriodRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SurveyPeriodRow(
+      id: serializer.fromJson<String>(json['id']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      name: serializer.fromJson<String>(json['name']),
+      startDate: serializer.fromJson<String>(json['startDate']),
+      endDate: serializer.fromJson<String>(json['endDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'projectId': serializer.toJson<String>(projectId),
+      'name': serializer.toJson<String>(name),
+      'startDate': serializer.toJson<String>(startDate),
+      'endDate': serializer.toJson<String>(endDate),
+    };
+  }
+
+  SurveyPeriodRow copyWith({
+    String? id,
+    String? projectId,
+    String? name,
+    String? startDate,
+    String? endDate,
+  }) => SurveyPeriodRow(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    name: name ?? this.name,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+  );
+  SurveyPeriodRow copyWithCompanion(SurveyPeriodsCompanion data) {
+    return SurveyPeriodRow(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      name: data.name.present ? data.name.value : this.name,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SurveyPeriodRow(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, projectId, name, startDate, endDate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SurveyPeriodRow &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.name == this.name &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate);
+}
+
+class SurveyPeriodsCompanion extends UpdateCompanion<SurveyPeriodRow> {
+  final Value<String> id;
+  final Value<String> projectId;
+  final Value<String> name;
+  final Value<String> startDate;
+  final Value<String> endDate;
+  final Value<int> rowid;
+  const SurveyPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SurveyPeriodsCompanion.insert({
+    required String id,
+    required String projectId,
+    required String name,
+    required String startDate,
+    required String endDate,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       projectId = Value(projectId),
+       name = Value(name),
+       startDate = Value(startDate),
+       endDate = Value(endDate);
+  static Insertable<SurveyPeriodRow> custom({
+    Expression<String>? id,
+    Expression<String>? projectId,
+    Expression<String>? name,
+    Expression<String>? startDate,
+    Expression<String>? endDate,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (name != null) 'name': name,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SurveyPeriodsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? projectId,
+    Value<String>? name,
+    Value<String>? startDate,
+    Value<String>? endDate,
+    Value<int>? rowid,
+  }) {
+    return SurveyPeriodsCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      name: name ?? this.name,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<String>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<String>(endDate.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SurveyPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ConfigSitesTable extends ConfigSites
+    with TableInfo<$ConfigSitesTable, ConfigSiteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ConfigSitesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _geomMeta = const VerificationMeta('geom');
+  @override
+  late final GeneratedColumn<String> geom = GeneratedColumn<String>(
+    'geom',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, projectId, name, geom, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'config_sites';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ConfigSiteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('geom')) {
+      context.handle(
+        _geomMeta,
+        geom.isAcceptableOrUnknown(data['geom']!, _geomMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ConfigSiteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ConfigSiteRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
+      geom: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}geom'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
+    );
+  }
+
+  @override
+  $ConfigSitesTable createAlias(String alias) {
+    return $ConfigSitesTable(attachedDatabase, alias);
+  }
+}
+
+class ConfigSiteRow extends DataClass implements Insertable<ConfigSiteRow> {
+  final String id;
+  final String projectId;
+  final String? name;
+  final String? geom;
+  final DateTime? createdAt;
+  const ConfigSiteRow({
+    required this.id,
+    required this.projectId,
+    this.name,
+    this.geom,
+    this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['project_id'] = Variable<String>(projectId);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
+    if (!nullToAbsent || geom != null) {
+      map['geom'] = Variable<String>(geom);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    return map;
+  }
+
+  ConfigSitesCompanion toCompanion(bool nullToAbsent) {
+    return ConfigSitesCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
+      geom: geom == null && nullToAbsent ? const Value.absent() : Value(geom),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+    );
+  }
+
+  factory ConfigSiteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ConfigSiteRow(
+      id: serializer.fromJson<String>(json['id']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      name: serializer.fromJson<String?>(json['name']),
+      geom: serializer.fromJson<String?>(json['geom']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'projectId': serializer.toJson<String>(projectId),
+      'name': serializer.toJson<String?>(name),
+      'geom': serializer.toJson<String?>(geom),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+    };
+  }
+
+  ConfigSiteRow copyWith({
+    String? id,
+    String? projectId,
+    Value<String?> name = const Value.absent(),
+    Value<String?> geom = const Value.absent(),
+    Value<DateTime?> createdAt = const Value.absent(),
+  }) => ConfigSiteRow(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    name: name.present ? name.value : this.name,
+    geom: geom.present ? geom.value : this.geom,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+  );
+  ConfigSiteRow copyWithCompanion(ConfigSitesCompanion data) {
+    return ConfigSiteRow(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      name: data.name.present ? data.name.value : this.name,
+      geom: data.geom.present ? data.geom.value : this.geom,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConfigSiteRow(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('geom: $geom, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, projectId, name, geom, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConfigSiteRow &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.name == this.name &&
+          other.geom == this.geom &&
+          other.createdAt == this.createdAt);
+}
+
+class ConfigSitesCompanion extends UpdateCompanion<ConfigSiteRow> {
+  final Value<String> id;
+  final Value<String> projectId;
+  final Value<String?> name;
+  final Value<String?> geom;
+  final Value<DateTime?> createdAt;
+  final Value<int> rowid;
+  const ConfigSitesCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.geom = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ConfigSitesCompanion.insert({
+    required String id,
+    required String projectId,
+    this.name = const Value.absent(),
+    this.geom = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       projectId = Value(projectId);
+  static Insertable<ConfigSiteRow> custom({
+    Expression<String>? id,
+    Expression<String>? projectId,
+    Expression<String>? name,
+    Expression<String>? geom,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (name != null) 'name': name,
+      if (geom != null) 'geom': geom,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ConfigSitesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? projectId,
+    Value<String?>? name,
+    Value<String?>? geom,
+    Value<DateTime?>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ConfigSitesCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      name: name ?? this.name,
+      geom: geom ?? this.geom,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (geom.present) {
+      map['geom'] = Variable<String>(geom.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConfigSitesCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
+          ..write('geom: $geom, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ConfigStatesTable extends ConfigStates
+    with TableInfo<$ConfigStatesTable, ConfigStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ConfigStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionTokenMeta = const VerificationMeta(
+    'versionToken',
+  );
+  @override
+  late final GeneratedColumn<String> versionToken = GeneratedColumn<String>(
+    'version_token',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [projectId, versionToken];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'config_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ConfigStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('version_token')) {
+      context.handle(
+        _versionTokenMeta,
+        versionToken.isAcceptableOrUnknown(
+          data['version_token']!,
+          _versionTokenMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_versionTokenMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {projectId};
+  @override
+  ConfigStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ConfigStateRow(
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      versionToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version_token'],
+      )!,
+    );
+  }
+
+  @override
+  $ConfigStatesTable createAlias(String alias) {
+    return $ConfigStatesTable(attachedDatabase, alias);
+  }
+}
+
+class ConfigStateRow extends DataClass implements Insertable<ConfigStateRow> {
+  final String projectId;
+  final String versionToken;
+  const ConfigStateRow({required this.projectId, required this.versionToken});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['project_id'] = Variable<String>(projectId);
+    map['version_token'] = Variable<String>(versionToken);
+    return map;
+  }
+
+  ConfigStatesCompanion toCompanion(bool nullToAbsent) {
+    return ConfigStatesCompanion(
+      projectId: Value(projectId),
+      versionToken: Value(versionToken),
+    );
+  }
+
+  factory ConfigStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ConfigStateRow(
+      projectId: serializer.fromJson<String>(json['projectId']),
+      versionToken: serializer.fromJson<String>(json['versionToken']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'projectId': serializer.toJson<String>(projectId),
+      'versionToken': serializer.toJson<String>(versionToken),
+    };
+  }
+
+  ConfigStateRow copyWith({String? projectId, String? versionToken}) =>
+      ConfigStateRow(
+        projectId: projectId ?? this.projectId,
+        versionToken: versionToken ?? this.versionToken,
+      );
+  ConfigStateRow copyWithCompanion(ConfigStatesCompanion data) {
+    return ConfigStateRow(
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      versionToken: data.versionToken.present
+          ? data.versionToken.value
+          : this.versionToken,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConfigStateRow(')
+          ..write('projectId: $projectId, ')
+          ..write('versionToken: $versionToken')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(projectId, versionToken);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConfigStateRow &&
+          other.projectId == this.projectId &&
+          other.versionToken == this.versionToken);
+}
+
+class ConfigStatesCompanion extends UpdateCompanion<ConfigStateRow> {
+  final Value<String> projectId;
+  final Value<String> versionToken;
+  final Value<int> rowid;
+  const ConfigStatesCompanion({
+    this.projectId = const Value.absent(),
+    this.versionToken = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ConfigStatesCompanion.insert({
+    required String projectId,
+    required String versionToken,
+    this.rowid = const Value.absent(),
+  }) : projectId = Value(projectId),
+       versionToken = Value(versionToken);
+  static Insertable<ConfigStateRow> custom({
+    Expression<String>? projectId,
+    Expression<String>? versionToken,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (projectId != null) 'project_id': projectId,
+      if (versionToken != null) 'version_token': versionToken,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ConfigStatesCompanion copyWith({
+    Value<String>? projectId,
+    Value<String>? versionToken,
+    Value<int>? rowid,
+  }) {
+    return ConfigStatesCompanion(
+      projectId: projectId ?? this.projectId,
+      versionToken: versionToken ?? this.versionToken,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (versionToken.present) {
+      map['version_token'] = Variable<String>(versionToken.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConfigStatesCompanion(')
+          ..write('projectId: $projectId, ')
+          ..write('versionToken: $versionToken, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxEntriesTable extends OutboxEntries
     with TableInfo<$OutboxEntriesTable, OutboxRow> {
   @override
@@ -2571,7 +4976,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VisitsTable visits = $VisitsTable(this);
   late final $DetectionsTable detections = $DetectionsTable(this);
   late final $EvidencesTable evidences = $EvidencesTable(this);
+  late final $DeterminationsTable determinations = $DeterminationsTable(this);
   late final $MeasurementsTable measurements = $MeasurementsTable(this);
+  late final $ProjectConfigsTable projectConfigs = $ProjectConfigsTable(this);
+  late final $ProtocolVersionsTable protocolVersions = $ProtocolVersionsTable(
+    this,
+  );
+  late final $SurveyPeriodsTable surveyPeriods = $SurveyPeriodsTable(this);
+  late final $ConfigSitesTable configSites = $ConfigSitesTable(this);
+  late final $ConfigStatesTable configStates = $ConfigStatesTable(this);
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -2582,7 +4995,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visits,
     detections,
     evidences,
+    determinations,
     measurements,
+    projectConfigs,
+    protocolVersions,
+    surveyPeriods,
+    configSites,
+    configStates,
     outboxEntries,
   ];
 }
@@ -2891,6 +5310,24 @@ final class $$VisitsTableReferences
     );
   }
 
+  static MultiTypedResultKey<$DeterminationsTable, List<DeterminationRow>>
+  _determinationsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.determinations,
+    aliasName: 'visits__id__determinations__visit_id',
+  );
+
+  $$DeterminationsTableProcessedTableManager get determinationsRefs {
+    final manager = $$DeterminationsTableTableManager(
+      $_db,
+      $_db.determinations,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_determinationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$MeasurementsTable, List<MeasurementRow>>
   _measurementsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.measurements,
@@ -3014,6 +5451,31 @@ class $$VisitsTableFilterComposer
           }) => $$EvidencesTableFilterComposer(
             $db: $db,
             $table: $db.evidences,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> determinationsRefs(
+    Expression<bool> Function($$DeterminationsTableFilterComposer f) f,
+  ) {
+    final $$DeterminationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.determinations,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeterminationsTableFilterComposer(
+            $db: $db,
+            $table: $db.determinations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3207,6 +5669,31 @@ class $$VisitsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> determinationsRefs<T extends Object>(
+    Expression<T> Function($$DeterminationsTableAnnotationComposer a) f,
+  ) {
+    final $$DeterminationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.determinations,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeterminationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.determinations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> measurementsRefs<T extends Object>(
     Expression<T> Function($$MeasurementsTableAnnotationComposer a) f,
   ) {
@@ -3274,6 +5761,7 @@ class $$VisitsTableTableManager
           PrefetchHooks Function({
             bool detectionsRefs,
             bool evidencesRefs,
+            bool determinationsRefs,
             bool measurementsRefs,
             bool outboxEntriesRefs,
           })
@@ -3341,6 +5829,7 @@ class $$VisitsTableTableManager
               ({
                 detectionsRefs = false,
                 evidencesRefs = false,
+                determinationsRefs = false,
                 measurementsRefs = false,
                 outboxEntriesRefs = false,
               }) {
@@ -3349,6 +5838,7 @@ class $$VisitsTableTableManager
                   explicitlyWatchedTables: [
                     if (detectionsRefs) db.detections,
                     if (evidencesRefs) db.evidences,
+                    if (determinationsRefs) db.determinations,
                     if (measurementsRefs) db.measurements,
                     if (outboxEntriesRefs) db.outboxEntries,
                   ],
@@ -3391,6 +5881,27 @@ class $$VisitsTableTableManager
                                 table,
                                 p0,
                               ).evidencesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (determinationsRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          DeterminationRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._determinationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).determinationsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.visitId == item.id,
@@ -3462,6 +5973,7 @@ typedef $$VisitsTableProcessedTableManager =
       PrefetchHooks Function({
         bool detectionsRefs,
         bool evidencesRefs,
+        bool determinationsRefs,
         bool measurementsRefs,
         bool outboxEntriesRefs,
       })
@@ -4156,6 +6668,416 @@ typedef $$EvidencesTableProcessedTableManager =
       EvidenceRow,
       PrefetchHooks Function({bool visitId})
     >;
+typedef $$DeterminationsTableCreateCompanionBuilder =
+    DeterminationsCompanion Function({
+      required String id,
+      required String visitId,
+      required String taxonRef,
+      required String taxon,
+      Value<DeterminationQualifier?> qualifier,
+      Value<String?> specimenCode,
+      required String determiner,
+      required DateTime date,
+      Value<String?> replacesId,
+      Value<int> rowid,
+    });
+typedef $$DeterminationsTableUpdateCompanionBuilder =
+    DeterminationsCompanion Function({
+      Value<String> id,
+      Value<String> visitId,
+      Value<String> taxonRef,
+      Value<String> taxon,
+      Value<DeterminationQualifier?> qualifier,
+      Value<String?> specimenCode,
+      Value<String> determiner,
+      Value<DateTime> date,
+      Value<String?> replacesId,
+      Value<int> rowid,
+    });
+
+final class $$DeterminationsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $DeterminationsTable, DeterminationRow> {
+  $$DeterminationsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('determinations__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DeterminationsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxon => $composableBuilder(
+    column: $table.taxon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    DeterminationQualifier?,
+    DeterminationQualifier,
+    String
+  >
+  get qualifier => $composableBuilder(
+    column: $table.qualifier,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxon => $composableBuilder(
+    column: $table.taxon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualifier => $composableBuilder(
+    column: $table.qualifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get taxonRef =>
+      $composableBuilder(column: $table.taxonRef, builder: (column) => column);
+
+  GeneratedColumn<String> get taxon =>
+      $composableBuilder(column: $table.taxon, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DeterminationQualifier?, String>
+  get qualifier =>
+      $composableBuilder(column: $table.qualifier, builder: (column) => column);
+
+  GeneratedColumn<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => column,
+  );
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeterminationsTable,
+          DeterminationRow,
+          $$DeterminationsTableFilterComposer,
+          $$DeterminationsTableOrderingComposer,
+          $$DeterminationsTableAnnotationComposer,
+          $$DeterminationsTableCreateCompanionBuilder,
+          $$DeterminationsTableUpdateCompanionBuilder,
+          (DeterminationRow, $$DeterminationsTableReferences),
+          DeterminationRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$DeterminationsTableTableManager(
+    _$AppDatabase db,
+    $DeterminationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeterminationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeterminationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeterminationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitId = const Value.absent(),
+                Value<String> taxonRef = const Value.absent(),
+                Value<String> taxon = const Value.absent(),
+                Value<DeterminationQualifier?> qualifier = const Value.absent(),
+                Value<String?> specimenCode = const Value.absent(),
+                Value<String> determiner = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String?> replacesId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeterminationsCompanion(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                taxon: taxon,
+                qualifier: qualifier,
+                specimenCode: specimenCode,
+                determiner: determiner,
+                date: date,
+                replacesId: replacesId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitId,
+                required String taxonRef,
+                required String taxon,
+                Value<DeterminationQualifier?> qualifier = const Value.absent(),
+                Value<String?> specimenCode = const Value.absent(),
+                required String determiner,
+                required DateTime date,
+                Value<String?> replacesId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeterminationsCompanion.insert(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                taxon: taxon,
+                qualifier: qualifier,
+                specimenCode: specimenCode,
+                determiner: determiner,
+                date: date,
+                replacesId: replacesId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DeterminationsTable, DeterminationRow>(table),
+                  $$DeterminationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$DeterminationsTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$DeterminationsTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DeterminationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeterminationsTable,
+      DeterminationRow,
+      $$DeterminationsTableFilterComposer,
+      $$DeterminationsTableOrderingComposer,
+      $$DeterminationsTableAnnotationComposer,
+      $$DeterminationsTableCreateCompanionBuilder,
+      $$DeterminationsTableUpdateCompanionBuilder,
+      (DeterminationRow, $$DeterminationsTableReferences),
+      DeterminationRow,
+      PrefetchHooks Function({bool visitId})
+    >;
 typedef $$MeasurementsTableCreateCompanionBuilder =
     MeasurementsCompanion Function({
       required String id,
@@ -4492,6 +7414,1062 @@ typedef $$MeasurementsTableProcessedTableManager =
       MeasurementRow,
       PrefetchHooks Function({bool visitId})
     >;
+typedef $$ProjectConfigsTableCreateCompanionBuilder =
+    ProjectConfigsCompanion Function({
+      required String projectId,
+      required String name,
+      required bool validationEnabled,
+      required bool sensitiveTaxaObfuscation,
+      required String taxonomicReferenceId,
+      required String taxonomicReferenceVersion,
+      Value<int> rowid,
+    });
+typedef $$ProjectConfigsTableUpdateCompanionBuilder =
+    ProjectConfigsCompanion Function({
+      Value<String> projectId,
+      Value<String> name,
+      Value<bool> validationEnabled,
+      Value<bool> sensitiveTaxaObfuscation,
+      Value<String> taxonomicReferenceId,
+      Value<String> taxonomicReferenceVersion,
+      Value<int> rowid,
+    });
+
+class $$ProjectConfigsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
+  $$ProjectConfigsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get validationEnabled => $composableBuilder(
+    column: $table.validationEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sensitiveTaxaObfuscation => $composableBuilder(
+    column: $table.sensitiveTaxaObfuscation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxonomicReferenceId => $composableBuilder(
+    column: $table.taxonomicReferenceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxonomicReferenceVersion => $composableBuilder(
+    column: $table.taxonomicReferenceVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProjectConfigsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
+  $$ProjectConfigsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get validationEnabled => $composableBuilder(
+    column: $table.validationEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sensitiveTaxaObfuscation => $composableBuilder(
+    column: $table.sensitiveTaxaObfuscation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxonomicReferenceId => $composableBuilder(
+    column: $table.taxonomicReferenceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxonomicReferenceVersion => $composableBuilder(
+    column: $table.taxonomicReferenceVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProjectConfigsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
+  $$ProjectConfigsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get validationEnabled => $composableBuilder(
+    column: $table.validationEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get sensitiveTaxaObfuscation => $composableBuilder(
+    column: $table.sensitiveTaxaObfuscation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get taxonomicReferenceId => $composableBuilder(
+    column: $table.taxonomicReferenceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get taxonomicReferenceVersion => $composableBuilder(
+    column: $table.taxonomicReferenceVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$ProjectConfigsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProjectConfigsTable,
+          ProjectConfigRow,
+          $$ProjectConfigsTableFilterComposer,
+          $$ProjectConfigsTableOrderingComposer,
+          $$ProjectConfigsTableAnnotationComposer,
+          $$ProjectConfigsTableCreateCompanionBuilder,
+          $$ProjectConfigsTableUpdateCompanionBuilder,
+          (
+            ProjectConfigRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ProjectConfigsTable,
+              ProjectConfigRow
+            >,
+          ),
+          ProjectConfigRow,
+          PrefetchHooks Function()
+        > {
+  $$ProjectConfigsTableTableManager(
+    _$AppDatabase db,
+    $ProjectConfigsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProjectConfigsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProjectConfigsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProjectConfigsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> projectId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<bool> validationEnabled = const Value.absent(),
+                Value<bool> sensitiveTaxaObfuscation = const Value.absent(),
+                Value<String> taxonomicReferenceId = const Value.absent(),
+                Value<String> taxonomicReferenceVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectConfigsCompanion(
+                projectId: projectId,
+                name: name,
+                validationEnabled: validationEnabled,
+                sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
+                taxonomicReferenceId: taxonomicReferenceId,
+                taxonomicReferenceVersion: taxonomicReferenceVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String projectId,
+                required String name,
+                required bool validationEnabled,
+                required bool sensitiveTaxaObfuscation,
+                required String taxonomicReferenceId,
+                required String taxonomicReferenceVersion,
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectConfigsCompanion.insert(
+                projectId: projectId,
+                name: name,
+                validationEnabled: validationEnabled,
+                sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
+                taxonomicReferenceId: taxonomicReferenceId,
+                taxonomicReferenceVersion: taxonomicReferenceVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ProjectConfigsTable, ProjectConfigRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ProjectConfigsTable,
+                    ProjectConfigRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProjectConfigsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProjectConfigsTable,
+      ProjectConfigRow,
+      $$ProjectConfigsTableFilterComposer,
+      $$ProjectConfigsTableOrderingComposer,
+      $$ProjectConfigsTableAnnotationComposer,
+      $$ProjectConfigsTableCreateCompanionBuilder,
+      $$ProjectConfigsTableUpdateCompanionBuilder,
+      (
+        ProjectConfigRow,
+        BaseReferences<_$AppDatabase, $ProjectConfigsTable, ProjectConfigRow>,
+      ),
+      ProjectConfigRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ProtocolVersionsTableCreateCompanionBuilder =
+    ProtocolVersionsCompanion Function({
+      required String id,
+      required String projectId,
+      required String protocolId,
+      required int version,
+      required String document,
+      Value<DateTime?> frozenAt,
+      Value<int> rowid,
+    });
+typedef $$ProtocolVersionsTableUpdateCompanionBuilder =
+    ProtocolVersionsCompanion Function({
+      Value<String> id,
+      Value<String> projectId,
+      Value<String> protocolId,
+      Value<int> version,
+      Value<String> document,
+      Value<DateTime?> frozenAt,
+      Value<int> rowid,
+    });
+
+class $$ProtocolVersionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProtocolVersionsTable> {
+  $$ProtocolVersionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get protocolId => $composableBuilder(
+    column: $table.protocolId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get document => $composableBuilder(
+    column: $table.document,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get frozenAt => $composableBuilder(
+    column: $table.frozenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProtocolVersionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProtocolVersionsTable> {
+  $$ProtocolVersionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get protocolId => $composableBuilder(
+    column: $table.protocolId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get document => $composableBuilder(
+    column: $table.document,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get frozenAt => $composableBuilder(
+    column: $table.frozenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProtocolVersionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProtocolVersionsTable> {
+  $$ProtocolVersionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get protocolId => $composableBuilder(
+    column: $table.protocolId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get document =>
+      $composableBuilder(column: $table.document, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get frozenAt =>
+      $composableBuilder(column: $table.frozenAt, builder: (column) => column);
+}
+
+class $$ProtocolVersionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProtocolVersionsTable,
+          ProtocolVersionRow,
+          $$ProtocolVersionsTableFilterComposer,
+          $$ProtocolVersionsTableOrderingComposer,
+          $$ProtocolVersionsTableAnnotationComposer,
+          $$ProtocolVersionsTableCreateCompanionBuilder,
+          $$ProtocolVersionsTableUpdateCompanionBuilder,
+          (
+            ProtocolVersionRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ProtocolVersionsTable,
+              ProtocolVersionRow
+            >,
+          ),
+          ProtocolVersionRow,
+          PrefetchHooks Function()
+        > {
+  $$ProtocolVersionsTableTableManager(
+    _$AppDatabase db,
+    $ProtocolVersionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProtocolVersionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProtocolVersionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProtocolVersionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> protocolId = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String> document = const Value.absent(),
+                Value<DateTime?> frozenAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProtocolVersionsCompanion(
+                id: id,
+                projectId: projectId,
+                protocolId: protocolId,
+                version: version,
+                document: document,
+                frozenAt: frozenAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String projectId,
+                required String protocolId,
+                required int version,
+                required String document,
+                Value<DateTime?> frozenAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProtocolVersionsCompanion.insert(
+                id: id,
+                projectId: projectId,
+                protocolId: protocolId,
+                version: version,
+                document: document,
+                frozenAt: frozenAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ProtocolVersionsTable, ProtocolVersionRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ProtocolVersionsTable,
+                    ProtocolVersionRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProtocolVersionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProtocolVersionsTable,
+      ProtocolVersionRow,
+      $$ProtocolVersionsTableFilterComposer,
+      $$ProtocolVersionsTableOrderingComposer,
+      $$ProtocolVersionsTableAnnotationComposer,
+      $$ProtocolVersionsTableCreateCompanionBuilder,
+      $$ProtocolVersionsTableUpdateCompanionBuilder,
+      (
+        ProtocolVersionRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ProtocolVersionsTable,
+          ProtocolVersionRow
+        >,
+      ),
+      ProtocolVersionRow,
+      PrefetchHooks Function()
+    >;
+typedef $$SurveyPeriodsTableCreateCompanionBuilder =
+    SurveyPeriodsCompanion Function({
+      required String id,
+      required String projectId,
+      required String name,
+      required String startDate,
+      required String endDate,
+      Value<int> rowid,
+    });
+typedef $$SurveyPeriodsTableUpdateCompanionBuilder =
+    SurveyPeriodsCompanion Function({
+      Value<String> id,
+      Value<String> projectId,
+      Value<String> name,
+      Value<String> startDate,
+      Value<String> endDate,
+      Value<int> rowid,
+    });
+
+class $$SurveyPeriodsTableFilterComposer
+    extends Composer<_$AppDatabase, $SurveyPeriodsTable> {
+  $$SurveyPeriodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SurveyPeriodsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SurveyPeriodsTable> {
+  $$SurveyPeriodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SurveyPeriodsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SurveyPeriodsTable> {
+  $$SurveyPeriodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+}
+
+class $$SurveyPeriodsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SurveyPeriodsTable,
+          SurveyPeriodRow,
+          $$SurveyPeriodsTableFilterComposer,
+          $$SurveyPeriodsTableOrderingComposer,
+          $$SurveyPeriodsTableAnnotationComposer,
+          $$SurveyPeriodsTableCreateCompanionBuilder,
+          $$SurveyPeriodsTableUpdateCompanionBuilder,
+          (
+            SurveyPeriodRow,
+            BaseReferences<_$AppDatabase, $SurveyPeriodsTable, SurveyPeriodRow>,
+          ),
+          SurveyPeriodRow,
+          PrefetchHooks Function()
+        > {
+  $$SurveyPeriodsTableTableManager(_$AppDatabase db, $SurveyPeriodsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SurveyPeriodsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SurveyPeriodsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SurveyPeriodsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> startDate = const Value.absent(),
+                Value<String> endDate = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SurveyPeriodsCompanion(
+                id: id,
+                projectId: projectId,
+                name: name,
+                startDate: startDate,
+                endDate: endDate,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String projectId,
+                required String name,
+                required String startDate,
+                required String endDate,
+                Value<int> rowid = const Value.absent(),
+              }) => SurveyPeriodsCompanion.insert(
+                id: id,
+                projectId: projectId,
+                name: name,
+                startDate: startDate,
+                endDate: endDate,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SurveyPeriodsTable, SurveyPeriodRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SurveyPeriodsTable,
+                    SurveyPeriodRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SurveyPeriodsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SurveyPeriodsTable,
+      SurveyPeriodRow,
+      $$SurveyPeriodsTableFilterComposer,
+      $$SurveyPeriodsTableOrderingComposer,
+      $$SurveyPeriodsTableAnnotationComposer,
+      $$SurveyPeriodsTableCreateCompanionBuilder,
+      $$SurveyPeriodsTableUpdateCompanionBuilder,
+      (
+        SurveyPeriodRow,
+        BaseReferences<_$AppDatabase, $SurveyPeriodsTable, SurveyPeriodRow>,
+      ),
+      SurveyPeriodRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ConfigSitesTableCreateCompanionBuilder =
+    ConfigSitesCompanion Function({
+      required String id,
+      required String projectId,
+      Value<String?> name,
+      Value<String?> geom,
+      Value<DateTime?> createdAt,
+      Value<int> rowid,
+    });
+typedef $$ConfigSitesTableUpdateCompanionBuilder =
+    ConfigSitesCompanion Function({
+      Value<String> id,
+      Value<String> projectId,
+      Value<String?> name,
+      Value<String?> geom,
+      Value<DateTime?> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ConfigSitesTableFilterComposer
+    extends Composer<_$AppDatabase, $ConfigSitesTable> {
+  $$ConfigSitesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get geom => $composableBuilder(
+    column: $table.geom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ConfigSitesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ConfigSitesTable> {
+  $$ConfigSitesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get geom => $composableBuilder(
+    column: $table.geom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ConfigSitesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ConfigSitesTable> {
+  $$ConfigSitesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get geom =>
+      $composableBuilder(column: $table.geom, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ConfigSitesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ConfigSitesTable,
+          ConfigSiteRow,
+          $$ConfigSitesTableFilterComposer,
+          $$ConfigSitesTableOrderingComposer,
+          $$ConfigSitesTableAnnotationComposer,
+          $$ConfigSitesTableCreateCompanionBuilder,
+          $$ConfigSitesTableUpdateCompanionBuilder,
+          (
+            ConfigSiteRow,
+            BaseReferences<_$AppDatabase, $ConfigSitesTable, ConfigSiteRow>,
+          ),
+          ConfigSiteRow,
+          PrefetchHooks Function()
+        > {
+  $$ConfigSitesTableTableManager(_$AppDatabase db, $ConfigSitesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ConfigSitesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ConfigSitesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ConfigSitesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String?> name = const Value.absent(),
+                Value<String?> geom = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConfigSitesCompanion(
+                id: id,
+                projectId: projectId,
+                name: name,
+                geom: geom,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String projectId,
+                Value<String?> name = const Value.absent(),
+                Value<String?> geom = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConfigSitesCompanion.insert(
+                id: id,
+                projectId: projectId,
+                name: name,
+                geom: geom,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ConfigSitesTable, ConfigSiteRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ConfigSitesTable,
+                    ConfigSiteRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ConfigSitesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ConfigSitesTable,
+      ConfigSiteRow,
+      $$ConfigSitesTableFilterComposer,
+      $$ConfigSitesTableOrderingComposer,
+      $$ConfigSitesTableAnnotationComposer,
+      $$ConfigSitesTableCreateCompanionBuilder,
+      $$ConfigSitesTableUpdateCompanionBuilder,
+      (
+        ConfigSiteRow,
+        BaseReferences<_$AppDatabase, $ConfigSitesTable, ConfigSiteRow>,
+      ),
+      ConfigSiteRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ConfigStatesTableCreateCompanionBuilder =
+    ConfigStatesCompanion Function({
+      required String projectId,
+      required String versionToken,
+      Value<int> rowid,
+    });
+typedef $$ConfigStatesTableUpdateCompanionBuilder =
+    ConfigStatesCompanion Function({
+      Value<String> projectId,
+      Value<String> versionToken,
+      Value<int> rowid,
+    });
+
+class $$ConfigStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $ConfigStatesTable> {
+  $$ConfigStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get versionToken => $composableBuilder(
+    column: $table.versionToken,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ConfigStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ConfigStatesTable> {
+  $$ConfigStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get versionToken => $composableBuilder(
+    column: $table.versionToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ConfigStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ConfigStatesTable> {
+  $$ConfigStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get versionToken => $composableBuilder(
+    column: $table.versionToken,
+    builder: (column) => column,
+  );
+}
+
+class $$ConfigStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ConfigStatesTable,
+          ConfigStateRow,
+          $$ConfigStatesTableFilterComposer,
+          $$ConfigStatesTableOrderingComposer,
+          $$ConfigStatesTableAnnotationComposer,
+          $$ConfigStatesTableCreateCompanionBuilder,
+          $$ConfigStatesTableUpdateCompanionBuilder,
+          (
+            ConfigStateRow,
+            BaseReferences<_$AppDatabase, $ConfigStatesTable, ConfigStateRow>,
+          ),
+          ConfigStateRow,
+          PrefetchHooks Function()
+        > {
+  $$ConfigStatesTableTableManager(_$AppDatabase db, $ConfigStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ConfigStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ConfigStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ConfigStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> projectId = const Value.absent(),
+                Value<String> versionToken = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConfigStatesCompanion(
+                projectId: projectId,
+                versionToken: versionToken,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String projectId,
+                required String versionToken,
+                Value<int> rowid = const Value.absent(),
+              }) => ConfigStatesCompanion.insert(
+                projectId: projectId,
+                versionToken: versionToken,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ConfigStatesTable, ConfigStateRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ConfigStatesTable,
+                    ConfigStateRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ConfigStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ConfigStatesTable,
+      ConfigStateRow,
+      $$ConfigStatesTableFilterComposer,
+      $$ConfigStatesTableOrderingComposer,
+      $$ConfigStatesTableAnnotationComposer,
+      $$ConfigStatesTableCreateCompanionBuilder,
+      $$ConfigStatesTableUpdateCompanionBuilder,
+      (
+        ConfigStateRow,
+        BaseReferences<_$AppDatabase, $ConfigStatesTable, ConfigStateRow>,
+      ),
+      ConfigStateRow,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxEntriesTableCreateCompanionBuilder =
     OutboxEntriesCompanion Function({
       required String visitId,
@@ -4786,8 +8764,20 @@ class $AppDatabaseManager {
       $$DetectionsTableTableManager(_db, _db.detections);
   $$EvidencesTableTableManager get evidences =>
       $$EvidencesTableTableManager(_db, _db.evidences);
+  $$DeterminationsTableTableManager get determinations =>
+      $$DeterminationsTableTableManager(_db, _db.determinations);
   $$MeasurementsTableTableManager get measurements =>
       $$MeasurementsTableTableManager(_db, _db.measurements);
+  $$ProjectConfigsTableTableManager get projectConfigs =>
+      $$ProjectConfigsTableTableManager(_db, _db.projectConfigs);
+  $$ProtocolVersionsTableTableManager get protocolVersions =>
+      $$ProtocolVersionsTableTableManager(_db, _db.protocolVersions);
+  $$SurveyPeriodsTableTableManager get surveyPeriods =>
+      $$SurveyPeriodsTableTableManager(_db, _db.surveyPeriods);
+  $$ConfigSitesTableTableManager get configSites =>
+      $$ConfigSitesTableTableManager(_db, _db.configSites);
+  $$ConfigStatesTableTableManager get configStates =>
+      $$ConfigStatesTableTableManager(_db, _db.configStates);
   $$OutboxEntriesTableTableManager get outboxEntries =>
       $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
 }

@@ -64,6 +64,48 @@
       "when": 1790788379076,
       "tag": "0008_membership_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790844047180,
+      "tag": "0009_visit_structural_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790844047871,
+      "tag": "0010_visit_determination_immutable",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790844845003,
+      "tag": "0011_low_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790857069030,
+      "tag": "0012_visit_validation_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790859105472,
+      "tag": "0013_reject_correction_mutation",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790871654835,
+      "tag": "0014_wakeful_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

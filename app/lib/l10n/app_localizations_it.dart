@@ -143,6 +143,31 @@ class AppLocalizationsIt extends AppLocalizations {
   String get visitStateEnded => 'Conclusa';
 
   @override
+  String get visitDetailTitle => 'Dettagli visita';
+
+  @override
+  String get visitDetailStatus => 'Stato di validazione';
+
+  @override
+  String get visitStatusSubmitted => 'Inviata';
+
+  @override
+  String get visitStatusValidated => 'Validata';
+
+  @override
+  String get visitStatusRejected => 'Rifiutata';
+
+  @override
+  String get visitDetailCorrectionsHeading => 'Correzioni';
+
+  @override
+  String get visitDetailCorrectionsEmpty => 'Questa visita non ha correzioni.';
+
+  @override
+  String get visitDetailLoadFailed =>
+      'Impossibile caricare la visita. Riprova.';
+
+  @override
   String get captureTitle => 'Visita';
 
   @override
@@ -220,6 +245,31 @@ class AppLocalizationsIt extends AppLocalizations {
   String authSignedInAs(String name) {
     return 'Accesso effettuato come $name';
   }
+
+  @override
+  String get authName => 'Nome';
+
+  @override
+  String get authSignUp => 'Crea account';
+
+  @override
+  String get authSwitchToSignUp => 'Crea un account';
+
+  @override
+  String get authSwitchToSignIn => 'Torna all\'accesso';
+
+  @override
+  String get authNameRequired => 'Inserisci il tuo nome.';
+
+  @override
+  String get authEmailInvalid => 'Inserisci un\'email valida.';
+
+  @override
+  String get authPasswordTooShort => 'Usa almeno 8 caratteri.';
+
+  @override
+  String get authSignUpFailed =>
+      'Impossibile creare l\'account. Controlla i dati e riprova.';
 
   @override
   String get evidencePhoto => 'Foto';

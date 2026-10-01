@@ -140,6 +140,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitStateEnded => 'Ended';
 
   @override
+  String get visitDetailTitle => 'Visit details';
+
+  @override
+  String get visitDetailStatus => 'Validation status';
+
+  @override
+  String get visitStatusSubmitted => 'Submitted';
+
+  @override
+  String get visitStatusValidated => 'Validated';
+
+  @override
+  String get visitStatusRejected => 'Rejected';
+
+  @override
+  String get visitDetailCorrectionsHeading => 'Corrections';
+
+  @override
+  String get visitDetailCorrectionsEmpty => 'This visit has no corrections.';
+
+  @override
+  String get visitDetailLoadFailed => 'Could not load the visit. Try again.';
+
+  @override
   String get captureTitle => 'Visit';
 
   @override
@@ -216,6 +240,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String authSignedInAs(String name) {
     return 'Signed in as $name';
   }
+
+  @override
+  String get authName => 'Name';
+
+  @override
+  String get authSignUp => 'Create account';
+
+  @override
+  String get authSwitchToSignUp => 'Create an account';
+
+  @override
+  String get authSwitchToSignIn => 'Back to sign in';
+
+  @override
+  String get authNameRequired => 'Enter your name.';
+
+  @override
+  String get authEmailInvalid => 'Enter a valid email.';
+
+  @override
+  String get authPasswordTooShort => 'Use at least 8 characters.';
+
+  @override
+  String get authSignUpFailed =>
+      'Could not create the account. Check your details and try again.';
 
   @override
   String get evidencePhoto => 'Photo';

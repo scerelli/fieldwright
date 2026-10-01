@@ -236,30 +236,60 @@ export const visitState = pgEnum('visit_state', [
  * Visit (DOMAIN.md): the unit of offline capture, submission and immutability.
  * Its id is a client-generated UUIDv7. It references exactly one Site, one
  * Survey period and one Protocol version (INV-006), enforced by the non-null
- * foreign keys below. `effort` holds the Sampling effort fields the Protocol
- * version requires; `submitted_at` is the submission instant.
+ * foreign keys below; `ended_at` and `submitted_at` never precede `started_at`
+ * (check `visit_timestamps_ordered`). `effort` holds the Sampling effort fields
+ * the Protocol version requires; `submitted_at` is the submission instant. A
+ * stored Visit is immutable (INV-001): the `visit_immutable` trigger in the
+ * migration permits exactly one UPDATE of a `submitted` row — the Validation
+ * transition to `validated` or `rejected` (INV-013) — recording `validator_id`
+ * and `validated_at` and touching no other column; every other UPDATE, and any
+ * DELETE, of a stored row is rejected. A later change is a Correction.
+ *
+ * `validator_id` references the Better Auth `user` (the Person who holds the
+ * `validator` Membership) and `validated_at` is the Validation instant; both
+ * are null until the Visit is validated or rejected.
+ *
+ * `taxonomic_reference_id` and `taxonomic_reference_version` record the
+ * Project's pinned Taxonomic reference version the Visit's data was captured
+ * against (INV-008); the ingest transaction copies the pin from the Project,
+ * and the NOT NULL columns reject a Visit row stored without one.
  */
-export const visit = pgTable('visit', {
-  id: uuid('id').primaryKey(),
-  projectId: uuid('project_id')
-    .notNull()
-    .references(() => project.id, { onDelete: 'cascade' }),
-  siteId: uuid('site_id')
-    .notNull()
-    .references(() => site.id, { onDelete: 'cascade' }),
-  surveyPeriodId: uuid('survey_period_id')
-    .notNull()
-    .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
-  protocolVersionId: uuid('protocol_version_id')
-    .notNull()
-    .references(() => protocolVersion.id, { onDelete: 'cascade' }),
-  state: visitState('state').notNull(),
-  effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
-  startedAt: timestamp('started_at').notNull(),
-  endedAt: timestamp('ended_at'),
-  submittedAt: timestamp('submitted_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const visit = pgTable(
+  'visit',
+  {
+    id: uuid('id').primaryKey(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    siteId: uuid('site_id')
+      .notNull()
+      .references(() => site.id, { onDelete: 'cascade' }),
+    surveyPeriodId: uuid('survey_period_id')
+      .notNull()
+      .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
+    protocolVersionId: uuid('protocol_version_id')
+      .notNull()
+      .references(() => protocolVersion.id, { onDelete: 'cascade' }),
+    taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
+    taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
+    state: visitState('state').notNull(),
+    effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    endedAt: timestamp('ended_at'),
+    submittedAt: timestamp('submitted_at').notNull(),
+    validatorId: text('validator_id').references(() => user.id, {
+      onDelete: 'restrict',
+    }),
+    validatedAt: timestamp('validated_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      'visit_timestamps_ordered',
+      sql`(${table.endedAt} is null or ${table.endedAt} >= ${table.startedAt}) and ${table.submittedAt} >= ${table.startedAt}`,
+    ),
+  ],
+);
 
 export type Visit = typeof visit.$inferSelect;
 
@@ -309,7 +339,8 @@ export const determinationQualifier = pgEnum('determination_qualifier', [
  * Determination (DOMAIN.md): a taxon assignment for a Detection, carrying its
  * qualifier, specimen code, determiner and date. Append-only (INV-009): a
  * revision is a new row whose `replaces_id` links to the one it replaces;
- * there is no update path, so nothing is overwritten.
+ * there is no update path, so nothing is overwritten. The
+ * `determination_immutable` trigger in the migration rejects any UPDATE.
  */
 export const determination = pgTable('determination', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -331,8 +362,8 @@ export type Determination = typeof determination.$inferSelect;
 
 /**
  * Measurement provenance (DOMAIN.md): how a Measurement was obtained. A
- * Measurement without a method is invalid (INV-010), enforced by the check on
- * the `measurement` table.
+ * Measurement whose Provenance has no method — absent, null or blank — is
+ * invalid (INV-010), enforced by the check on the `measurement` table.
  */
 export interface MeasurementProvenance {
   method: string;
@@ -361,7 +392,7 @@ export const measurement = pgTable(
   (table) => [
     check(
       'measurement_provenance_method',
-      sql`${table.provenance}->>'method' is not null`,
+      sql`nullif(btrim(${table.provenance}->>'method'), '') is not null`,
     ),
   ],
 );
@@ -393,7 +424,9 @@ export type Evidence = typeof evidence.$inferSelect;
 /**
  * Correction (DOMAIN.md): an append-only change to a submitted Visit carrying
  * its author, time, reason and payload. It never mutates the submitted Visit
- * (INV-001, INV-013); `author_id` references the Better Auth `user`.
+ * (INV-001, INV-013); `author_id` references the Better Auth `user`. The
+ * `correction_immutable` trigger in the migration rejects any UPDATE or DELETE
+ * of a stored row, so a Correction is itself never changed or removed.
  */
 export const correction = pgTable('correction', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -409,3 +442,39 @@ export const correction = pgTable('correction', {
 });
 
 export type Correction = typeof correction.$inferSelect;
+
+/**
+ * Export lifecycle (ARCHITECTURE.md): a requested export moves from its
+ * request to a produced artifact, or fails.
+ */
+export const exportState = pgEnum('export_state', [
+  'requested',
+  'processing',
+  'succeeded',
+  'failed',
+]);
+
+export type ExportState = (typeof exportState.enumValues)[number];
+
+/**
+ * Export record (ARCHITECTURE.md `exports` module): a durable record of one
+ * requested export of a Project's data, carrying the requested `format`, its
+ * lifecycle `state`, the artifact's `storage_key` once produced, and the
+ * failure reason in `error` when its job fails. It is not a DOMAIN.md
+ * aggregate; the Project owns it, so `project_id` cascades on Project delete.
+ * `storage_key` and `error` are null until an artifact is produced or the job
+ * fails.
+ */
+export const exportRecord = pgTable('export', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
+  format: text('format').notNull(),
+  state: exportState('state').notNull().default('requested'),
+  storageKey: text('storage_key'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Export = typeof exportRecord.$inferSelect;
