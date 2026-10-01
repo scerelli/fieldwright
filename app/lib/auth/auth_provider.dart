@@ -1,14 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app_config.dart';
 import 'auth_client.dart';
 
-/// The self-hosted server root. Better Auth is mounted at `/api/auth/*`, so
-/// the client appends that path; override at build time with
-/// `--dart-define=IBIS_API_BASE_URL=https://host`.
-const String authBaseUrl = String.fromEnvironment(
-  'IBIS_API_BASE_URL',
-  defaultValue: 'http://localhost:3000',
-);
+/// The self-hosted server root every client is built from, resolved from the
+/// single compile-time value `IBIS_API_BASE_URL` (`app_config.dart`). Better
+/// Auth is mounted at `/api/auth/*`, so the client appends that path.
+final String authBaseUrl = apiBaseUrl;
 
 final authClientProvider = Provider<AuthClient>(
   (ref) => AuthClient(baseUrl: authBaseUrl),
