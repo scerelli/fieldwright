@@ -22,8 +22,15 @@
  * INV-008 and is deferred until the reference lists and their versioning are
  * decided (DOMAIN.md Open questions).
  */
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { and, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE } from '../db/database.provider.js';
 import {
@@ -31,6 +38,7 @@ import {
   determination,
   evidence,
   measurement,
+  membership,
   project,
   protocolVersion,
   visit,
@@ -263,6 +271,78 @@ export class VisitsService {
       }
 
       return created;
+    });
+  }
+
+  /**
+   * Records a Validation: marks a `submitted` Visit `validated` or `rejected`,
+   * writing only `state`, `validator_id` and `validated_at` and leaving every
+   * other column as submitted (INV-001, INV-013). The project must have
+   * validation enabled and the person must hold the `validator` Membership in
+   * the Visit's Project; the Visit must be `submitted`. The row is locked for
+   * update so two concurrent Validation requests cannot both pass the
+   * app-level state check; the database trigger from #269 is the safety net.
+   */
+  async applyValidation(
+    personId: string,
+    visitId: string,
+    state: 'validated' | 'rejected',
+  ): Promise<Visit> {
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(visit)
+        .where(eq(visit.id, visitId))
+        .limit(1)
+        .for('update');
+      if (current === undefined) {
+        throw new NotFoundException(`Visit ${visitId} does not exist`);
+      }
+
+      const [validator] = await tx
+        .select({ id: membership.id })
+        .from(membership)
+        .where(
+          and(
+            eq(membership.personId, personId),
+            eq(membership.projectId, current.projectId),
+            eq(membership.role, 'validator'),
+          ),
+        )
+        .limit(1);
+      if (validator === undefined) {
+        throw new ForbiddenException(
+          'only a validator may mark a Visit validated or rejected',
+        );
+      }
+
+      const [owner] = await tx
+        .select({ settings: project.settings })
+        .from(project)
+        .where(eq(project.id, current.projectId))
+        .limit(1);
+      if (owner === undefined) {
+        throw new NotFoundException(
+          `Project ${current.projectId} does not exist`,
+        );
+      }
+      if (!owner.settings.validationEnabled) {
+        throw new ConflictException(
+          'Validation is not enabled for this Project',
+        );
+      }
+      if (current.state !== 'submitted') {
+        throw new ConflictException(
+          'Validation applies only to a submitted Visit',
+        );
+      }
+
+      const [updated] = await tx
+        .update(visit)
+        .set({ state, validatorId: personId, validatedAt: new Date() })
+        .where(eq(visit.id, visitId))
+        .returning();
+      return updated!;
     });
   }
 }
