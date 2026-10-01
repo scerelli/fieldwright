@@ -138,6 +138,7 @@ describe('POST /api/v1/visits', () => {
 
   async function seedReferences(
     requiredEffortFields?: string[],
+    targetList?: Array<{ taxonRef: string }>,
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
@@ -180,6 +181,7 @@ describe('POST /api/v1/visits', () => {
           ...(requiredEffortFields === undefined
             ? {}
             : { requiredEffortFields }),
+          ...(targetList === undefined ? {} : { targetList }),
         },
       })
       .returning();
@@ -342,6 +344,75 @@ describe('POST /api/v1/visits', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.state).toBe('submitted');
     expect(rows[0]!.effort).toMatchObject(effort);
+  });
+
+  it('rejects a submission with no Detection for a target taxon with 400 and stores no Visit', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Anthus trivialis' },
+      { taxonRef: 'Sylvia borin' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('accepts a target taxon whose Detection has detected = false, recording a non-detection', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Sylvia borin' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const detections = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const nonDetection = detections.find(
+      (row) => row.taxon === 'Sylvia borin',
+    );
+    expect(nonDetection?.detected).toBe(false);
+  });
+
+  it('rejects a submission whose only Detection for a target taxon is opportunistic with 400 and stores no Visit', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Vulpes vulpes' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          {
+            taxon: 'Vulpes vulpes',
+            detected: true,
+            method: 'visual',
+            opportunistic: true,
+          },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
   });
 
   it('rejects an unauthenticated request with 401', async () => {
