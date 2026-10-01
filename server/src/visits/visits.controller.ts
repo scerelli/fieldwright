@@ -40,7 +40,12 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { AuthGuard, type Person } from '../auth/auth.guard.js';
 import { CurrentPerson } from '../auth/current-person.decorator.js';
 import { DATABASE } from '../db/database.provider.js';
-import { visit, type MeasurementProvenance, type Visit } from '../db/schema.js';
+import {
+  visit,
+  type Correction,
+  type MeasurementProvenance,
+  type Visit,
+} from '../db/schema.js';
 import {
   VisitsService,
   type StoreSubmittedVisitInput,
@@ -191,6 +196,20 @@ export class ApplyValidationDto {
   state!: 'validated' | 'rejected';
 }
 
+/**
+ * The Correction a collector or validator records against a stored Visit
+ * (GLOSSARY.md Correction): the reason and the change payload. The author and
+ * the recording time are resolved server-side, so the body carries neither.
+ */
+export class RecordCorrectionDto {
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @IsObject()
+  payload!: Record<string, unknown>;
+}
+
 @Controller('api/v1/visits')
 @UsePipes(
   new ValidationPipe({
@@ -247,6 +266,28 @@ export class VisitsController {
     @Body() dto: ApplyValidationDto,
   ): Promise<Visit> {
     return this.visits.applyValidation(person.id, id, dto.state);
+  }
+
+  /**
+   * Records a Correction against a stored Visit (GLOSSARY.md Correction,
+   * INV-001): one append-only `correction` row carrying the authenticated
+   * author, the recording time, the reason and the change payload. The stored
+   * Visit is never touched — every one of its
+   * columns is left exactly as submitted. Requires a `collector` or
+   * `validator` Membership in the Visit's Project; a Visit in `in_progress` or
+   * `ended` is not yet stored and is refused.
+   */
+  @UseGuards(AuthGuard)
+  @Post(':id/corrections')
+  async recordCorrection(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RecordCorrectionDto,
+  ): Promise<Correction> {
+    return this.visits.recordCorrection(person.id, id, {
+      reason: dto.reason,
+      payload: dto.payload,
+    });
   }
 
   private async findVisit(id: string): Promise<Visit | undefined> {

@@ -30,10 +30,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE } from '../db/database.provider.js';
 import {
+  correction,
   detection,
   determination,
   evidence,
@@ -42,6 +43,7 @@ import {
   project,
   protocolVersion,
   visit,
+  type Correction,
   type MeasurementProvenance,
   type Visit,
 } from '../db/schema.js';
@@ -82,6 +84,11 @@ export interface StoreEvidenceInput {
   kind: 'photo' | 'audio';
   storageKey: string;
   sha256: string;
+}
+
+export interface RecordCorrectionInput {
+  reason: string;
+  payload: Record<string, unknown>;
 }
 
 export interface StoreSubmittedVisitInput {
@@ -343,6 +350,69 @@ export class VisitsService {
         .where(eq(visit.id, visitId))
         .returning();
       return updated!;
+    });
+  }
+
+  /**
+   * Records a Correction against a stored Visit (GLOSSARY.md Correction,
+   * INV-001): one append-only `correction` row carrying the author, the
+   * recording time, the reason and the change payload. The submitted Visit is
+   * never mutated, so every one of its columns is left exactly as submitted.
+   * The person must hold the `collector` or `validator` Membership in the
+   * Visit's Project; a Visit that does not exist is refused, and a Visit in
+   * `in_progress` or `ended` is not yet stored and is refused, so a refusal
+   * stores no row. The Visit row is locked so the existence and state checks
+   * stay consistent with a concurrent submission.
+   */
+  async recordCorrection(
+    personId: string,
+    visitId: string,
+    input: RecordCorrectionInput,
+  ): Promise<Correction> {
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(visit)
+        .where(eq(visit.id, visitId))
+        .limit(1)
+        .for('update');
+      if (current === undefined) {
+        throw new NotFoundException(`Visit ${visitId} does not exist`);
+      }
+
+      const [member] = await tx
+        .select({ id: membership.id })
+        .from(membership)
+        .where(
+          and(
+            eq(membership.personId, personId),
+            eq(membership.projectId, current.projectId),
+            inArray(membership.role, ['collector', 'validator']),
+          ),
+        )
+        .limit(1);
+      if (member === undefined) {
+        throw new ForbiddenException(
+          'only a collector or validator may record a Correction',
+        );
+      }
+
+      if (current.state === 'in_progress' || current.state === 'ended') {
+        throw new ConflictException(
+          'a Correction applies only to a stored Visit',
+        );
+      }
+
+      const [created] = await tx
+        .insert(correction)
+        .values({
+          visitId,
+          authorId: personId,
+          reason: input.reason,
+          payload: input.payload,
+        })
+        .returning();
+      return created!;
     });
   }
 }
