@@ -4,7 +4,7 @@
  * upload it accepts, and — when S3 is selected — the S3-compatible settings. All
  * are read from the environment, so the Compose deployment that mounts the
  * `media` volume at /data/media needs no code change, and an operator opting
- * into S3 only sets the S3 variables (ADR-0007, ADR-0012).
+ * into S3 only sets the S3 settings (ADR-0007, ADR-0012).
  */
 
 /** Injection token for the resolved `MediaConfig`. */

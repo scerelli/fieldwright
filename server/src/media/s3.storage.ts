@@ -126,16 +126,14 @@ async function objectExists(
 }
 
 /**
- * A missing key is a 404 from S3; the SDK models it as `NoSuchKey`/`NotFound`
- * (and some S3-compatible services only set the HTTP status), so both are
- * treated as not-found.
+ * A missing key is a 404 from S3; the SDK models it as `NoSuchKey` (GET) or
+ * `NotFound` (HEAD) on the error `name`, which AWS S3 and MinIO both set, so
+ * either names a key with no stored file.
  */
 function isNotFound(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) {
     return false;
   }
   const name = (error as { name?: unknown }).name;
-  const status = (error as { $metadata?: { httpStatusCode?: number } })
-    .$metadata?.httpStatusCode;
-  return name === 'NoSuchKey' || name === 'NotFound' || status === 404;
+  return name === 'NoSuchKey' || name === 'NotFound';
 }
