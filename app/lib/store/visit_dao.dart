@@ -30,11 +30,11 @@ class VisitDao {
   }
 
   Future<void> save(Visit visit) async {
-    if (visit.isEnded) {
+    if (!visit.isInProgress) {
       throw StateError('Use endVisit to end a Visit');
     }
     final existing = await findById(visit.id);
-    if (existing?.isEnded ?? false) {
+    if (existing != null && !existing.isInProgress) {
       throw StateError('An ended Visit rejects further in-progress changes');
     }
     await _database
@@ -47,7 +47,7 @@ class VisitDao {
     if (existing == null) {
       throw StateError('Cannot end a Visit that was not started');
     }
-    if (existing.isEnded) {
+    if (!existing.isInProgress) {
       throw StateError('An ended Visit rejects further in-progress changes');
     }
     final ended = existing.copyWith(
@@ -60,6 +60,28 @@ class VisitDao {
         .into(_database.visits)
         .insertOnConflictUpdate(_toCompanion(ended));
     return ended;
+  }
+
+  /// Marks the ended Visit [id] as delivered to the server, moving it to the
+  /// `submitted` lifecycle state (DOMAIN.md). Idempotent: an already submitted
+  /// Visit is returned unchanged, and the transition is only legal from
+  /// [VisitState.ended] — a submitted Visit is immutable thereafter (INV-001).
+  Future<Visit> markSubmitted(String id) async {
+    final existing = await findById(id);
+    if (existing == null) {
+      throw StateError('Cannot submit a Visit that was not started');
+    }
+    if (existing.isSubmitted) {
+      return existing;
+    }
+    if (!existing.isEnded) {
+      throw StateError('Only an ended Visit can be marked submitted');
+    }
+    final submitted = existing.copyWith(state: VisitState.submitted);
+    await _database
+        .into(_database.visits)
+        .insertOnConflictUpdate(_toCompanion(submitted));
+    return submitted;
   }
 
   Future<Visit?> findById(String id) async {

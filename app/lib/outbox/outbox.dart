@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import '../features/visits/visit.dart';
 import '../store/outbox_dao.dart';
+import '../store/site_dao.dart';
+import '../store/visit_dao.dart';
+import 'sync_client.dart';
 
 /// The delivery state of a submitted Visit held in the client outbox.
 ///
@@ -8,22 +14,154 @@ import '../store/outbox_dao.dart';
 /// and [synced], or [failed] when a delivery attempt is rejected (UX-007).
 enum SyncState { queued, syncing, synced, failed }
 
+/// How the outbox retries a submission that could not reach the server
+/// (UX-013). Each retry waits [initialBackoff] multiplied by [multiplier] once
+/// per prior attempt — a bounded exponential backoff — up to [maxAttempts]
+/// attempts, after which the Visit is left [SyncState.failed] and retryable.
+class RetryPolicy {
+  const RetryPolicy({
+    this.maxAttempts = 3,
+    this.initialBackoff = const Duration(seconds: 2),
+    this.multiplier = 2,
+  }) : assert(maxAttempts >= 1, 'maxAttempts must be at least 1');
+
+  final int maxAttempts;
+  final Duration initialBackoff;
+  final double multiplier;
+
+  /// The delay before retry number [attempt] (0-based).
+  Duration backoffFor(int attempt) => Duration(
+    microseconds:
+        (initialBackoff.inMicroseconds * math.pow(multiplier, attempt)).round(),
+  );
+}
+
+Future<void> _defaultSleep(Duration duration) => Future<void>.delayed(duration);
+
 /// The client outbox: the queue of ended Visits awaiting delivery to the sync
 /// API. Submitting writes to the local store, never to memory, so a Visit is
 /// never lost when connectivity is absent or the app is killed — only its
 /// delivery waits (UX-007, UX-013).
+///
+/// Delivery is idempotent on the Visit's client-generated UUIDv7 id: a retry or
+/// re-upload sends the same id, so it never creates a second Visit
+/// (ADR-0011). The transport, and the DAOs it writes through, are injected so
+/// the outbox stays testable and its wiring is explicit.
 class Outbox {
-  Outbox(this._dao);
+  Outbox(this._dao, {this._client, this._visits, this._sites});
 
   final OutboxDao _dao;
+  final SyncClient? _client;
+  final VisitDao? _visits;
+  final SiteDao? _sites;
 
   /// Queues [visit] for delivery. Only an ended Visit may be submitted
   /// (DOMAIN.md lifecycle); the submission is recorded as [SyncState.queued]
-  /// and stays readable from the local store across a relaunch (UX-013).
+  /// and stays readable from the local store across a relaunch (UX-013). When
+  /// the outbox is wired for delivery, queuing also kicks a flush so the Visit
+  /// is delivered without the caller invoking the engine — the kick is
+  /// non-blocking and swallows its own failure, so a dead network never throws
+  /// at the caller or drops the Visit (UX-007).
   Future<void> submit(Visit visit) async {
     if (!visit.isEnded) {
       throw StateError('Only an ended Visit can be submitted');
     }
     await _dao.enqueue(visit.id);
+    _kickDelivery();
+  }
+
+  /// Starts a flush in the background when the outbox can deliver. A failure is
+  /// ignored here: the Visit stays queued/failed and is retried by the next
+  /// kick or app start.
+  void _kickDelivery() {
+    if (_client == null || _visits == null || _sites == null) return;
+    unawaited(flush().catchError((Object _) {}));
+  }
+
+  /// Delivers [visit] to the sync API and records the outcome. A delivered
+  /// Visit becomes [SyncState.synced] and its lifecycle moves to `submitted`
+  /// (DOMAIN.md). A rejection becomes [SyncState.failed] and stays retryable;
+  /// a transient failure is retried with [retry]'s backoff first.
+  Future<SyncState> deliver(
+    Visit visit, {
+    RetryPolicy retry = const RetryPolicy(),
+    DateTime Function()? clock,
+    Future<void> Function(Duration)? sleep,
+  }) async {
+    final client = _client;
+    final visits = _visits;
+    final sites = _sites;
+    if (client == null || visits == null || sites == null) {
+      throw StateError('Outbox is not configured to deliver submissions');
+    }
+    if (visit.isInProgress) {
+      throw StateError('Only an ended Visit can be delivered');
+    }
+    final site = await sites.findById(visit.siteId);
+    if (site == null) {
+      throw StateError(
+        'Visit references a Site that is not in the local store',
+      );
+    }
+
+    await _dao.enqueue(visit.id);
+    await _dao.setSyncState(visit.id, SyncState.syncing);
+    var attempt = 0;
+    while (true) {
+      attempt += 1;
+      try {
+        final result = await client.submit(
+          visit,
+          projectId: site.projectId,
+          submittedAt: (clock ?? DateTime.now)(),
+        );
+        if (result == SubmitResult.delivered) {
+          await visits.markSubmitted(visit.id);
+          await _dao.setSyncState(visit.id, SyncState.synced);
+          return SyncState.synced;
+        }
+        await _dao.setSyncState(visit.id, SyncState.failed);
+        return SyncState.failed;
+      } on NotAuthenticated {
+        // Not signed in yet: the Visit is valid and must not be failed or
+        // retried with backoff. Park it as queued for the flush that runs once
+        // the app is authenticated (UX-007).
+        await _dao.setSyncState(visit.id, SyncState.queued);
+        return SyncState.queued;
+      } on SubmissionUnavailable {
+        if (attempt >= retry.maxAttempts) {
+          await _dao.setSyncState(visit.id, SyncState.failed);
+          return SyncState.failed;
+        }
+        await (sleep ?? _defaultSleep)(retry.backoffFor(attempt - 1));
+      }
+    }
+  }
+
+  /// Delivers every queued or failed submission, oldest first. This is the
+  /// entry point a caller invokes when connectivity returns (UX-007).
+  ///
+  /// Each Visit is delivered in isolation: one that cannot be delivered — a
+  /// missing Site, an in-progress lifecycle, an unexpected store failure — is
+  /// marked [SyncState.failed] and skipped, so an un-deliverable row ahead of
+  /// the batch can never strand the Visits queued behind it (UX-013).
+  Future<void> flush({
+    RetryPolicy retry = const RetryPolicy(),
+    DateTime Function()? clock,
+    Future<void> Function(Duration)? sleep,
+  }) async {
+    final visits = _visits;
+    if (visits == null) {
+      throw StateError('Outbox is not configured to deliver submissions');
+    }
+    for (final visitId in await _dao.pendingVisitIds()) {
+      try {
+        final visit = await visits.findById(visitId);
+        if (visit == null) continue;
+        await deliver(visit, retry: retry, clock: clock, sleep: sleep);
+      } catch (_) {
+        await _dao.setSyncState(visitId, SyncState.failed);
+      }
+    }
   }
 }

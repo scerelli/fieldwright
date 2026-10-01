@@ -1,4 +1,4 @@
-enum VisitState { inProgress, ended }
+enum VisitState { inProgress, ended, submitted }
 
 class SamplingEffort {
   const SamplingEffort({required this.startedAt, this.endedAt});
@@ -27,7 +27,9 @@ class Visit {
   final VisitState state;
   final SamplingEffort effort;
 
+  bool get isInProgress => state == VisitState.inProgress;
   bool get isEnded => state == VisitState.ended;
+  bool get isSubmitted => state == VisitState.submitted;
 
   Visit copyWith({VisitState? state, SamplingEffort? effort}) => Visit(
     id: id,

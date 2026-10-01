@@ -35,6 +35,24 @@ class OutboxDao {
     return row?.syncState;
   }
 
+  /// The ids of the Visits still awaiting delivery — queued, failed, or left
+  /// `syncing` by a crash mid-delivery — oldest first, so a flush after
+  /// connectivity returns works through them in order and no Visit is stranded
+  /// in a non-terminal state (UX-007, UX-013).
+  Future<List<String>> pendingVisitIds() async {
+    final rows =
+        await (_database.select(_database.outboxEntries)
+              ..where(
+                (table) =>
+                    table.syncState.equalsValue(SyncState.queued) |
+                    table.syncState.equalsValue(SyncState.failed) |
+                    table.syncState.equalsValue(SyncState.syncing),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.queuedAt)]))
+            .get();
+    return rows.map((row) => row.visitId).toList(growable: false);
+  }
+
   /// Moves [visitId] to [state] as delivery progresses. A Visit not in the
   /// outbox is left untouched.
   Future<void> setSyncState(String visitId, SyncState state) async {

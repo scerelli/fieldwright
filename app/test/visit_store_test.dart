@@ -109,6 +109,35 @@ void main() {
   });
 
   test(
+    'a submitted Visit is immutable and rejects further in-progress changes '
+    '(INV-001)',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final dao = VisitDao(database);
+      final visit = await dao.startVisit(
+        siteId: 'site-1',
+        surveyPeriodId: 'survey-period-1',
+        protocolVersionId: 'protocol-version-1',
+      );
+      final ended = await dao.endVisit(visit);
+      final submitted = await dao.markSubmitted(ended.id);
+      expect(submitted.state, VisitState.submitted);
+
+      await expectLater(() => dao.save(submitted), throwsStateError);
+      await expectLater(
+        () => dao.save(submitted.copyWith(state: VisitState.inProgress)),
+        throwsStateError,
+      );
+      await expectLater(() => dao.endVisit(submitted), throwsStateError);
+
+      final afterRejectedChanges = await dao.findById(submitted.id);
+      expect(afterRejectedChanges!.state, VisitState.submitted);
+      expect(afterRejectedChanges.effort.endedAt, isNotNull);
+    },
+  );
+
+  test(
     'a started Visit is readable from the local store after the app restarts',
     () async {
       final directory = Directory.systemTemp.createTempSync('ibis_visit_store');
