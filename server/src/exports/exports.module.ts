@@ -17,11 +17,29 @@ import {
   EXPORT_GENERATORS,
   ExportGeneratorRegistry,
   ExportProcessor,
+  type ExportGenerator,
 } from './export.processor.js';
+import { buildDetectionHistoryMatrix } from './detection-history.js';
+import {
+  DETECTION_HISTORY_BUILDER,
+  DetectionHistoryGenerator,
+} from './detection-history.generator.js';
 import { ExportsController } from './exports.controller.js';
 import { ExportsQueue } from './exports.queue.js';
 import { ExportsService } from './exports.service.js';
 import { ExportsStore } from './exports.store.js';
+
+/**
+ * Assembles the registered `ExportGenerator`s from the ones the module injects.
+ * A factory — not a fixed `useValue` array — is the composable seam: each
+ * format sibling (#46–#49) adds its generator to the `inject` list without
+ * clobbering the others, and every injected generator stays resolvable.
+ */
+export function exportGeneratorsFactory(
+  ...generators: ExportGenerator[]
+): ExportGenerator[] {
+  return generators;
+}
 
 @Module({
   imports: [DatabaseModule, MediaModule, QueueModule, AuthModule],
@@ -32,11 +50,18 @@ import { ExportsStore } from './exports.store.js';
     ExportsService,
     ExportGeneratorRegistry,
     ExportProcessor,
+    DetectionHistoryGenerator,
     { provide: EXPORT_ARTIFACT_STORAGE, useExisting: MEDIA_STORAGE },
+    { provide: DETECTION_HISTORY_BUILDER, useValue: buildDetectionHistoryMatrix },
     // The generator registry seam: the format siblings (#46–#49) each add
-    // their `ExportGenerator` here, and #50's role-based obfuscation plugs into
-    // the same seam, applied inside a generator before bytes are stored.
-    { provide: EXPORT_GENERATORS, useValue: [] },
+    // their `ExportGenerator` to the factory's `inject` list, and #50's
+    // role-based obfuscation plugs into the same seam inside a generator,
+    // applied before bytes are stored.
+    {
+      provide: EXPORT_GENERATORS,
+      useFactory: exportGeneratorsFactory,
+      inject: [DetectionHistoryGenerator],
+    },
   ],
   exports: [ExportsStore, ExportProcessor, EXPORT_ARTIFACT_STORAGE],
 })
