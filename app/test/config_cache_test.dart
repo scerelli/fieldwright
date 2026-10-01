@@ -163,7 +163,7 @@ void main() {
 
   group('migration', () {
     test(
-      'migrates a version 8 client schema to version 9 forward-only',
+      'migrates a version 8 client schema to version 10 forward-only',
       () async {
         final migrated = AppDatabase(
           NativeDatabase.memory(
@@ -233,7 +233,7 @@ CREATE TABLE measurements (
         final version = await migrated
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 9);
+        expect(version.data['user_version'], 10);
 
         final tables = await migrated
             .customSelect(

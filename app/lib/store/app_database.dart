@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../features/sites/site.dart';
+import '../features/visits/determination.dart';
 import '../features/visits/evidence.dart';
 import '../features/visits/visit.dart';
 
@@ -87,6 +88,35 @@ class Evidences extends Table {
   DateTimeColumn get capturedAt => dateTime()();
 
   TextColumn get contentHash => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// A taxon assignment for a Detection (DOMAIN.md › Determination). Append-only
+/// (INV-009): a revision is a new row whose `replaces_id` names the
+/// Determination it replaces, and no row is ever overwritten. The domain
+/// `Determination` carries no Visit or taxon reference of its own, so the
+/// owning Detection is stored here as the `(visitId, taxonRef)` pair.
+@DataClassName('DeterminationRow')
+class Determinations extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get taxonRef => text()();
+
+  TextColumn get taxon => text()();
+
+  TextColumn get qualifier => textEnum<DeterminationQualifier>().nullable()();
+
+  TextColumn get specimenCode => text().nullable()();
+
+  TextColumn get determiner => text()();
+
+  DateTimeColumn get date => dateTime()();
+
+  TextColumn get replacesId => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -211,6 +241,7 @@ class ConfigStates extends Table {
     Visits,
     Detections,
     Evidences,
+    Determinations,
     Measurements,
     ProjectConfigs,
     ProtocolVersions,
@@ -226,7 +257,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -258,6 +289,9 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(surveyPeriods);
         await migrator.createTable(configSites);
         await migrator.createTable(configStates);
+      }
+      if (from < 10) {
+        await migrator.createTable(determinations);
       }
     },
   );
