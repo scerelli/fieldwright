@@ -13,6 +13,11 @@ import { MediaModule } from '../media/media.module.js';
 import { MEDIA_STORAGE } from '../media/media.storage.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { EXPORT_ARTIFACT_STORAGE } from './export-artifact.storage.js';
+import {
+  EXPORT_GENERATORS,
+  ExportGeneratorRegistry,
+  ExportProcessor,
+} from './export.processor.js';
 import { ExportsController } from './exports.controller.js';
 import { ExportsQueue } from './exports.queue.js';
 import { ExportsService } from './exports.service.js';
@@ -25,8 +30,14 @@ import { ExportsStore } from './exports.store.js';
     ExportsStore,
     ExportsQueue,
     ExportsService,
+    ExportGeneratorRegistry,
+    ExportProcessor,
     { provide: EXPORT_ARTIFACT_STORAGE, useExisting: MEDIA_STORAGE },
+    // The generator registry seam: the format siblings (#46–#49) each add
+    // their `ExportGenerator` here, and #50's role-based obfuscation plugs into
+    // the same seam, applied inside a generator before bytes are stored.
+    { provide: EXPORT_GENERATORS, useValue: [] },
   ],
-  exports: [ExportsStore, EXPORT_ARTIFACT_STORAGE],
+  exports: [ExportsStore, ExportProcessor, EXPORT_ARTIFACT_STORAGE],
 })
 export class ExportsModule {}
