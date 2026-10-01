@@ -85,6 +85,28 @@ Overrides (env or `make VAR=...`): `EMULATOR_ID`, `DEVICE`, `API_PORT`,
 `55432`/`56379` so the host-run API does not collide with a local Postgres on
 `5432`.
 
-Requires `docker`, `pnpm` 12.8, Node 24, and the Flutter SDK. From the Android
-emulator the host API is `http://10.0.2.2:<API_PORT>`, passed to the app as
-`--dart-define=IBIS_API_BASE_URL`.
+Requires `docker`, `pnpm` 12.8, Node 24, and the Flutter SDK.
+
+### API base URL
+
+The app reads its server root from one compile-time value,
+`IBIS_API_BASE_URL`, passed with `--dart-define`. Its default is
+`http://localhost:3000`, correct for a host-run API reached from the iOS
+simulator or desktop. Override it per environment:
+
+```bash
+# Local host (iOS simulator / desktop) — the explicit form of the default
+flutter run --dart-define=IBIS_API_BASE_URL=http://localhost:3000
+
+# Android emulator — 10.0.2.2 is the host loopback as seen from the emulator.
+# scripts/dev-android.sh (make dev / make android) passes this for you.
+flutter run -d emulator-5554 \
+  --dart-define=IBIS_API_BASE_URL=http://10.0.2.2:<API_PORT>
+
+# Production
+flutter build apk --release \
+  --dart-define=IBIS_API_BASE_URL=https://api.example.com
+```
+
+A release (`--release`) build that does not define `IBIS_API_BASE_URL` fails
+loudly at startup instead of silently pointing at `http://localhost:3000`.
