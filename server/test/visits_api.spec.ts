@@ -136,7 +136,9 @@ describe('POST /api/v1/visits', () => {
     await container?.stop();
   });
 
-  async function seedReferences(): Promise<SeedReferences> {
+  async function seedReferences(
+    requiredEffortFields?: string[],
+  ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
@@ -172,7 +174,13 @@ describe('POST /api/v1/visits', () => {
         projectId: createdProject.id,
         protocolId: 'standard',
         version: 1,
-        document: { protocolId: 'standard', version: 1 },
+        document: {
+          protocolId: 'standard',
+          version: 1,
+          ...(requiredEffortFields === undefined
+            ? {}
+            : { requiredEffortFields }),
+        },
       })
       .returning();
 
@@ -280,6 +288,60 @@ describe('POST /api/v1/visits', () => {
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
       0,
     );
+  });
+
+  it('rejects a Sampling effort that omits a field the Protocol version requires with 400 and stores no Visit', async () => {
+    const refs = await seedReferences([
+      'start',
+      'duration',
+      'observers',
+      'detectionMethods',
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        effort: {
+          start: '2026-04-01T08:00:00Z',
+          duration: 60,
+          observers: ['A. Collector'],
+        },
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('stores a submitted Visit when every required Sampling-effort field is recorded', async () => {
+    const refs = await seedReferences([
+      'start',
+      'duration',
+      'observers',
+      'detectionMethods',
+    ]);
+    const id = uuidv7();
+    const effort = {
+      start: '2026-04-01T08:00:00Z',
+      duration: 60,
+      observers: ['A. Collector'],
+      detectionMethods: ['visual'],
+    };
+
+    const response = await submitVisit(
+      { ...validPayload(refs, id), effort },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const rows = await db.select().from(visit).where(eq(visit.id, id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.state).toBe('submitted');
+    expect(rows[0]!.effort).toMatchObject(effort);
   });
 
   it('rejects an unauthenticated request with 401', async () => {
