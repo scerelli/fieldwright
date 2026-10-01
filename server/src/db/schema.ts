@@ -424,7 +424,9 @@ export type Evidence = typeof evidence.$inferSelect;
 /**
  * Correction (DOMAIN.md): an append-only change to a submitted Visit carrying
  * its author, time, reason and payload. It never mutates the submitted Visit
- * (INV-001, INV-013); `author_id` references the Better Auth `user`.
+ * (INV-001, INV-013); `author_id` references the Better Auth `user`. The
+ * `correction_immutable` trigger in the migration rejects any UPDATE or DELETE
+ * of a stored row, so a Correction is itself never changed or removed.
  */
 export const correction = pgTable('correction', {
   id: uuid('id').primaryKey().defaultRandom(),

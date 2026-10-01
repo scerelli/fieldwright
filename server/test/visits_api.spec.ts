@@ -16,6 +16,7 @@ import { AuthModule } from '../src/auth/auth.module.js';
 import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
+  correction,
   detection,
   membership,
   project,
@@ -270,10 +271,36 @@ describe('POST /api/v1/visits', () => {
     await db.insert(membership).values({ personId, projectId, role });
   }
 
-  /** A stored Visit in the given state, for the Validation transition. */
+  function postCorrection(
+    visitId: string,
+    body: unknown,
+    headers: Record<string, string> = {},
+  ) {
+    return fetch(`${baseUrl}/api/v1/visits/${visitId}/corrections`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function getCorrections(
+    visitId: string,
+    headers: Record<string, string> = {},
+  ) {
+    return fetch(`${baseUrl}/api/v1/visits/${visitId}/corrections`, {
+      headers,
+    });
+  }
+
+  /** A Visit in the given state, for the Validation and Correction transitions. */
   async function seedVisit(
     refs: SeedReferences,
-    state: 'submitted' | 'validated' | 'rejected' = 'submitted',
+    state:
+      | 'in_progress'
+      | 'ended'
+      | 'submitted'
+      | 'validated'
+      | 'rejected' = 'submitted',
   ): Promise<string> {
     const id = uuidv7();
     await db.insert(visit).values({
@@ -656,6 +683,260 @@ describe('POST /api/v1/visits', () => {
     const id = await seedVisit(refs);
 
     const response = await postValidation(id, { state: 'validated' });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('records a Correction on a stored Visit, storing one append-only row with the author, reason, payload and time', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-author@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const body = {
+      reason: 'count corrected after re-counting',
+      payload: {
+        detections: [{ taxon: 'Anthus trivialis', count: 5 }],
+      },
+    };
+
+    const response = await postCorrection(id, body, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const rows = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.visitId, id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.authorId).toBe(collector.id);
+    expect(rows[0]!.reason).toBe(body.reason);
+    expect(rows[0]!.payload).toEqual(body.payload);
+    expect(rows[0]!.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('records a Correction authored by a validator Membership', async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('correction-validator@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(
+      id,
+      { reason: 'r', payload: {} },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [row] = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.visitId, id));
+    expect(row!.authorId).toBe(validator.id);
+  });
+
+  it('leaves every column of the stored Visit unchanged after a Correction', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-unchanged@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postCorrection(
+      id,
+      { reason: 'r', payload: { x: 1 } },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after).toEqual(before);
+  });
+
+  it('refuses a Correction against an in_progress or ended Visit with 409 and stores no row', async () => {
+    for (const state of ['in_progress', 'ended'] as const) {
+      const refs = await seedReferences();
+      const collector = await signUpAndSignIn(`correction-${state}@example.com`);
+      await addMembership(collector.id, refs.projectId, 'collector');
+      const id = await seedVisit(refs, state);
+
+      const response = await postCorrection(
+        id,
+        { reason: 'r', payload: {} },
+        { cookie: collector.cookie },
+      );
+
+      expect(response.status, await response.clone().text()).toBe(409);
+      expect(
+        await db.select().from(correction).where(eq(correction.visitId, id)),
+      ).toHaveLength(0);
+    }
+  });
+
+  it('refuses a person with no collector or validator Membership with 403 and stores no row', async () => {
+    const refs = await seedReferences();
+    const outsider = await signUpAndSignIn('correction-outsider@example.com');
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(
+      id,
+      { reason: 'r', payload: {} },
+      { cookie: outsider.cookie },
+    );
+
+    expect(response.status).toBe(403);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('refuses a creator Membership with 403 and stores no row', async () => {
+    const refs = await seedReferences();
+    const creator = await signUpAndSignIn('correction-creator@example.com');
+    await addMembership(creator.id, refs.projectId, 'creator');
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(
+      id,
+      { reason: 'r', payload: {} },
+      { cookie: creator.cookie },
+    );
+
+    expect(response.status).toBe(403);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('refuses a Correction against a Visit id that does not exist with 404', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-missing@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = uuidv7();
+
+    const response = await postCorrection(
+      id,
+      { reason: 'r', payload: {} },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(404);
+    const body = (await response.json()) as { message?: string };
+    expect(body.message).toBe(`Visit ${id} does not exist`);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('rejects an unauthenticated Correction request with 401', async () => {
+    const refs = await seedReferences();
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(id, { reason: 'r', payload: {} });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("lists a stored Visit's Corrections oldest-first, each with its author, reason, payload and time", async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-list@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const earlier = {
+      visitId: id,
+      authorId: collector.id,
+      reason: 'first correction',
+      payload: { detections: [{ taxon: 'Anthus trivialis', count: 4 }] },
+      createdAt: new Date('2026-04-02T08:00:00Z'),
+    };
+    const later = {
+      visitId: id,
+      authorId: collector.id,
+      reason: 'second correction',
+      payload: { detections: [{ taxon: 'Anthus trivialis', count: 5 }] },
+      createdAt: new Date('2026-04-02T09:00:00Z'),
+    };
+    await db.insert(correction).values([later, earlier]);
+
+    const response = await getCorrections(id, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as Array<{
+      authorId: string;
+      reason: string;
+      payload: Record<string, unknown>;
+      createdAt: string;
+    }>;
+    expect(body.map((row) => row.reason)).toEqual([
+      earlier.reason,
+      later.reason,
+    ]);
+    expect(body.map((row) => row.authorId)).toEqual([
+      collector.id,
+      collector.id,
+    ]);
+    expect(body.map((row) => row.payload)).toEqual([
+      earlier.payload,
+      later.payload,
+    ]);
+    expect(body.map((row) => new Date(row.createdAt).toISOString())).toEqual([
+      earlier.createdAt.toISOString(),
+      later.createdAt.toISOString(),
+    ]);
+  });
+
+  it('returns an empty list for a stored Visit that has no Corrections', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-list-empty@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+
+    const response = await getCorrections(id, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    expect(await response.json()).toEqual([]);
+  });
+
+  it('returns 404 for a Corrections list of a Visit id that does not exist', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-list-missing@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = uuidv7();
+
+    const response = await getCorrections(id, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(404);
+    const body = (await response.json()) as { message?: string };
+    expect(body.message).toBe(`Visit ${id} does not exist`);
+  });
+
+  it('refuses a Corrections reader with no collector or validator Membership with 403', async () => {
+    const refs = await seedReferences();
+    const author = await signUpAndSignIn('correction-list-author@example.com');
+    await addMembership(author.id, refs.projectId, 'collector');
+    const outsider = await signUpAndSignIn(
+      'correction-list-outsider@example.com',
+    );
+    const id = await seedVisit(refs);
+    await db.insert(correction).values({
+      visitId: id,
+      authorId: author.id,
+      reason: 'r',
+      payload: {},
+    });
+
+    const response = await getCorrections(id, { cookie: outsider.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(403);
+  });
+
+  it('rejects an unauthenticated Corrections list request with 401', async () => {
+    const refs = await seedReferences();
+    const id = await seedVisit(refs);
+
+    const response = await getCorrections(id);
 
     expect(response.status).toBe(401);
   });
