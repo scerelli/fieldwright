@@ -31,6 +31,8 @@
     "trailingComma": "all"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1140.0",
+    "@aws-sdk/s3-request-presigner": "3.1140.0",
     "@nestjs/common": "^12.1.1",
     "@nestjs/core": "^12.1.1",
     "@nestjs/platform-express": "^12.1.1",
@@ -54,6 +56,7 @@
     "@types/node": "^24.19.0",
     "@types/pg": "8.23.x",
     "@vitest/coverage-v8": "^4.1.11",
+    "aws-sdk-client-mock": "4.1.0",
     "drizzle-kit": "0.31.x",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
