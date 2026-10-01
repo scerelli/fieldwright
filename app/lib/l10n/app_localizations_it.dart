@@ -222,6 +222,31 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get authName => 'Nome';
+
+  @override
+  String get authSignUp => 'Crea account';
+
+  @override
+  String get authSwitchToSignUp => 'Crea un account';
+
+  @override
+  String get authSwitchToSignIn => 'Torna all\'accesso';
+
+  @override
+  String get authNameRequired => 'Inserisci il tuo nome.';
+
+  @override
+  String get authEmailInvalid => 'Inserisci un\'email valida.';
+
+  @override
+  String get authPasswordTooShort => 'Usa almeno 8 caratteri.';
+
+  @override
+  String get authSignUpFailed =>
+      'Impossibile creare l\'account. Controlla i dati e riprova.';
+
+  @override
   String get evidencePhoto => 'Foto';
 
   @override

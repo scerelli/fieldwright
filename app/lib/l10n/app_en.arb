@@ -276,6 +276,38 @@
       }
     }
   },
+  "authName": "Name",
+  "@authName": {
+    "description": "Label of the name field on the Account sign-up form."
+  },
+  "authSignUp": "Create account",
+  "@authSignUp": {
+    "description": "Button that submits the Account sign-up form."
+  },
+  "authSwitchToSignUp": "Create an account",
+  "@authSwitchToSignUp": {
+    "description": "Link on the Account sign-in form that reveals the sign-up form."
+  },
+  "authSwitchToSignIn": "Back to sign in",
+  "@authSwitchToSignIn": {
+    "description": "Link on the Account sign-up form that returns to the sign-in form."
+  },
+  "authNameRequired": "Enter your name.",
+  "@authNameRequired": {
+    "description": "Error shown when the sign-up name is empty."
+  },
+  "authEmailInvalid": "Enter a valid email.",
+  "@authEmailInvalid": {
+    "description": "Error shown when the sign-up email is malformed."
+  },
+  "authPasswordTooShort": "Use at least 8 characters.",
+  "@authPasswordTooShort": {
+    "description": "Error shown when the sign-up password is shorter than the minimum."
+  },
+  "authSignUpFailed": "Could not create the account. Check your details and try again.",
+  "@authSignUpFailed": {
+    "description": "Error shown when the sign-up request is rejected, such as an already-registered email."
+  },
   "evidencePhoto": "Photo",
   "@evidencePhoto": {
     "description": "Evidence captured as a photo; tooltip of the photo capture affordance on a Detection."

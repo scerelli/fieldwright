@@ -482,6 +482,54 @@ abstract class AppLocalizations {
   /// **'Signed in as {name}'**
   String authSignedInAs(String name);
 
+  /// Label of the name field on the Account sign-up form.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get authName;
+
+  /// Button that submits the Account sign-up form.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get authSignUp;
+
+  /// Link on the Account sign-in form that reveals the sign-up form.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account'**
+  String get authSwitchToSignUp;
+
+  /// Link on the Account sign-up form that returns to the sign-in form.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get authSwitchToSignIn;
+
+  /// Error shown when the sign-up name is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name.'**
+  String get authNameRequired;
+
+  /// Error shown when the sign-up email is malformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email.'**
+  String get authEmailInvalid;
+
+  /// Error shown when the sign-up password is shorter than the minimum.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters.'**
+  String get authPasswordTooShort;
+
+  /// Error shown when the sign-up request is rejected, such as an already-registered email.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the account. Check your details and try again.'**
+  String get authSignUpFailed;
+
   /// Evidence captured as a photo; tooltip of the photo capture affordance on a Detection.
   ///
   /// In en, this message translates to:

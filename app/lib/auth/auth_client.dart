@@ -47,6 +47,7 @@ class AuthClient {
   _sessionCookie; // glossary:allow Better Auth session cookie, not the Visit
 
   static const String _signInPath = '/api/auth/sign-in/email';
+  static const String _signUpPath = '/api/auth/sign-up/email';
   static const String _signOutPath = '/api/auth/sign-out';
 
   /// The Better Auth session cookie captured at sign-in, or `null` while signed
@@ -76,6 +77,34 @@ class AuthClient {
       final user = response.data?['user'];
       if (user is! Map<String, dynamic>) {
         throw const AuthException('Unexpected sign-in response');
+      }
+      return Person.fromJson(user);
+    } on DioException catch (error) {
+      throw AuthException(_message(error));
+    }
+  }
+
+  /// Creates the person's account and signs them in in the same response
+  /// (Better Auth `autoSignIn`), returning the new person. No email
+  /// verification step is required.
+  Future<Person> signUp({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        _signUpPath,
+        data: <String, String>{
+          'name': name,
+          'email': email,
+          'password': password,
+        },
+      );
+      _captureSession(response.headers); // glossary:allow auth session
+      final user = response.data?['user'];
+      if (user is! Map<String, dynamic>) {
+        throw const AuthException('Unexpected sign-up response');
       }
       return Person.fromJson(user);
     } on DioException catch (error) {
