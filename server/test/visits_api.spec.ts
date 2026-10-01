@@ -8,7 +8,7 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -67,6 +67,8 @@ interface SeedReferences {
   siteId: string;
   surveyPeriodId: string;
   protocolVersionId: string;
+  taxonomicReferenceId: string;
+  taxonomicReferenceVersion: string;
 }
 
 describe('POST /api/v1/visits', () => {
@@ -139,14 +141,18 @@ describe('POST /api/v1/visits', () => {
   async function seedReferences(
     requiredEffortFields?: string[],
     targetList?: Array<{ taxonRef: string }>,
+    taxonomicReference: { id: string; version: string } = {
+      id: 'italy-vascular-flora',
+      version: '2024.1',
+    },
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit API project',
         settings: { validationEnabled: true, sensitiveTaxaObfuscation: false },
-        taxonomicReferenceId: 'italy-vascular-flora',
-        taxonomicReferenceVersion: '2024.1',
+        taxonomicReferenceId: taxonomicReference.id,
+        taxonomicReferenceVersion: taxonomicReference.version,
       })
       .returning();
 
@@ -191,6 +197,8 @@ describe('POST /api/v1/visits', () => {
       siteId: createdSite.id,
       surveyPeriodId: createdPeriod.id,
       protocolVersionId: createdProtocol.id,
+      taxonomicReferenceId: createdProject.taxonomicReferenceId,
+      taxonomicReferenceVersion: createdProject.taxonomicReferenceVersion,
     };
   }
 
@@ -245,6 +253,46 @@ describe('POST /api/v1/visits', () => {
       .from(detection)
       .where(eq(detection.visitId, id));
     expect(detections).toHaveLength(1);
+  });
+
+  it('stores the Project’s pinned Taxonomic reference id and version with the submitted Visit', async () => {
+    const reference = { id: 'fauna-italiae', version: '2025.2' };
+    const refs = await seedReferences(undefined, undefined, reference);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.taxonomicReferenceId).toBe(reference.id);
+    expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
+  });
+
+  it('rejects a Visit row with no recorded Taxonomic reference id or version at the database', async () => {
+    const refs = await seedReferences();
+    const id = uuidv7();
+
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
+        values
+          (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+      `),
+    ).rejects.toThrow();
+
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+      `),
+    ).rejects.toThrow();
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
   });
 
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {

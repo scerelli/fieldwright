@@ -579,6 +579,8 @@ describe('Visit store', () => {
       db.insert(visit).values({
         id: randomUUID(),
         ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
         state: 'submitted',
         effort: {},
         startedAt,
@@ -591,6 +593,8 @@ describe('Visit store', () => {
       db.insert(visit).values({
         id: randomUUID(),
         ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
         state: 'submitted',
         effort: {},
         startedAt,
@@ -610,6 +614,8 @@ describe('Visit store', () => {
     await db.insert(visit).values({
       id: visitId,
       ...refs,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
       state: 'submitted',
       effort: {},
       startedAt: new Date('2026-04-01T08:00:00Z'),
@@ -636,6 +642,40 @@ describe('Visit store', () => {
         .from(measurement)
         .where(eq(measurement.visitId, visitId)),
     ).toHaveLength(0);
+  });
+
+  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    // Reproduce a database on the pre-0011 schema that already holds a
+    // submitted Visit: drop the columns the migration adds, and un-record the
+    // migration so it is pending again.
+    await db.execute(
+      sql`alter table "visit" drop column "taxonomic_reference_id", drop column "taxonomic_reference_version"`,
+    );
+    await db.execute(
+      sql`delete from drizzle.__drizzle_migrations where created_at = (select max(created_at) from drizzle.__drizzle_migrations)`,
+    );
+    await db.execute(sql`
+      insert into "visit"
+        ("id", "project_id", "site_id", "survey_period_id", "protocol_version_id", "state", "effort", "started_at", "submitted_at")
+      values
+        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+    `);
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    const [owner] = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, refs.projectId));
+    expect(stored!.taxonomicReferenceId).toBe(owner!.taxonomicReferenceId);
+    expect(stored!.taxonomicReferenceVersion).toBe(
+      owner!.taxonomicReferenceVersion,
+    );
   });
 
   it('applies the Visit schema through a forward-only migration', async () => {
