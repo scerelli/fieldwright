@@ -19,6 +19,7 @@ import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
   detection,
+  determination,
   evidence,
   measurement,
   project,
@@ -491,6 +492,189 @@ describe('Visit store', () => {
     ).toBeNull();
     expect(evidenceRows.find((row) => row.kind === 'photo')!.detectionId).toBe(
       byTaxon['Sylvia borin']!.id,
+    );
+  });
+
+  it('rejects an UPDATE or a DELETE of a submitted Visit row at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+
+    await expect(
+      db.execute(sql`update visit set effort = '{}'::jsonb where id = ${id}`),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`delete from visit where id = ${id}`),
+    ).rejects.toThrow();
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      1,
+    );
+  });
+
+  it('rejects an UPDATE of a stored Determination at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+      detections: [
+        {
+          taxon: 'Anthus trivialis',
+          detected: true,
+          method: 'visual',
+          determinations: [
+            {
+              taxon: 'Anthus trivialis',
+              determiner: 'A. Determiner',
+              date: '2026-04-01',
+            },
+          ],
+        },
+      ],
+    });
+
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const [storedDetermination] = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.detectionId, storedDetection!.id));
+    expect(storedDetermination).toBeDefined();
+
+    await expect(
+      db.execute(
+        sql`update determination set taxon = 'Corvus corax' where id = ${storedDetermination!.id}`,
+      ),
+    ).rejects.toThrow();
+
+    const rows = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.id, storedDetermination!.id));
+    expect(rows[0]!.taxon).toBe('Anthus trivialis');
+  });
+
+  it('rejects a Visit whose ended_at or submitted_at precedes started_at at the database', async () => {
+    const refs = await seedReferences();
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const beforeStart = new Date('2026-04-01T07:00:00Z');
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: beforeStart,
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: null,
+        submittedAt: beforeStart,
+      }),
+    ).rejects.toThrow();
+
+    expect(
+      await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
+    ).toHaveLength(0);
+  });
+
+  it('rejects a Measurement whose Provenance has no method at the database', async () => {
+    const refs = await seedReferences();
+    const visitId = randomUUID();
+    await db.insert(visit).values({
+      id: visitId,
+      ...refs,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+      state: 'submitted',
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: null,
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+    });
+
+    const withoutMethod: MeasurementProvenance[] = [
+      {} as MeasurementProvenance,
+      { method: '' },
+      { method: '   ' },
+    ];
+    for (const provenance of withoutMethod) {
+      await expect(
+        db
+          .insert(measurement)
+          .values({ visitId, value: '1', unit: 'count', provenance }),
+      ).rejects.toThrow();
+    }
+
+    expect(
+      await db
+        .select()
+        .from(measurement)
+        .where(eq(measurement.visitId, visitId)),
+    ).toHaveLength(0);
+  });
+
+  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    // Reproduce a database on the pre-0011 schema that already holds a
+    // submitted Visit: drop the columns the migration adds, and un-record the
+    // migration so it is pending again.
+    await db.execute(
+      sql`alter table "visit" drop column "taxonomic_reference_id", drop column "taxonomic_reference_version"`,
+    );
+    await db.execute(
+      sql`delete from drizzle.__drizzle_migrations where created_at = (select max(created_at) from drizzle.__drizzle_migrations)`,
+    );
+    await db.execute(sql`
+      insert into "visit"
+        ("id", "project_id", "site_id", "survey_period_id", "protocol_version_id", "state", "effort", "started_at", "submitted_at")
+      values
+        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+    `);
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    const [owner] = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, refs.projectId));
+    expect(stored!.taxonomicReferenceId).toBe(owner!.taxonomicReferenceId);
+    expect(stored!.taxonomicReferenceVersion).toBe(
+      owner!.taxonomicReferenceVersion,
     );
   });
 

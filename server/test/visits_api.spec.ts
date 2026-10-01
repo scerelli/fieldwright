@@ -8,7 +8,7 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -67,6 +67,8 @@ interface SeedReferences {
   siteId: string;
   surveyPeriodId: string;
   protocolVersionId: string;
+  taxonomicReferenceId: string;
+  taxonomicReferenceVersion: string;
 }
 
 describe('POST /api/v1/visits', () => {
@@ -136,14 +138,21 @@ describe('POST /api/v1/visits', () => {
     await container?.stop();
   });
 
-  async function seedReferences(): Promise<SeedReferences> {
+  async function seedReferences(
+    requiredEffortFields?: string[],
+    targetList?: Array<{ taxonRef: string }>,
+    taxonomicReference: { id: string; version: string } = {
+      id: 'italy-vascular-flora',
+      version: '2024.1',
+    },
+  ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit API project',
         settings: { validationEnabled: true, sensitiveTaxaObfuscation: false },
-        taxonomicReferenceId: 'italy-vascular-flora',
-        taxonomicReferenceVersion: '2024.1',
+        taxonomicReferenceId: taxonomicReference.id,
+        taxonomicReferenceVersion: taxonomicReference.version,
       })
       .returning();
 
@@ -172,7 +181,14 @@ describe('POST /api/v1/visits', () => {
         projectId: createdProject.id,
         protocolId: 'standard',
         version: 1,
-        document: { protocolId: 'standard', version: 1 },
+        document: {
+          protocolId: 'standard',
+          version: 1,
+          ...(requiredEffortFields === undefined
+            ? {}
+            : { requiredEffortFields }),
+          ...(targetList === undefined ? {} : { targetList }),
+        },
       })
       .returning();
 
@@ -181,6 +197,8 @@ describe('POST /api/v1/visits', () => {
       siteId: createdSite.id,
       surveyPeriodId: createdPeriod.id,
       protocolVersionId: createdProtocol.id,
+      taxonomicReferenceId: createdProject.taxonomicReferenceId,
+      taxonomicReferenceVersion: createdProject.taxonomicReferenceVersion,
     };
   }
 
@@ -237,6 +255,46 @@ describe('POST /api/v1/visits', () => {
     expect(detections).toHaveLength(1);
   });
 
+  it('stores the Project’s pinned Taxonomic reference id and version with the submitted Visit', async () => {
+    const reference = { id: 'fauna-italiae', version: '2025.2' };
+    const refs = await seedReferences(undefined, undefined, reference);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.taxonomicReferenceId).toBe(reference.id);
+    expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
+  });
+
+  it('rejects a Visit row with no recorded Taxonomic reference id or version at the database', async () => {
+    const refs = await seedReferences();
+    const id = uuidv7();
+
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
+        values
+          (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+      `),
+    ).rejects.toThrow();
+
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+      `),
+    ).rejects.toThrow();
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {
     const refs = await seedReferences();
     const id = uuidv7();
@@ -277,6 +335,129 @@ describe('POST /api/v1/visits', () => {
     const response = await submitVisit(payload, { cookie });
 
     expect(response.status).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('rejects a Sampling effort that omits a field the Protocol version requires with 400 and stores no Visit', async () => {
+    const refs = await seedReferences([
+      'start',
+      'duration',
+      'observers',
+      'detectionMethods',
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        effort: {
+          start: '2026-04-01T08:00:00Z',
+          duration: 60,
+          observers: ['A. Collector'],
+        },
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('stores a submitted Visit when every required Sampling-effort field is recorded', async () => {
+    const refs = await seedReferences([
+      'start',
+      'duration',
+      'observers',
+      'detectionMethods',
+    ]);
+    const id = uuidv7();
+    const effort = {
+      start: '2026-04-01T08:00:00Z',
+      duration: 60,
+      observers: ['A. Collector'],
+      detectionMethods: ['visual'],
+    };
+
+    const response = await submitVisit(
+      { ...validPayload(refs, id), effort },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const rows = await db.select().from(visit).where(eq(visit.id, id));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.state).toBe('submitted');
+    expect(rows[0]!.effort).toMatchObject(effort);
+  });
+
+  it('rejects a submission with no Detection for a target taxon with 400 and stores no Visit', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Anthus trivialis' },
+      { taxonRef: 'Sylvia borin' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('accepts a target taxon whose Detection has detected = false, recording a non-detection', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Sylvia borin' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const detections = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const nonDetection = detections.find(
+      (row) => row.taxon === 'Sylvia borin',
+    );
+    expect(nonDetection?.detected).toBe(false);
+  });
+
+  it('rejects a submission whose only Detection for a target taxon is opportunistic with 400 and stores no Visit', async () => {
+    const refs = await seedReferences(undefined, [
+      { taxonRef: 'Vulpes vulpes' },
+    ]);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          {
+            taxon: 'Vulpes vulpes',
+            detected: true,
+            method: 'visual',
+            opportunistic: true,
+          },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
       0,
     );

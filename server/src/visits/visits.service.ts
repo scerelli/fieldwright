@@ -10,13 +10,20 @@
  * and an invalid part (a negative count, a Measurement without a method)
  * aborts the whole submission.
  *
- * Protocol-level rules — target-taxon completeness (INV-002), complete-list
- * scope (INV-004), required Sampling effort fields (INV-005) and taxon
- * resolution against the pinned Taxonomic reference (INV-008) — are enforced
- * by the submission use case that calls this store, which holds the Protocol
- * version document; this service is the storage primitive beneath it.
+ * Protocol-level rules are enforced in this ingest transaction, which loads
+ * the Visit's referenced Protocol version document: required Sampling-effort
+ * fields (INV-005) today. Target-taxon completeness (INV-002) and complete-list
+ * scope (INV-004) belong here too and are added as their own rules.
+ *
+ * The transaction also copies the Project's pinned Taxonomic reference id and
+ * version onto the Visit (INV-008), so the reference the data was captured
+ * against is stored with the data; the NOT NULL columns reject a row stored
+ * without it. Resolving taxon names against that reference is the other half of
+ * INV-008 and is deferred until the reference lists and their versioning are
+ * decided (DOMAIN.md Open questions).
  */
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE } from '../db/database.provider.js';
 import {
@@ -24,10 +31,18 @@ import {
   determination,
   evidence,
   measurement,
+  project,
+  protocolVersion,
   visit,
   type MeasurementProvenance,
   type Visit,
 } from '../db/schema.js';
+import {
+  assertRequiredEffortFields,
+  assertTargetTaxonCompleteness,
+  requiredEffortFieldsOf,
+  targetTaxaOf,
+} from './visit-rules.js';
 
 export interface StoreDeterminationInput {
   taxon: string;
@@ -118,6 +133,40 @@ export class VisitsService {
     assertDetectionIndicesInRange(evidenceRows, detections.length, 'Evidence');
 
     return this.db.transaction(async (tx) => {
+      const [version] = await tx
+        .select({ document: protocolVersion.document })
+        .from(protocolVersion)
+        .where(eq(protocolVersion.id, input.protocolVersionId))
+        .limit(1);
+      if (version === undefined) {
+        throw new BadRequestException(
+          `Protocol version ${input.protocolVersionId} does not exist`,
+        );
+      }
+
+      const [owner] = await tx
+        .select({
+          taxonomicReferenceId: project.taxonomicReferenceId,
+          taxonomicReferenceVersion: project.taxonomicReferenceVersion,
+        })
+        .from(project)
+        .where(eq(project.id, input.projectId))
+        .limit(1);
+      if (owner === undefined) {
+        throw new BadRequestException(
+          `Project ${input.projectId} does not exist`,
+        );
+      }
+
+      assertRequiredEffortFields(
+        input.effort,
+        requiredEffortFieldsOf(version.document),
+      );
+      assertTargetTaxonCompleteness(
+        detections,
+        targetTaxaOf(version.document),
+      );
+
       const [created] = await tx
         .insert(visit)
         .values({
@@ -126,6 +175,8 @@ export class VisitsService {
           siteId: input.siteId,
           surveyPeriodId: input.surveyPeriodId,
           protocolVersionId: input.protocolVersionId,
+          taxonomicReferenceId: owner.taxonomicReferenceId,
+          taxonomicReferenceVersion: owner.taxonomicReferenceVersion,
           state: 'submitted',
           effort: input.effort,
           startedAt: input.startedAt,
