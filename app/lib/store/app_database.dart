@@ -110,7 +110,115 @@ class Measurements extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Sites, Visits, Detections, Evidences, Measurements])
+/// The cached settings of a pulled Project (`DOMAIN.md` Project aggregate):
+/// validation, sensitive-taxa obfuscation and the pinned Taxonomic reference.
+@DataClassName('ProjectConfigRow')
+class ProjectConfigs extends Table {
+  TextColumn get projectId => text()();
+
+  TextColumn get name => text()();
+
+  BoolColumn get validationEnabled => boolean()();
+
+  BoolColumn get sensitiveTaxaObfuscation => boolean()();
+
+  TextColumn get taxonomicReferenceId => text()();
+
+  TextColumn get taxonomicReferenceVersion => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {projectId};
+}
+
+/// A cached Protocol version (`DOMAIN.md` Protocol version entity, ADR-0009):
+/// its immutable document, parsed and validated through the shared
+/// `ProtocolDocument` before it is written, is stored as JSON — the Target
+/// list travels inside it.
+@DataClassName('ProtocolVersionRow')
+class ProtocolVersions extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get projectId => text()();
+
+  TextColumn get protocolId => text()();
+
+  IntColumn get version => integer()();
+
+  TextColumn get document => text()();
+
+  DateTimeColumn get frozenAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// A cached Survey period (`DOMAIN.md` Survey period entity): a named date
+/// range, its dates as ISO `YYYY-MM-DD` strings.
+@DataClassName('SurveyPeriodRow')
+class SurveyPeriods extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get projectId => text()();
+
+  TextColumn get name => text()();
+
+  TextColumn get startDate => text()();
+
+  TextColumn get endDate => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// A Site as the versioned config pull carries it (`ARCHITECTURE.md` sync
+/// compatibility surface, ADR-0011).
+///
+/// It is the transport row, not the domain `Site`: the config route serves
+/// identity, an optional name and geometry as GeoJSON text, but not the origin
+/// the domain requires (INV-012), so pulled Sites are cached here rather than
+/// in [Sites], which stays for field-created Sites with their origin.
+@DataClassName('ConfigSiteRow')
+class ConfigSites extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get projectId => text()();
+
+  TextColumn get name => text().nullable()();
+
+  TextColumn get geom => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// The opaque version token to send as `since` on the next config pull
+/// (`ARCHITECTURE.md`, ADR-0011), one per Project.
+@DataClassName('ConfigStateRow')
+class ConfigStates extends Table {
+  TextColumn get projectId => text()();
+
+  TextColumn get versionToken => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {projectId};
+}
+
+@DriftDatabase(
+  tables: [
+    Sites,
+    Visits,
+    Detections,
+    Evidences,
+    Measurements,
+    ProjectConfigs,
+    ProtocolVersions,
+    SurveyPeriods,
+    ConfigSites,
+    ConfigStates,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
@@ -118,7 +226,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +251,13 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 8) {
         await migrator.createTable(measurements);
+      }
+      if (from < 9) {
+        await migrator.createTable(projectConfigs);
+        await migrator.createTable(protocolVersions);
+        await migrator.createTable(surveyPeriods);
+        await migrator.createTable(configSites);
+        await migrator.createTable(configStates);
       }
     },
   );

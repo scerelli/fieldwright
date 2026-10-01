@@ -190,7 +190,7 @@ void main() {
     },
   );
 
-  test('migrates a version 1 client schema to version 8 forward-only', () async {
+  test('migrates a version 1 client schema to version 9 forward-only', () async {
     final database = AppDatabase(
       NativeDatabase.memory(
         setup: (raw) {
@@ -218,7 +218,7 @@ CREATE TABLE sites (
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 8);
+    expect(version.data['user_version'], 9);
 
     final legacy = await SiteDao(database).findById('legacy');
     expect(legacy, isNotNull);
