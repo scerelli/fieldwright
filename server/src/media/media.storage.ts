@@ -13,6 +13,13 @@ export const MEDIA_STORAGE = 'MEDIA_STORAGE';
 export interface StoredMedia {
   storageKey: string;
   sha256: string;
+  /**
+   * A presigned S3 URL the client PUTs the bytes to, when an S3 backend is
+   * configured and the object is not stored yet. Absent for the volume
+   * backend (bytes are stored here) and for an S3 object already present, so
+   * an existing Evidence file is never overwritten (ADR-0012).
+   */
+  uploadUrl?: string;
 }
 
 export interface MediaStorage {

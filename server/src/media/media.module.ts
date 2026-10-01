@@ -15,7 +15,8 @@ import {
 } from './media.config.js';
 import { MediaController } from './media.controller.js';
 import { MediaService } from './media.service.js';
-import { MEDIA_STORAGE } from './media.storage.js';
+import { MEDIA_STORAGE, type MediaStorage } from './media.storage.js';
+import { createS3Storage } from './s3.storage.js';
 import { createVolumeStorage } from './volume.storage.js';
 
 @Module({
@@ -25,7 +26,10 @@ import { createVolumeStorage } from './volume.storage.js';
     { provide: MEDIA_CONFIG, useFactory: () => loadMediaConfig() },
     {
       provide: MEDIA_STORAGE,
-      useFactory: (config: MediaConfig) => createVolumeStorage(config.root),
+      useFactory: (config: MediaConfig): MediaStorage =>
+        config.backend === 's3' && config.s3 !== undefined
+          ? createS3Storage(config.s3)
+          : createVolumeStorage(config.root),
       inject: [MEDIA_CONFIG],
     },
     MediaService,
