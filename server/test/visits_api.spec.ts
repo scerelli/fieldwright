@@ -17,11 +17,13 @@ import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
   detection,
+  membership,
   project,
   protocolVersion,
   site,
   surveyPeriod,
   visit,
+  type ProjectSettings,
 } from '../src/db/schema.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
 
@@ -102,10 +104,17 @@ describe('POST /api/v1/visits', () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
     db = app.get<NodePgDatabase>(DATABASE);
 
+    const collector = await signUpAndSignIn(EMAIL);
+    cookie = collector.cookie;
+  }, 180_000);
+
+  async function signUpAndSignIn(
+    email: string,
+  ): Promise<{ id: string; cookie: string }> {
     const signUp = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: EMAIL, password: PASSWORD, name: 'C' }),
+      body: JSON.stringify({ email, password: PASSWORD, name: 'V' }),
     });
     if (signUp.status !== 200) {
       throw new Error(`sign-up failed: ${await signUp.clone().text()}`);
@@ -114,20 +123,21 @@ describe('POST /api/v1/visits', () => {
     const signIn = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+      body: JSON.stringify({ email, password: PASSWORD }),
     });
     if (signIn.status !== 200) {
       throw new Error(`sign-in failed: ${await signIn.clone().text()}`);
     }
 
+    const signedIn = (await signIn.json()) as { user: { id: string } };
     const token = signIn.headers
       .getSetCookie()
       .find((value) => value.includes('better-auth.session_token')); // glossary:allow Better Auth's auth-session cookie, not the Visit
     if (token === undefined) {
       throw new Error('sign-in returned no auth cookie');
     }
-    cookie = token.split(';')[0]!;
-  }, 180_000);
+    return { id: signedIn.user.id, cookie: token.split(';')[0]! };
+  }
 
   afterAll(async () => {
     if (app) {
@@ -145,12 +155,16 @@ describe('POST /api/v1/visits', () => {
       id: 'italy-vascular-flora',
       version: '2024.1',
     },
+    settings: ProjectSettings = {
+      validationEnabled: true,
+      sensitiveTaxaObfuscation: false,
+    }
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit API project',
-        settings: { validationEnabled: true, sensitiveTaxaObfuscation: false },
+        settings,
         taxonomicReferenceId: taxonomicReference.id,
         taxonomicReferenceVersion: taxonomicReference.version,
       })
@@ -234,6 +248,48 @@ describe('POST /api/v1/visits', () => {
       headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify(body),
     });
+  }
+
+  function postValidation(
+    visitId: string,
+    body: unknown,
+    headers: Record<string, string> = {},
+  ) {
+    return fetch(`${baseUrl}/api/v1/visits/${visitId}/validation`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function addMembership(
+    personId: string,
+    projectId: string,
+    role: 'creator' | 'collector' | 'validator',
+  ): Promise<void> {
+    await db.insert(membership).values({ personId, projectId, role });
+  }
+
+  /** A stored Visit in the given state, for the Validation transition. */
+  async function seedVisit(
+    refs: SeedReferences,
+    state: 'submitted' | 'validated' | 'rejected' = 'submitted',
+  ): Promise<string> {
+    const id = uuidv7();
+    await db.insert(visit).values({
+      id,
+      projectId: refs.projectId,
+      siteId: refs.siteId,
+      surveyPeriodId: refs.surveyPeriodId,
+      protocolVersionId: refs.protocolVersionId,
+      taxonomicReferenceId: refs.taxonomicReferenceId,
+      taxonomicReferenceVersion: refs.taxonomicReferenceVersion,
+      state,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+    return id;
   }
 
   it('stores exactly one Visit for a valid payload', async () => {
@@ -468,6 +524,138 @@ describe('POST /api/v1/visits', () => {
     const id = uuidv7();
 
     const response = await submitVisit(validPayload(refs, id));
+
+    expect(response.status).toBe(401);
+  });
+
+  it('validates a submitted Visit, recording the validator and the time', async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('visit-validator@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs);
+
+    const response = await postValidation(
+      id,
+      { state: 'validated' },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const [row] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(row!.state).toBe('validated');
+    expect(row!.validatorId).toBe(validator.id);
+    expect(row!.validatedAt).not.toBeNull();
+  });
+
+  it('rejects a submitted Visit and changes no other column', async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('visit-rejector@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs);
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postValidation(
+      id,
+      { state: 'rejected' },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after!.state).toBe('rejected');
+    expect(after!.validatorId).toBe(validator.id);
+    expect(after!.validatedAt).not.toBeNull();
+
+    const changed = new Set(['state', 'validatorId', 'validatedAt']);
+    const beforeFields = before as unknown as Record<string, unknown>;
+    const afterFields = after as unknown as Record<string, unknown>;
+    for (const key of Object.keys(beforeFields)) {
+      if (!changed.has(key)) {
+        expect(afterFields[key], key).toEqual(beforeFields[key]);
+      }
+    }
+  });
+
+  it('refuses a validation when the Project has validation disabled, leaving the Visit unchanged', async () => {
+    const refs = await seedReferences(undefined, undefined, undefined, {
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: false,
+    });
+    const validator = await signUpAndSignIn('visit-disabled@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs);
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postValidation(
+      id,
+      { state: 'validated' },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(409);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after).toEqual(before);
+  });
+
+  it('refuses a validation of a Visit that is not submitted, leaving it unchanged', async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('visit-not-submitted@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs, 'validated');
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postValidation(
+      id,
+      { state: 'rejected' },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(409);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after).toEqual(before);
+  });
+
+  it('refuses a person without the validator Membership with 403, leaving the Visit unchanged', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('visit-collector@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postValidation(
+      id,
+      { state: 'validated' },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status).toBe(403);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after).toEqual(before);
+  });
+
+  it('refuses an outcome that is not validated or rejected with 400, leaving the Visit unchanged', async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('visit-bad-outcome@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const id = await seedVisit(refs);
+    const [before] = await db.select().from(visit).where(eq(visit.id, id));
+
+    const response = await postValidation(
+      id,
+      { state: 'in_progress' },
+      { cookie: validator.cookie },
+    );
+
+    expect(response.status).toBe(400);
+    const [after] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(after).toEqual(before);
+  });
+
+  it('rejects an unauthenticated validation request with 401', async () => {
+    const refs = await seedReferences();
+    const id = await seedVisit(refs);
+
+    const response = await postValidation(id, { state: 'validated' });
 
     expect(response.status).toBe(401);
   });

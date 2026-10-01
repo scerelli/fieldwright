@@ -240,8 +240,14 @@ export const visitState = pgEnum('visit_state', [
  * (check `visit_timestamps_ordered`). `effort` holds the Sampling effort fields
  * the Protocol version requires; `submitted_at` is the submission instant. A
  * stored Visit is immutable (INV-001): the `visit_immutable` trigger in the
- * migration rejects an UPDATE or DELETE of a `submitted`/`validated`/`rejected`
- * row, so a later change is a Correction.
+ * migration permits exactly one UPDATE of a `submitted` row — the Validation
+ * transition to `validated` or `rejected` (INV-013) — recording `validator_id`
+ * and `validated_at` and touching no other column; every other UPDATE, and any
+ * DELETE, of a stored row is rejected. A later change is a Correction.
+ *
+ * `validator_id` references the Better Auth `user` (the Person who holds the
+ * `validator` Membership) and `validated_at` is the Validation instant; both
+ * are null until the Visit is validated or rejected.
  *
  * `taxonomic_reference_id` and `taxonomic_reference_version` record the
  * Project's pinned Taxonomic reference version the Visit's data was captured
@@ -271,6 +277,10 @@ export const visit = pgTable(
     startedAt: timestamp('started_at').notNull(),
     endedAt: timestamp('ended_at'),
     submittedAt: timestamp('submitted_at').notNull(),
+    validatorId: text('validator_id').references(() => user.id, {
+      onDelete: 'restrict',
+    }),
+    validatedAt: timestamp('validated_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
