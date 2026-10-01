@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_database.dart';
+import 'config_dao.dart';
 import 'site_dao.dart';
 import 'visit_dao.dart';
 
@@ -16,4 +17,8 @@ final siteDaoProvider = Provider<SiteDao>(
 
 final visitDaoProvider = Provider<VisitDao>(
   (ref) => VisitDao(ref.watch(databaseProvider)),
+);
+
+final configDaoProvider = Provider<ConfigDao>(
+  (ref) => ConfigDao(ref.watch(databaseProvider)),
 );
