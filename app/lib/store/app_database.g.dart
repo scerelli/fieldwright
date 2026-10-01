@@ -1787,6 +1787,590 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
   }
 }
 
+class $DeterminationsTable extends Determinations
+    with TableInfo<$DeterminationsTable, DeterminationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeterminationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  static const VerificationMeta _taxonRefMeta = const VerificationMeta(
+    'taxonRef',
+  );
+  @override
+  late final GeneratedColumn<String> taxonRef = GeneratedColumn<String>(
+    'taxon_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taxonMeta = const VerificationMeta('taxon');
+  @override
+  late final GeneratedColumn<String> taxon = GeneratedColumn<String>(
+    'taxon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DeterminationQualifier?, String>
+  qualifier =
+      GeneratedColumn<String>(
+        'qualifier',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<DeterminationQualifier?>(
+        $DeterminationsTable.$converterqualifiern,
+      );
+  static const VerificationMeta _specimenCodeMeta = const VerificationMeta(
+    'specimenCode',
+  );
+  @override
+  late final GeneratedColumn<String> specimenCode = GeneratedColumn<String>(
+    'specimen_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _determinerMeta = const VerificationMeta(
+    'determiner',
+  );
+  @override
+  late final GeneratedColumn<String> determiner = GeneratedColumn<String>(
+    'determiner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _replacesIdMeta = const VerificationMeta(
+    'replacesId',
+  );
+  @override
+  late final GeneratedColumn<String> replacesId = GeneratedColumn<String>(
+    'replaces_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    visitId,
+    taxonRef,
+    taxon,
+    qualifier,
+    specimenCode,
+    determiner,
+    date,
+    replacesId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'determinations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeterminationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('taxon_ref')) {
+      context.handle(
+        _taxonRefMeta,
+        taxonRef.isAcceptableOrUnknown(data['taxon_ref']!, _taxonRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonRefMeta);
+    }
+    if (data.containsKey('taxon')) {
+      context.handle(
+        _taxonMeta,
+        taxon.isAcceptableOrUnknown(data['taxon']!, _taxonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taxonMeta);
+    }
+    if (data.containsKey('specimen_code')) {
+      context.handle(
+        _specimenCodeMeta,
+        specimenCode.isAcceptableOrUnknown(
+          data['specimen_code']!,
+          _specimenCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('determiner')) {
+      context.handle(
+        _determinerMeta,
+        determiner.isAcceptableOrUnknown(data['determiner']!, _determinerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_determinerMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('replaces_id')) {
+      context.handle(
+        _replacesIdMeta,
+        replacesId.isAcceptableOrUnknown(data['replaces_id']!, _replacesIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeterminationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeterminationRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      taxonRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon_ref'],
+      )!,
+      taxon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}taxon'],
+      )!,
+      qualifier: $DeterminationsTable.$converterqualifiern.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}qualifier'],
+        ),
+      ),
+      specimenCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}specimen_code'],
+      ),
+      determiner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}determiner'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      replacesId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}replaces_id'],
+      ),
+    );
+  }
+
+  @override
+  $DeterminationsTable createAlias(String alias) {
+    return $DeterminationsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DeterminationQualifier, String, String>
+  $converterqualifier = const EnumNameConverter<DeterminationQualifier>(
+    DeterminationQualifier.values,
+  );
+  static JsonTypeConverter2<DeterminationQualifier?, String?, String?>
+  $converterqualifiern = JsonTypeConverter2.asNullable($converterqualifier);
+}
+
+class DeterminationRow extends DataClass
+    implements Insertable<DeterminationRow> {
+  final String id;
+  final String visitId;
+  final String taxonRef;
+  final String taxon;
+  final DeterminationQualifier? qualifier;
+  final String? specimenCode;
+  final String determiner;
+  final DateTime date;
+  final String? replacesId;
+  const DeterminationRow({
+    required this.id,
+    required this.visitId,
+    required this.taxonRef,
+    required this.taxon,
+    this.qualifier,
+    this.specimenCode,
+    required this.determiner,
+    required this.date,
+    this.replacesId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['visit_id'] = Variable<String>(visitId);
+    map['taxon_ref'] = Variable<String>(taxonRef);
+    map['taxon'] = Variable<String>(taxon);
+    if (!nullToAbsent || qualifier != null) {
+      map['qualifier'] = Variable<String>(
+        $DeterminationsTable.$converterqualifiern.toSql(qualifier),
+      );
+    }
+    if (!nullToAbsent || specimenCode != null) {
+      map['specimen_code'] = Variable<String>(specimenCode);
+    }
+    map['determiner'] = Variable<String>(determiner);
+    map['date'] = Variable<DateTime>(date);
+    if (!nullToAbsent || replacesId != null) {
+      map['replaces_id'] = Variable<String>(replacesId);
+    }
+    return map;
+  }
+
+  DeterminationsCompanion toCompanion(bool nullToAbsent) {
+    return DeterminationsCompanion(
+      id: Value(id),
+      visitId: Value(visitId),
+      taxonRef: Value(taxonRef),
+      taxon: Value(taxon),
+      qualifier: qualifier == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qualifier),
+      specimenCode: specimenCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(specimenCode),
+      determiner: Value(determiner),
+      date: Value(date),
+      replacesId: replacesId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(replacesId),
+    );
+  }
+
+  factory DeterminationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeterminationRow(
+      id: serializer.fromJson<String>(json['id']),
+      visitId: serializer.fromJson<String>(json['visitId']),
+      taxonRef: serializer.fromJson<String>(json['taxonRef']),
+      taxon: serializer.fromJson<String>(json['taxon']),
+      qualifier: $DeterminationsTable.$converterqualifiern.fromJson(
+        serializer.fromJson<String?>(json['qualifier']),
+      ),
+      specimenCode: serializer.fromJson<String?>(json['specimenCode']),
+      determiner: serializer.fromJson<String>(json['determiner']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      replacesId: serializer.fromJson<String?>(json['replacesId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'visitId': serializer.toJson<String>(visitId),
+      'taxonRef': serializer.toJson<String>(taxonRef),
+      'taxon': serializer.toJson<String>(taxon),
+      'qualifier': serializer.toJson<String?>(
+        $DeterminationsTable.$converterqualifiern.toJson(qualifier),
+      ),
+      'specimenCode': serializer.toJson<String?>(specimenCode),
+      'determiner': serializer.toJson<String>(determiner),
+      'date': serializer.toJson<DateTime>(date),
+      'replacesId': serializer.toJson<String?>(replacesId),
+    };
+  }
+
+  DeterminationRow copyWith({
+    String? id,
+    String? visitId,
+    String? taxonRef,
+    String? taxon,
+    Value<DeterminationQualifier?> qualifier = const Value.absent(),
+    Value<String?> specimenCode = const Value.absent(),
+    String? determiner,
+    DateTime? date,
+    Value<String?> replacesId = const Value.absent(),
+  }) => DeterminationRow(
+    id: id ?? this.id,
+    visitId: visitId ?? this.visitId,
+    taxonRef: taxonRef ?? this.taxonRef,
+    taxon: taxon ?? this.taxon,
+    qualifier: qualifier.present ? qualifier.value : this.qualifier,
+    specimenCode: specimenCode.present ? specimenCode.value : this.specimenCode,
+    determiner: determiner ?? this.determiner,
+    date: date ?? this.date,
+    replacesId: replacesId.present ? replacesId.value : this.replacesId,
+  );
+  DeterminationRow copyWithCompanion(DeterminationsCompanion data) {
+    return DeterminationRow(
+      id: data.id.present ? data.id.value : this.id,
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
+      taxon: data.taxon.present ? data.taxon.value : this.taxon,
+      qualifier: data.qualifier.present ? data.qualifier.value : this.qualifier,
+      specimenCode: data.specimenCode.present
+          ? data.specimenCode.value
+          : this.specimenCode,
+      determiner: data.determiner.present
+          ? data.determiner.value
+          : this.determiner,
+      date: data.date.present ? data.date.value : this.date,
+      replacesId: data.replacesId.present
+          ? data.replacesId.value
+          : this.replacesId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeterminationRow(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('taxon: $taxon, ')
+          ..write('qualifier: $qualifier, ')
+          ..write('specimenCode: $specimenCode, ')
+          ..write('determiner: $determiner, ')
+          ..write('date: $date, ')
+          ..write('replacesId: $replacesId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    visitId,
+    taxonRef,
+    taxon,
+    qualifier,
+    specimenCode,
+    determiner,
+    date,
+    replacesId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeterminationRow &&
+          other.id == this.id &&
+          other.visitId == this.visitId &&
+          other.taxonRef == this.taxonRef &&
+          other.taxon == this.taxon &&
+          other.qualifier == this.qualifier &&
+          other.specimenCode == this.specimenCode &&
+          other.determiner == this.determiner &&
+          other.date == this.date &&
+          other.replacesId == this.replacesId);
+}
+
+class DeterminationsCompanion extends UpdateCompanion<DeterminationRow> {
+  final Value<String> id;
+  final Value<String> visitId;
+  final Value<String> taxonRef;
+  final Value<String> taxon;
+  final Value<DeterminationQualifier?> qualifier;
+  final Value<String?> specimenCode;
+  final Value<String> determiner;
+  final Value<DateTime> date;
+  final Value<String?> replacesId;
+  final Value<int> rowid;
+  const DeterminationsCompanion({
+    this.id = const Value.absent(),
+    this.visitId = const Value.absent(),
+    this.taxonRef = const Value.absent(),
+    this.taxon = const Value.absent(),
+    this.qualifier = const Value.absent(),
+    this.specimenCode = const Value.absent(),
+    this.determiner = const Value.absent(),
+    this.date = const Value.absent(),
+    this.replacesId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeterminationsCompanion.insert({
+    required String id,
+    required String visitId,
+    required String taxonRef,
+    required String taxon,
+    this.qualifier = const Value.absent(),
+    this.specimenCode = const Value.absent(),
+    required String determiner,
+    required DateTime date,
+    this.replacesId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       visitId = Value(visitId),
+       taxonRef = Value(taxonRef),
+       taxon = Value(taxon),
+       determiner = Value(determiner),
+       date = Value(date);
+  static Insertable<DeterminationRow> custom({
+    Expression<String>? id,
+    Expression<String>? visitId,
+    Expression<String>? taxonRef,
+    Expression<String>? taxon,
+    Expression<String>? qualifier,
+    Expression<String>? specimenCode,
+    Expression<String>? determiner,
+    Expression<DateTime>? date,
+    Expression<String>? replacesId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (visitId != null) 'visit_id': visitId,
+      if (taxonRef != null) 'taxon_ref': taxonRef,
+      if (taxon != null) 'taxon': taxon,
+      if (qualifier != null) 'qualifier': qualifier,
+      if (specimenCode != null) 'specimen_code': specimenCode,
+      if (determiner != null) 'determiner': determiner,
+      if (date != null) 'date': date,
+      if (replacesId != null) 'replaces_id': replacesId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeterminationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? visitId,
+    Value<String>? taxonRef,
+    Value<String>? taxon,
+    Value<DeterminationQualifier?>? qualifier,
+    Value<String?>? specimenCode,
+    Value<String>? determiner,
+    Value<DateTime>? date,
+    Value<String?>? replacesId,
+    Value<int>? rowid,
+  }) {
+    return DeterminationsCompanion(
+      id: id ?? this.id,
+      visitId: visitId ?? this.visitId,
+      taxonRef: taxonRef ?? this.taxonRef,
+      taxon: taxon ?? this.taxon,
+      qualifier: qualifier ?? this.qualifier,
+      specimenCode: specimenCode ?? this.specimenCode,
+      determiner: determiner ?? this.determiner,
+      date: date ?? this.date,
+      replacesId: replacesId ?? this.replacesId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (taxonRef.present) {
+      map['taxon_ref'] = Variable<String>(taxonRef.value);
+    }
+    if (taxon.present) {
+      map['taxon'] = Variable<String>(taxon.value);
+    }
+    if (qualifier.present) {
+      map['qualifier'] = Variable<String>(
+        $DeterminationsTable.$converterqualifiern.toSql(qualifier.value),
+      );
+    }
+    if (specimenCode.present) {
+      map['specimen_code'] = Variable<String>(specimenCode.value);
+    }
+    if (determiner.present) {
+      map['determiner'] = Variable<String>(determiner.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (replacesId.present) {
+      map['replaces_id'] = Variable<String>(replacesId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeterminationsCompanion(')
+          ..write('id: $id, ')
+          ..write('visitId: $visitId, ')
+          ..write('taxonRef: $taxonRef, ')
+          ..write('taxon: $taxon, ')
+          ..write('qualifier: $qualifier, ')
+          ..write('specimenCode: $specimenCode, ')
+          ..write('determiner: $determiner, ')
+          ..write('date: $date, ')
+          ..write('replacesId: $replacesId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MeasurementsTable extends Measurements
     with TableInfo<$MeasurementsTable, MeasurementRow> {
   @override
@@ -4022,6 +4606,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VisitsTable visits = $VisitsTable(this);
   late final $DetectionsTable detections = $DetectionsTable(this);
   late final $EvidencesTable evidences = $EvidencesTable(this);
+  late final $DeterminationsTable determinations = $DeterminationsTable(this);
   late final $MeasurementsTable measurements = $MeasurementsTable(this);
   late final $ProjectConfigsTable projectConfigs = $ProjectConfigsTable(this);
   late final $ProtocolVersionsTable protocolVersions = $ProtocolVersionsTable(
@@ -4039,6 +4624,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     visits,
     detections,
     evidences,
+    determinations,
     measurements,
     projectConfigs,
     protocolVersions,
@@ -4352,6 +4938,24 @@ final class $$VisitsTableReferences
     );
   }
 
+  static MultiTypedResultKey<$DeterminationsTable, List<DeterminationRow>>
+  _determinationsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.determinations,
+    aliasName: 'visits__id__determinations__visit_id',
+  );
+
+  $$DeterminationsTableProcessedTableManager get determinationsRefs {
+    final manager = $$DeterminationsTableTableManager(
+      $_db,
+      $_db.determinations,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_determinationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$MeasurementsTable, List<MeasurementRow>>
   _measurementsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.measurements,
@@ -4457,6 +5061,31 @@ class $$VisitsTableFilterComposer
           }) => $$EvidencesTableFilterComposer(
             $db: $db,
             $table: $db.evidences,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> determinationsRefs(
+    Expression<bool> Function($$DeterminationsTableFilterComposer f) f,
+  ) {
+    final $$DeterminationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.determinations,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeterminationsTableFilterComposer(
+            $db: $db,
+            $table: $db.determinations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4625,6 +5254,31 @@ class $$VisitsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> determinationsRefs<T extends Object>(
+    Expression<T> Function($$DeterminationsTableAnnotationComposer a) f,
+  ) {
+    final $$DeterminationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.determinations,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeterminationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.determinations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> measurementsRefs<T extends Object>(
     Expression<T> Function($$MeasurementsTableAnnotationComposer a) f,
   ) {
@@ -4667,6 +5321,7 @@ class $$VisitsTableTableManager
           PrefetchHooks Function({
             bool detectionsRefs,
             bool evidencesRefs,
+            bool determinationsRefs,
             bool measurementsRefs,
           })
         > {
@@ -4733,6 +5388,7 @@ class $$VisitsTableTableManager
               ({
                 detectionsRefs = false,
                 evidencesRefs = false,
+                determinationsRefs = false,
                 measurementsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -4740,6 +5396,7 @@ class $$VisitsTableTableManager
                   explicitlyWatchedTables: [
                     if (detectionsRefs) db.detections,
                     if (evidencesRefs) db.evidences,
+                    if (determinationsRefs) db.determinations,
                     if (measurementsRefs) db.measurements,
                   ],
                   addJoins: null,
@@ -4781,6 +5438,27 @@ class $$VisitsTableTableManager
                                 table,
                                 p0,
                               ).evidencesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (determinationsRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          DeterminationRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._determinationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).determinationsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.visitId == item.id,
@@ -4831,6 +5509,7 @@ typedef $$VisitsTableProcessedTableManager =
       PrefetchHooks Function({
         bool detectionsRefs,
         bool evidencesRefs,
+        bool determinationsRefs,
         bool measurementsRefs,
       })
     >;
@@ -5484,6 +6163,416 @@ typedef $$EvidencesTableProcessedTableManager =
       $$EvidencesTableUpdateCompanionBuilder,
       (EvidenceRow, $$EvidencesTableReferences),
       EvidenceRow,
+      PrefetchHooks Function({bool visitId})
+    >;
+typedef $$DeterminationsTableCreateCompanionBuilder =
+    DeterminationsCompanion Function({
+      required String id,
+      required String visitId,
+      required String taxonRef,
+      required String taxon,
+      Value<DeterminationQualifier?> qualifier,
+      Value<String?> specimenCode,
+      required String determiner,
+      required DateTime date,
+      Value<String?> replacesId,
+      Value<int> rowid,
+    });
+typedef $$DeterminationsTableUpdateCompanionBuilder =
+    DeterminationsCompanion Function({
+      Value<String> id,
+      Value<String> visitId,
+      Value<String> taxonRef,
+      Value<String> taxon,
+      Value<DeterminationQualifier?> qualifier,
+      Value<String?> specimenCode,
+      Value<String> determiner,
+      Value<DateTime> date,
+      Value<String?> replacesId,
+      Value<int> rowid,
+    });
+
+final class $$DeterminationsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $DeterminationsTable, DeterminationRow> {
+  $$DeterminationsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('determinations__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DeterminationsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxon => $composableBuilder(
+    column: $table.taxon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    DeterminationQualifier?,
+    DeterminationQualifier,
+    String
+  >
+  get qualifier => $composableBuilder(
+    column: $table.qualifier,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxonRef => $composableBuilder(
+    column: $table.taxonRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxon => $composableBuilder(
+    column: $table.taxon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualifier => $composableBuilder(
+    column: $table.qualifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeterminationsTable> {
+  $$DeterminationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get taxonRef =>
+      $composableBuilder(column: $table.taxonRef, builder: (column) => column);
+
+  GeneratedColumn<String> get taxon =>
+      $composableBuilder(column: $table.taxon, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DeterminationQualifier?, String>
+  get qualifier =>
+      $composableBuilder(column: $table.qualifier, builder: (column) => column);
+
+  GeneratedColumn<String> get specimenCode => $composableBuilder(
+    column: $table.specimenCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get determiner => $composableBuilder(
+    column: $table.determiner,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get replacesId => $composableBuilder(
+    column: $table.replacesId,
+    builder: (column) => column,
+  );
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DeterminationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeterminationsTable,
+          DeterminationRow,
+          $$DeterminationsTableFilterComposer,
+          $$DeterminationsTableOrderingComposer,
+          $$DeterminationsTableAnnotationComposer,
+          $$DeterminationsTableCreateCompanionBuilder,
+          $$DeterminationsTableUpdateCompanionBuilder,
+          (DeterminationRow, $$DeterminationsTableReferences),
+          DeterminationRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$DeterminationsTableTableManager(
+    _$AppDatabase db,
+    $DeterminationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeterminationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeterminationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeterminationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> visitId = const Value.absent(),
+                Value<String> taxonRef = const Value.absent(),
+                Value<String> taxon = const Value.absent(),
+                Value<DeterminationQualifier?> qualifier = const Value.absent(),
+                Value<String?> specimenCode = const Value.absent(),
+                Value<String> determiner = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String?> replacesId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeterminationsCompanion(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                taxon: taxon,
+                qualifier: qualifier,
+                specimenCode: specimenCode,
+                determiner: determiner,
+                date: date,
+                replacesId: replacesId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String visitId,
+                required String taxonRef,
+                required String taxon,
+                Value<DeterminationQualifier?> qualifier = const Value.absent(),
+                Value<String?> specimenCode = const Value.absent(),
+                required String determiner,
+                required DateTime date,
+                Value<String?> replacesId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeterminationsCompanion.insert(
+                id: id,
+                visitId: visitId,
+                taxonRef: taxonRef,
+                taxon: taxon,
+                qualifier: qualifier,
+                specimenCode: specimenCode,
+                determiner: determiner,
+                date: date,
+                replacesId: replacesId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DeterminationsTable, DeterminationRow>(table),
+                  $$DeterminationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$DeterminationsTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$DeterminationsTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DeterminationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeterminationsTable,
+      DeterminationRow,
+      $$DeterminationsTableFilterComposer,
+      $$DeterminationsTableOrderingComposer,
+      $$DeterminationsTableAnnotationComposer,
+      $$DeterminationsTableCreateCompanionBuilder,
+      $$DeterminationsTableUpdateCompanionBuilder,
+      (DeterminationRow, $$DeterminationsTableReferences),
+      DeterminationRow,
       PrefetchHooks Function({bool visitId})
     >;
 typedef $$MeasurementsTableCreateCompanionBuilder =
@@ -6890,6 +7979,8 @@ class $AppDatabaseManager {
       $$DetectionsTableTableManager(_db, _db.detections);
   $$EvidencesTableTableManager get evidences =>
       $$EvidencesTableTableManager(_db, _db.evidences);
+  $$DeterminationsTableTableManager get determinations =>
+      $$DeterminationsTableTableManager(_db, _db.determinations);
   $$MeasurementsTableTableManager get measurements =>
       $$MeasurementsTableTableManager(_db, _db.measurements);
   $$ProjectConfigsTableTableManager get projectConfigs =>
