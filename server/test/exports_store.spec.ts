@@ -69,6 +69,7 @@ describe('Export store', () => {
     container = await new PostgreSqlContainer('postgis/postgis:18-3.6').start();
     databaseUrl = container.getConnectionUri();
     process.env.DATABASE_URL = databaseUrl;
+    process.env.REDIS_URL = 'redis://127.0.0.1:6379';
 
     const migrate = runDrizzleKitMigrate(databaseUrl);
     if (migrate.status !== 0) {

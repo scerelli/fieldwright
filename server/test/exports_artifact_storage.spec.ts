@@ -155,6 +155,7 @@ class BindingModule {}
 describe('EXPORT_ARTIFACT_STORAGE binding', () => {
   it('binds the media backend the exports module writes artifacts through (C1, C5)', async () => {
     process.env.DATABASE_URL = 'postgres://ibis:ibis@127.0.0.1:5432/ibis';
+    process.env.REDIS_URL = 'redis://127.0.0.1:6379';
     process.env.BETTER_AUTH_SECRET =
       'test-only-secret-at-least-thirty-two-characters';
     const root = await mkdtemp(join(tmpdir(), 'ibis-export-binding-'));

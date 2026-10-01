@@ -1,22 +1,30 @@
 /**
- * The server `exports` module (ARCHITECTURE.md): the durable Export records and,
- * in later sub-tasks, the request/serve API, the BullMQ queue and the artifact
- * storage and generators. For now it scaffolds the module around its
- * persistence, binding `EXPORT_ARTIFACT_STORAGE` to the media backend the
- * `media` module serves from so a worker writes an Export artifact to the same
- * content-addressed volume or S3 Store (ADR-0007).
+ * The server `exports` module (ARCHITECTURE.md): the durable Export records,
+ * the request/serve API and the BullMQ `exports` queue the API enqueues a job
+ * onto, plus the artifact storage the generator writes to and the API reads
+ * back from. It binds `EXPORT_ARTIFACT_STORAGE` to the media backend the
+ * `media` module serves from, so a worker writes an Export artifact to the same
+ * content-addressed volume or S3 Store (ADR-0007, ADR-0008).
  */
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module.js';
 import { DatabaseModule } from '../db/database.module.js';
 import { MediaModule } from '../media/media.module.js';
 import { MEDIA_STORAGE } from '../media/media.storage.js';
+import { QueueModule } from '../queue/queue.module.js';
 import { EXPORT_ARTIFACT_STORAGE } from './export-artifact.storage.js';
+import { ExportsController } from './exports.controller.js';
+import { ExportsQueue } from './exports.queue.js';
+import { ExportsService } from './exports.service.js';
 import { ExportsStore } from './exports.store.js';
 
 @Module({
-  imports: [DatabaseModule, MediaModule],
+  imports: [DatabaseModule, MediaModule, QueueModule, AuthModule],
+  controllers: [ExportsController],
   providers: [
     ExportsStore,
+    ExportsQueue,
+    ExportsService,
     { provide: EXPORT_ARTIFACT_STORAGE, useExisting: MEDIA_STORAGE },
   ],
   exports: [ExportsStore, EXPORT_ARTIFACT_STORAGE],
