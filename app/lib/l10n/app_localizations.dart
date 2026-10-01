@@ -1027,6 +1027,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not add the survey period. Try again.'**
   String get surveyPeriodsAddFailed;
+
+  /// Sync indicator label while an ended Visit waits in the outbox for delivery (UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get syncIndicatorQueued;
+
+  /// Sync indicator label while an ended Visit's submission is in flight (UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get syncIndicatorSyncing;
+
+  /// Sync indicator label once an ended Visit has been delivered (UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get syncIndicatorSynced;
+
+  /// Sync indicator label when an ended Visit's delivery was rejected and can be retried (UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncIndicatorFailed;
+
+  /// Button that re-queues a Visit whose delivery failed (UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get syncIndicatorRetry;
 }
 
 class _AppLocalizationsDelegate

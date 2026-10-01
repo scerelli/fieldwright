@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
 import '../../store/database_provider.dart';
 import '../../store/measurement_dao.dart';
+import '../../widgets/sync_indicator.dart';
 import 'detection_list.dart';
 import 'effort_timer.dart';
 import 'measurement.dart';
@@ -62,7 +63,28 @@ class _CaptureView extends ConsumerWidget {
           if (visit.isEnded)
             IconButton(
               key: const Key('submit_visit'),
-              onPressed: () => ref.read(outboxProvider).submit(visit),
+              onPressed: () async {
+                final outbox = ref.read(outboxProvider);
+                await outbox.submit(visit);
+                // Show the queued state as soon as it is recorded, then follow
+                // the delivery to its outcome so the indicator reaches synced
+                // or failed instead of stalling (UX-008). Guard every
+                // invalidate against disposal: delivery can outlast the screen
+                // and `ref` throws once the widget is unmounted.
+                if (context.mounted) {
+                  ref.invalidate(visitSyncStateProvider(visit.id));
+                }
+                try {
+                  await outbox.flush();
+                } on StateError {
+                  // The outbox is not wired for delivery here (queue-only);
+                  // the Visit stays queued for the next delivery-capable flush
+                  // (UX-007).
+                }
+                if (context.mounted) {
+                  ref.invalidate(visitSyncStateProvider(visit.id));
+                }
+              },
               icon: const Icon(Icons.cloud_upload_outlined),
             ),
         ],
@@ -71,6 +93,24 @@ class _CaptureView extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text(l10n.captureState(stateLabel), key: const Key('capture_state')),
+          const SizedBox(height: 8),
+          SyncIndicator(
+            visitId: visit.id,
+            onRetry: () async {
+              final outbox = ref.read(outboxProvider);
+              await outbox.submit(visit);
+              try {
+                await outbox.flush();
+              } on StateError {
+                // The outbox is not wired for delivery here (queue-only);
+                // the Visit stays queued for the next delivery-capable flush
+                // (UX-007).
+              }
+              if (context.mounted) {
+                ref.invalidate(visitSyncStateProvider(visit.id));
+              }
+            },
+          ),
           const SizedBox(height: 8),
           Text(
             l10n.captureEffortStarted(visit.effort.startedAt.toIso8601String()),
