@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
+  correction,
   detection,
   determination,
   evidence,
@@ -68,6 +69,35 @@ function migrationTimestamp(tag: string): number {
     throw new Error(`migration ${tag} is not in the drizzle journal`);
   }
   return entry.when;
+}
+
+// drizzle wraps a driver error in a DrizzleQueryError whose `cause` is the
+// original `pg` error, which carries the Postgres SQLSTATE on `code`.
+function sqlStateOf(error: unknown): unknown {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === 'string') {
+      return code;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
+// Asserts the database refused the statement with `restrict_violation`
+// (SQLSTATE 23001), not merely that it failed for any reason.
+async function expectRestrictViolation(
+  run: () => Promise<unknown>,
+): Promise<void> {
+  let thrown: unknown;
+  try {
+    await run();
+  } catch (error) {
+    thrown = error;
+  }
+  expect(thrown, 'expected the database to reject the mutation').toBeDefined();
+  expect(sqlStateOf(thrown)).toBe('23001');
 }
 
 @Module({
@@ -620,6 +650,61 @@ describe('Visit store', () => {
     expect(rows[0]!.taxon).toBe('Anthus trivialis');
   });
 
+  it('rejects an UPDATE of a stored Correction at the database (INV-001, INV-013)', async () => {
+    const refs = await seedReferences();
+    const author = await seedPerson();
+    const visitId = await storeSubmittedVisit(refs);
+
+    const [stored] = await db
+      .insert(correction)
+      .values({
+        visitId,
+        authorId: author.id,
+        reason: 'Anthus trivialis misidentified',
+        payload: { taxon: 'Anthus pratensis' },
+      })
+      .returning();
+
+    await expectRestrictViolation(() =>
+      db.execute(
+        sql`update correction set reason = 'changed' where id = ${stored!.id}`,
+      ),
+    );
+
+    const [unchanged] = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.id, stored!.id));
+    expect(unchanged!.reason).toBe('Anthus trivialis misidentified');
+    expect(unchanged!.payload).toEqual({ taxon: 'Anthus pratensis' });
+  });
+
+  it('rejects a DELETE of a stored Correction at the database (INV-001, INV-013)', async () => {
+    const refs = await seedReferences();
+    const author = await seedPerson();
+    const visitId = await storeSubmittedVisit(refs);
+
+    const [stored] = await db
+      .insert(correction)
+      .values({
+        visitId,
+        authorId: author.id,
+        reason: 'Site recorded in error',
+        payload: { note: 'remove' },
+      })
+      .returning();
+
+    await expectRestrictViolation(() =>
+      db.execute(sql`delete from correction where id = ${stored!.id}`),
+    );
+
+    const remaining = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.id, stored!.id));
+    expect(remaining).toHaveLength(1);
+  });
+
   it('permits a submitted Visit to become validated or rejected, recording the validator and time (INV-013)', async () => {
     const refs = await seedReferences();
     const validator = await seedPerson();
@@ -867,12 +952,13 @@ describe('Visit store', () => {
 
     // Reproduce a database on the pre-0012 schema that already holds a
     // submitted Visit: drop the columns the migration adds, and un-record it
-    // so it is pending again.
+    // (and every later migration, since drizzle re-applies from a high-water
+    // mark) so it is pending again.
     await db.execute(
       sql`alter table "visit" drop column "validator_id", drop column "validated_at"`,
     );
     await db.execute(
-      sql`delete from drizzle.__drizzle_migrations where created_at = (select max(created_at) from drizzle.__drizzle_migrations)`,
+      sql`delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0012_visit_validation_columns')}`,
     );
 
     const migration = runDrizzleKitMigrate(databaseUrl);
