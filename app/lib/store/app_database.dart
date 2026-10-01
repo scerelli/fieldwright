@@ -66,6 +66,10 @@ class Detections extends Table {
 
   BoolColumn get detected => boolean()();
 
+  TextColumn get method => text().nullable()();
+
+  IntColumn get count => integer().nullable()();
+
   BoolColumn get opportunistic =>
       boolean().withDefault(const Constant(false))();
 
@@ -133,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -150,8 +154,14 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await migrator.createTable(detections);
-      } else if (from < 6) {
-        await migrator.addColumn(detections, detections.opportunistic);
+      } else {
+        if (from < 6) {
+          await migrator.addColumn(detections, detections.opportunistic);
+        }
+        if (from < 10) {
+          await migrator.addColumn(detections, detections.method);
+          await migrator.addColumn(detections, detections.count);
+        }
       }
       if (from < 7) {
         await migrator.createTable(evidences);

@@ -11,6 +11,8 @@ class Detection {
     required this.visitId,
     required this.taxonRef,
     required this.detected,
+    this.method,
+    this.count,
     this.opportunistic = false,
   }) : assert(
          !opportunistic || detected,
@@ -19,13 +21,26 @@ class Detection {
 
   /// A presence-only Detection of a taxon outside the target list (INV-003).
   /// It is always detected and has no not-detected state.
-  const Detection.opportunistic({required this.visitId, required this.taxonRef})
-    : detected = true,
-      opportunistic = true;
+  const Detection.opportunistic({
+    required this.visitId,
+    required this.taxonRef,
+    this.method,
+    this.count,
+  }) : detected = true,
+       opportunistic = true;
 
   final String visitId;
   final String taxonRef;
   final bool detected;
+
+  /// The id of the [DetectionMethod] the Detection was made with — one of the
+  /// `detectionMethods` its Protocol version declares (GLOSSARY.md › Detection
+  /// method). Null only on a row persisted before the client schema recorded
+  /// methods; a new Detection is never stored without one.
+  final String? method;
+
+  /// The number of individuals detected, when the survey counted them.
+  final int? count;
 
   /// Whether this Detection is opportunistic — of a taxon outside the target
   /// list. Opportunistic Detections never imply a non-detection (INV-003).
@@ -39,6 +54,8 @@ class Detection {
       visitId: visitId,
       taxonRef: taxonRef,
       detected: detected ?? this.detected,
+      method: method,
+      count: count,
     );
   }
 
@@ -48,10 +65,13 @@ class Detection {
       other.visitId == visitId &&
       other.taxonRef == taxonRef &&
       other.detected == detected &&
+      other.method == method &&
+      other.count == count &&
       other.opportunistic == opportunistic;
 
   @override
-  int get hashCode => Object.hash(visitId, taxonRef, detected, opportunistic);
+  int get hashCode =>
+      Object.hash(visitId, taxonRef, detected, method, count, opportunistic);
 }
 
 /// The target taxa for which [detections] holds no record — the "not
