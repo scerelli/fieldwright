@@ -1021,6 +1021,24 @@ class $DetectionsTable extends Detections
       'CHECK ("detected" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _opportunisticMeta = const VerificationMeta(
     'opportunistic',
   );
@@ -1041,6 +1059,8 @@ class $DetectionsTable extends Detections
     visitId,
     taxonRef,
     detected,
+    method,
+    count,
     opportunistic,
   ];
   @override
@@ -1079,6 +1099,18 @@ class $DetectionsTable extends Detections
     } else if (isInserting) {
       context.missing(_detectedMeta);
     }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
     if (data.containsKey('opportunistic')) {
       context.handle(
         _opportunisticMeta,
@@ -1109,6 +1141,14 @@ class $DetectionsTable extends Detections
         DriftSqlType.bool,
         data['${effectivePrefix}detected'],
       )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      ),
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      ),
       opportunistic: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}opportunistic'],
@@ -1126,11 +1166,15 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
   final String visitId;
   final String taxonRef;
   final bool detected;
+  final String? method;
+  final int? count;
   final bool opportunistic;
   const DetectionRow({
     required this.visitId,
     required this.taxonRef,
     required this.detected,
+    this.method,
+    this.count,
     required this.opportunistic,
   });
   @override
@@ -1139,6 +1183,12 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     map['visit_id'] = Variable<String>(visitId);
     map['taxon_ref'] = Variable<String>(taxonRef);
     map['detected'] = Variable<bool>(detected);
+    if (!nullToAbsent || method != null) {
+      map['method'] = Variable<String>(method);
+    }
+    if (!nullToAbsent || count != null) {
+      map['count'] = Variable<int>(count);
+    }
     map['opportunistic'] = Variable<bool>(opportunistic);
     return map;
   }
@@ -1148,6 +1198,12 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: Value(visitId),
       taxonRef: Value(taxonRef),
       detected: Value(detected),
+      method: method == null && nullToAbsent
+          ? const Value.absent()
+          : Value(method),
+      count: count == null && nullToAbsent
+          ? const Value.absent()
+          : Value(count),
       opportunistic: Value(opportunistic),
     );
   }
@@ -1161,6 +1217,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: serializer.fromJson<String>(json['visitId']),
       taxonRef: serializer.fromJson<String>(json['taxonRef']),
       detected: serializer.fromJson<bool>(json['detected']),
+      method: serializer.fromJson<String?>(json['method']),
+      count: serializer.fromJson<int?>(json['count']),
       opportunistic: serializer.fromJson<bool>(json['opportunistic']),
     );
   }
@@ -1171,6 +1229,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       'visitId': serializer.toJson<String>(visitId),
       'taxonRef': serializer.toJson<String>(taxonRef),
       'detected': serializer.toJson<bool>(detected),
+      'method': serializer.toJson<String?>(method),
+      'count': serializer.toJson<int?>(count),
       'opportunistic': serializer.toJson<bool>(opportunistic),
     };
   }
@@ -1179,11 +1239,15 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     String? visitId,
     String? taxonRef,
     bool? detected,
+    Value<String?> method = const Value.absent(),
+    Value<int?> count = const Value.absent(),
     bool? opportunistic,
   }) => DetectionRow(
     visitId: visitId ?? this.visitId,
     taxonRef: taxonRef ?? this.taxonRef,
     detected: detected ?? this.detected,
+    method: method.present ? method.value : this.method,
+    count: count.present ? count.value : this.count,
     opportunistic: opportunistic ?? this.opportunistic,
   );
   DetectionRow copyWithCompanion(DetectionsCompanion data) {
@@ -1191,6 +1255,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: data.visitId.present ? data.visitId.value : this.visitId,
       taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
       detected: data.detected.present ? data.detected.value : this.detected,
+      method: data.method.present ? data.method.value : this.method,
+      count: data.count.present ? data.count.value : this.count,
       opportunistic: data.opportunistic.present
           ? data.opportunistic.value
           : this.opportunistic,
@@ -1203,13 +1269,16 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
           ..write('detected: $detected, ')
+          ..write('method: $method, ')
+          ..write('count: $count, ')
           ..write('opportunistic: $opportunistic')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(visitId, taxonRef, detected, opportunistic);
+  int get hashCode =>
+      Object.hash(visitId, taxonRef, detected, method, count, opportunistic);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1217,6 +1286,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
           other.visitId == this.visitId &&
           other.taxonRef == this.taxonRef &&
           other.detected == this.detected &&
+          other.method == this.method &&
+          other.count == this.count &&
           other.opportunistic == this.opportunistic);
 }
 
@@ -1224,12 +1295,16 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
   final Value<String> visitId;
   final Value<String> taxonRef;
   final Value<bool> detected;
+  final Value<String?> method;
+  final Value<int?> count;
   final Value<bool> opportunistic;
   final Value<int> rowid;
   const DetectionsCompanion({
     this.visitId = const Value.absent(),
     this.taxonRef = const Value.absent(),
     this.detected = const Value.absent(),
+    this.method = const Value.absent(),
+    this.count = const Value.absent(),
     this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1237,6 +1312,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     required String visitId,
     required String taxonRef,
     required bool detected,
+    this.method = const Value.absent(),
+    this.count = const Value.absent(),
     this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : visitId = Value(visitId),
@@ -1246,6 +1323,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Expression<String>? visitId,
     Expression<String>? taxonRef,
     Expression<bool>? detected,
+    Expression<String>? method,
+    Expression<int>? count,
     Expression<bool>? opportunistic,
     Expression<int>? rowid,
   }) {
@@ -1253,6 +1332,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
       if (visitId != null) 'visit_id': visitId,
       if (taxonRef != null) 'taxon_ref': taxonRef,
       if (detected != null) 'detected': detected,
+      if (method != null) 'method': method,
+      if (count != null) 'count': count,
       if (opportunistic != null) 'opportunistic': opportunistic,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1262,6 +1343,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Value<String>? visitId,
     Value<String>? taxonRef,
     Value<bool>? detected,
+    Value<String?>? method,
+    Value<int?>? count,
     Value<bool>? opportunistic,
     Value<int>? rowid,
   }) {
@@ -1269,6 +1352,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
       visitId: visitId ?? this.visitId,
       taxonRef: taxonRef ?? this.taxonRef,
       detected: detected ?? this.detected,
+      method: method ?? this.method,
+      count: count ?? this.count,
       opportunistic: opportunistic ?? this.opportunistic,
       rowid: rowid ?? this.rowid,
     );
@@ -1286,6 +1371,12 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     if (detected.present) {
       map['detected'] = Variable<bool>(detected.value);
     }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
     if (opportunistic.present) {
       map['opportunistic'] = Variable<bool>(opportunistic.value);
     }
@@ -1301,6 +1392,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
           ..write('detected: $detected, ')
+          ..write('method: $method, ')
+          ..write('count: $count, ')
           ..write('opportunistic: $opportunistic, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3377,6 +3470,8 @@ typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
   required String visitId,
   required String taxonRef,
   required bool detected,
+  Value<String?> method,
+  Value<int?> count,
   Value<bool> opportunistic,
   Value<int> rowid,
 });
@@ -3384,6 +3479,8 @@ typedef $$DetectionsTableUpdateCompanionBuilder = DetectionsCompanion Function({
   Value<String> visitId,
   Value<String> taxonRef,
   Value<bool> detected,
+  Value<String?> method,
+  Value<int?> count,
   Value<bool> opportunistic,
   Value<int> rowid,
 });
@@ -3426,6 +3523,16 @@ class $$DetectionsTableFilterComposer
 
   ColumnFilters<bool> get detected => $composableBuilder(
     column: $table.detected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3477,6 +3584,16 @@ class $$DetectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get opportunistic => $composableBuilder(
     column: $table.opportunistic,
     builder: (column) => ColumnOrderings(column),
@@ -3520,6 +3637,12 @@ class $$DetectionsTableAnnotationComposer
 
   GeneratedColumn<bool> get detected =>
       $composableBuilder(column: $table.detected, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
 
   GeneratedColumn<bool> get opportunistic => $composableBuilder(
     column: $table.opportunistic,
@@ -3581,12 +3704,16 @@ class $$DetectionsTableTableManager
                 Value<String> visitId = const Value.absent(),
                 Value<String> taxonRef = const Value.absent(),
                 Value<bool> detected = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<int?> count = const Value.absent(),
                 Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                method: method,
+                count: count,
                 opportunistic: opportunistic,
                 rowid: rowid,
               ),
@@ -3595,12 +3722,16 @@ class $$DetectionsTableTableManager
                 required String visitId,
                 required String taxonRef,
                 required bool detected,
+                Value<String?> method = const Value.absent(),
+                Value<int?> count = const Value.absent(),
                 Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion.insert(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                method: method,
+                count: count,
                 opportunistic: opportunistic,
                 rowid: rowid,
               ),

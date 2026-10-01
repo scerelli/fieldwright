@@ -51,6 +51,13 @@ Future<void> _pumpList(
   await tester.pumpAndSettle();
 }
 
+Future<void> _chooseMethod(WidgetTester tester, String label) async {
+  await tester.tap(find.byKey(const Key('detection_method')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
 Future<String> _startVisitId(AppDatabase database) async {
   final visit = await VisitDao(database).startVisit(
     siteId: 'site-1',
@@ -169,7 +176,11 @@ void main() {
         final dao = DetectionDao(database);
 
         await dao.record(
-          Detection.opportunistic(visitId: visit.id, taxonRef: 'Turdus merula'),
+          Detection.opportunistic(
+            visitId: visit.id,
+            taxonRef: 'Turdus merula',
+            method: 'visual',
+          ),
         );
 
         final stored = await dao.forVisit(visit.id);
@@ -179,6 +190,30 @@ void main() {
         expect(await dao.find(visit.id, 'Turdus merula'), isNotNull);
       },
     );
+
+    test('stores an opportunistic Detection with the method that recorded it', () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final visit = await VisitDao(database).startVisit(
+        siteId: 'site-1',
+        surveyPeriodId: 'sp-1',
+        protocolVersionId: 'pv-1',
+      );
+      final dao = DetectionDao(database);
+
+      await dao.record(
+        Detection.opportunistic(
+          visitId: visit.id,
+          taxonRef: 'Turdus merula',
+          method: 'visual',
+        ),
+      );
+
+      final stored = (await dao.forVisit(visit.id)).single;
+      expect(stored.detected, isTrue);
+      expect(stored.opportunistic, isTrue);
+      expect(stored.method, 'visual');
+    });
 
     test('keeps a target Detection and an opportunistic one apart', () async {
       final database = AppDatabase(NativeDatabase.memory());
@@ -195,10 +230,15 @@ void main() {
           visitId: visit.id,
           taxonRef: 'Aves|Turdus|merula',
           detected: false,
+          method: 'visual',
         ),
       );
       await dao.record(
-        Detection.opportunistic(visitId: visit.id, taxonRef: 'Turdus merula'),
+        Detection.opportunistic(
+          visitId: visit.id,
+          taxonRef: 'Turdus merula',
+          method: 'visual',
+        ),
       );
 
       final stored = await dao.forVisit(visit.id);
@@ -219,6 +259,7 @@ void main() {
         final visitId = await _startVisitId(database);
 
         await _pumpList(tester, database: database, visitId: visitId);
+        await _chooseMethod(tester, 'Visual');
 
         await tester.enterText(
           find.byKey(const Key('opportunistic_search_field')),
@@ -243,6 +284,33 @@ void main() {
         expect(stored.single.taxonRef, 'Turdus merula');
         expect(stored.single.detected, isTrue);
         expect(stored.single.opportunistic, isTrue);
+      },
+    );
+
+    testWidgets(
+      'an opportunistic Detection carries the chosen method and stays presence-only (INV-003)',
+      (tester) async {
+        final database = AppDatabase(NativeDatabase.memory());
+        addTearDown(database.close);
+        final visitId = await _startVisitId(database);
+
+        await _pumpList(tester, database: database, visitId: visitId);
+        await _chooseMethod(tester, 'Visual');
+
+        await tester.enterText(
+          find.byKey(const Key('opportunistic_search_field')),
+          'turmer',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opportunistic_result_TURMER')));
+        await tester.pumpAndSettle();
+
+        final stored = await DetectionDao(database).forVisit(visitId);
+        expect(stored, hasLength(1));
+        expect(stored.single.taxonRef, 'Turdus merula');
+        expect(stored.single.detected, isTrue);
+        expect(stored.single.opportunistic, isTrue);
+        expect(stored.single.method, 'visual');
       },
     );
 
@@ -274,7 +342,11 @@ void main() {
         addTearDown(database.close);
         final visitId = await _startVisitId(database);
         await DetectionDao(database).record(
-          Detection.opportunistic(visitId: visitId, taxonRef: 'Turdus merula'),
+          Detection.opportunistic(
+            visitId: visitId,
+            taxonRef: 'Turdus merula',
+            method: 'visual',
+          ),
         );
 
         await _pumpList(tester, database: database, visitId: visitId);
@@ -292,7 +364,7 @@ void main() {
   });
 
   group('client schema migration', () {
-    test('migrates a version 5 schema to version 9 forward-only', () async {
+    test('migrates a version 5 schema to version 10 forward-only', () async {
       final database = AppDatabase(
         NativeDatabase.memory(
           setup: (raw) {
@@ -333,7 +405,7 @@ CREATE TABLE detections (
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 9);
+      expect(version.data['user_version'], 10);
 
       final stored = await DetectionDao(database).forVisit('visit-1');
       expect(stored, hasLength(1));
