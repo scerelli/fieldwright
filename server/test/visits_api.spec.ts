@@ -292,6 +292,10 @@ describe('POST /api/v1/visits', () => {
     });
   }
 
+  function getVisit(visitId: string, headers: Record<string, string> = {}) {
+    return fetch(`${baseUrl}/api/v1/visits/${visitId}`, { headers });
+  }
+
   /** A Visit in the given state, for the Validation and Correction transitions. */
   async function seedVisit(
     refs: SeedReferences,
@@ -937,6 +941,90 @@ describe('POST /api/v1/visits', () => {
     const id = await seedVisit(refs);
 
     const response = await getCorrections(id);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns a stored Visit's state, validatorId and validatedAt to a collector or validator Member", async () => {
+    const refs = await seedReferences();
+    const validator = await signUpAndSignIn('visit-read-validator@example.com');
+    await addMembership(validator.id, refs.projectId, 'validator');
+    const collector = await signUpAndSignIn('visit-read-collector@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs, 'submitted');
+    await postValidation(
+      id,
+      { state: 'validated' },
+      { cookie: validator.cookie },
+    );
+
+    const asCollector = await getVisit(id, { cookie: collector.cookie });
+    expect(asCollector.status, await asCollector.clone().text()).toBe(200);
+    const collectorBody = (await asCollector.json()) as {
+      state: string;
+      validatorId: string | null;
+      validatedAt: string | null;
+    };
+    expect(collectorBody.state).toBe('validated');
+    expect(collectorBody.validatorId).toBe(validator.id);
+    expect(collectorBody.validatedAt).not.toBeNull();
+
+    const asValidator = await getVisit(id, { cookie: validator.cookie });
+    expect(asValidator.status, await asValidator.clone().text()).toBe(200);
+    const validatorBody = (await asValidator.json()) as { state: string };
+    expect(validatorBody.state).toBe('validated');
+  });
+
+  it('returns null validatorId and validatedAt for a submitted Visit with no Validation (INV-013)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('visit-read-submitted@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs, 'submitted');
+
+    const response = await getVisit(id, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as {
+      state: string;
+      validatorId: string | null;
+      validatedAt: string | null;
+    };
+    expect(body.state).toBe('submitted');
+    expect(body.validatorId).toBeNull();
+    expect(body.validatedAt).toBeNull();
+  });
+
+  it('refuses a reader with no Membership in the Visit’s Project with 403 and discloses nothing', async () => {
+    const refs = await seedReferences();
+    const outsider = await signUpAndSignIn('visit-read-outsider@example.com');
+    const id = await seedVisit(refs, 'submitted');
+
+    const response = await getVisit(id, { cookie: outsider.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(403);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body.state).toBeUndefined();
+    expect(body.validatorId).toBeUndefined();
+  });
+
+  it('refuses a Visit id that does not exist with 404', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('visit-read-missing@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = uuidv7();
+
+    const response = await getVisit(id, { cookie: collector.cookie });
+
+    expect(response.status, await response.clone().text()).toBe(404);
+    const body = (await response.json()) as { message?: string };
+    expect(body.message).toBe(`Visit ${id} does not exist`);
+  });
+
+  it('rejects an unauthenticated Visit read with 401', async () => {
+    const refs = await seedReferences();
+    const id = await seedVisit(refs);
+
+    const response = await getVisit(id);
 
     expect(response.status).toBe(401);
   });

@@ -7,6 +7,8 @@ import '../features/projects/projects_screen.dart';
 import '../features/projects/protocol_version_screen.dart';
 import '../features/projects/survey_periods_screen.dart';
 import '../features/sites/sites_screen.dart';
+import '../features/visits/visit_detail_screen.dart';
+import '../features/visits/visits_client.dart';
 import '../features/visits/visits_screen.dart';
 import '../projects/members_client.dart';
 import '../projects/projects_client.dart';
@@ -80,6 +82,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/visits',
                 builder: (context, state) => const VisitsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':visitId',
+                    builder: (context, state) => VisitDetailScreen(
+                      visitId: state.pathParameters['visitId']!,
+                      client: ref.read(visitsClientProvider),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

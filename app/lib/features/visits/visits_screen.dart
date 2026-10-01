@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -149,7 +150,7 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
                       : l10n.visitStateInProgress,
                 ),
                 subtitle: Text(visit.effort.startedAt.toIso8601String()),
-                onTap: () => _openCapture(visit),
+                onTap: () => context.go('/visits/${visit.id}'),
                 trailing: visit.isEnded
                     ? null
                     : TextButton(
