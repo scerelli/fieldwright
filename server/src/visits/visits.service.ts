@@ -30,7 +30,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE } from '../db/database.provider.js';
 import {
@@ -414,5 +414,52 @@ export class VisitsService {
         .returning();
       return created!;
     });
+  }
+
+  /**
+   * Lists a stored Visit's Corrections (GLOSSARY.md Correction, INV-001) in
+   * recorded order, oldest first, each carrying its `authorId`, `createdAt`,
+   * `reason` and `payload`. The Visit must exist — a missing id is refused
+   * with 404 — and the reader must hold the `collector` or `validator`
+   * Membership in the Visit's Project, mirroring the write path in
+   * `recordCorrection` so read and write authorization for a Visit's
+   * Corrections are identical; anyone else is refused with 403. A stored Visit
+   * with no Corrections yields an empty list.
+   */
+  async listCorrections(
+    personId: string,
+    visitId: string,
+  ): Promise<Correction[]> {
+    const [current] = await this.db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, visitId))
+      .limit(1);
+    if (current === undefined) {
+      throw new NotFoundException(`Visit ${visitId} does not exist`);
+    }
+
+    const [member] = await this.db
+      .select({ id: membership.id })
+      .from(membership)
+      .where(
+        and(
+          eq(membership.personId, personId),
+          eq(membership.projectId, current.projectId),
+          inArray(membership.role, ['collector', 'validator']),
+        ),
+      )
+      .limit(1);
+    if (member === undefined) {
+      throw new ForbiddenException(
+        "only a collector or validator may list a Visit's Corrections",
+      );
+    }
+
+    return this.db
+      .select()
+      .from(correction)
+      .where(eq(correction.visitId, visitId))
+      .orderBy(asc(correction.createdAt));
   }
 }
