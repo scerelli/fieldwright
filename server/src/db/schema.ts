@@ -442,3 +442,39 @@ export const correction = pgTable('correction', {
 });
 
 export type Correction = typeof correction.$inferSelect;
+
+/**
+ * Export lifecycle (ARCHITECTURE.md): a requested export moves from its
+ * request to a produced artifact, or fails.
+ */
+export const exportState = pgEnum('export_state', [
+  'requested',
+  'processing',
+  'succeeded',
+  'failed',
+]);
+
+export type ExportState = (typeof exportState.enumValues)[number];
+
+/**
+ * Export record (ARCHITECTURE.md `exports` module): a durable record of one
+ * requested export of a Project's data, carrying the requested `format`, its
+ * lifecycle `state`, the artifact's `storage_key` once produced, and the
+ * failure reason in `error` when its job fails. It is not a DOMAIN.md
+ * aggregate; the Project owns it, so `project_id` cascades on Project delete.
+ * `storage_key` and `error` are null until an artifact is produced or the job
+ * fails.
+ */
+export const exportRecord = pgTable('export', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
+  format: text('format').notNull(),
+  state: exportState('state').notNull().default('requested'),
+  storageKey: text('storage_key'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Export = typeof exportRecord.$inferSelect;

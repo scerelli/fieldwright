@@ -1,10 +1,10 @@
 /**
  * The served application's root module (ARCHITECTURE.md): wires the database,
- * queue, identity, projects, protocol-versions, survey-periods, visits, media
- * and sync modules so the running server exposes the auth, projects,
- * protocol-versions, survey-periods, versioned visit-submission, Evidence-media
- * and versioned config-pull endpoints and its readiness check reflects Postgres
- * and Redis.
+ * queue, identity, projects, protocol-versions, survey-periods, visits, media,
+ * exports and sync modules so the running server exposes the auth, projects,
+ * protocol-versions, survey-periods, versioned visit-submission, Evidence-media,
+ * versioned export request/status/artifact and versioned config-pull endpoints
+ * and its readiness check reflects Postgres and Redis.
  *
  * Connection strings and secrets come from the environment (`DATABASE_URL`,
  * `REDIS_URL`, `BETTER_AUTH_SECRET`), as the Compose deployment supplies them.
@@ -13,6 +13,7 @@ import { Inject, Module, type OnApplicationBootstrap } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './db/database.module.js';
 import { QUERY_EXECUTOR, type QueryExecutor } from './db/database.provider.js';
+import { ExportsModule } from './exports/exports.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HealthService } from './health/health.service.js';
 import { MediaModule } from './media/media.module.js';
@@ -33,6 +34,7 @@ import { VisitsModule } from './visits/visits.module.js';
     SurveyPeriodsModule,
     VisitsModule,
     MediaModule,
+    ExportsModule,
     SyncModule,
     HealthModule,
   ],

@@ -40,3 +40,26 @@ export interface MediaStorage {
    */
   fetch(storageKey: string): Promise<Uint8Array | null>;
 }
+
+/**
+ * The additive server-side write capability of a storage backend. A writer
+ * that runs on the server — the `exports` worker — stores the bytes itself and
+ * gets their content-addressed key back, where `MediaStorage.store` instead
+ * hands a client a presigned PUT on the S3 backend (ADR-0012). The stored
+ * artifact is immutable once written: identical bytes resolve to the same key
+ * and never rewrite it (ADR-0007).
+ */
+export interface ArtifactStorage {
+  /** Writes bytes server-side and returns their lowercase-hex SHA-256 key. */
+  put(bytes: Uint8Array): Promise<string>;
+  /** Returns the stored bytes, or `null` when no artifact names that key. */
+  fetch(storageKey: string): Promise<Uint8Array | null>;
+}
+
+/**
+ * A storage backend: the Evidence `MediaStorage` contract plus the additive
+ * server-side `ArtifactStorage` put, served by the same backend so the
+ * `exports` worker writes to the same volume or S3 Store the `media` module
+ * uses (ADR-0007).
+ */
+export interface StorageBackend extends MediaStorage, ArtifactStorage {}
