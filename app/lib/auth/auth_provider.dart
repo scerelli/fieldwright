@@ -29,6 +29,21 @@ class AuthController extends AsyncNotifier<Person?> {
     );
   }
 
+  /// Creates the account and holds the resulting person, so a just-signed-up
+  /// person is authenticated on later requests. // glossary:allow Better Auth auth session, not the domain Visit
+  Future<void> signUp({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncValue<Person?>.loading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(authClientProvider)
+          .signUp(name: name, email: email, password: password),
+    );
+  }
+
   Future<void> signOut() async {
     state = const AsyncValue<Person?>.loading();
     state = await AsyncValue.guard(() async {
