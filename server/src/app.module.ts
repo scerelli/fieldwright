@@ -13,6 +13,7 @@ import { Inject, Module, type OnApplicationBootstrap } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './db/database.module.js';
 import { QUERY_EXECUTOR, type QueryExecutor } from './db/database.provider.js';
+import { ExportsModule } from './exports/exports.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HealthService } from './health/health.service.js';
 import { MediaModule } from './media/media.module.js';
@@ -33,6 +34,7 @@ import { VisitsModule } from './visits/visits.module.js';
     SurveyPeriodsModule,
     VisitsModule,
     MediaModule,
+    ExportsModule,
     SyncModule,
     HealthModule,
   ],
