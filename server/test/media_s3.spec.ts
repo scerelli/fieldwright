@@ -20,7 +20,7 @@ import {
 } from '../src/media/media.config.js';
 import { MediaController } from '../src/media/media.controller.js';
 import { MediaService } from '../src/media/media.service.js';
-import type { MediaStorage } from '../src/media/media.storage.js';
+import type { MediaStorage, StoredMedia } from '../src/media/media.storage.js';
 import { createS3Storage } from '../src/media/s3.storage.js';
 import { createVolumeStorage } from '../src/media/volume.storage.js';
 
@@ -28,8 +28,27 @@ const EVIDENCE = new TextEncoder().encode('ibis-s3-evidence-photo-bytes');
 const EVIDENCE_SHA256 = createHash('sha256').update(EVIDENCE).digest('hex');
 const DEDUPE = new TextEncoder().encode('ibis-s3-evidence-audio-bytes');
 const DEDUPE_SHA256 = createHash('sha256').update(DEDUPE).digest('hex');
+const OVERWRITE = new TextEncoder().encode('ibis-s3-overwrite-bytes');
+const HASHED = new TextEncoder().encode('ibis-s3-hashed-bytes');
+const SIZED = new TextEncoder().encode('ibis-s3-sized-bytes');
 
 const MAX_UPLOAD_BYTES = 64;
+
+/**
+ * PUTs `bytes` to a stored upload, sending the required headers the API
+ * returned. `Content-Length` is set by fetch from the body, so the signature
+ * binds the size.
+ */
+function putUpload(
+  stored: Pick<StoredMedia, 'uploadUrl' | 'uploadHeaders'>,
+  bytes: Uint8Array,
+): Promise<Response> {
+  return fetch(stored.uploadUrl!, {
+    method: 'PUT',
+    body: Buffer.from(bytes),
+    headers: stored.uploadHeaders ?? {},
+  });
+}
 
 /**
  * A request shaped like the one the upload handler reads: a declared length and
@@ -78,6 +97,7 @@ describe('media upload with the volume backend', () => {
     expect(stored.storageKey).toBe(EVIDENCE_SHA256);
     expect(stored.sha256).toBe(EVIDENCE_SHA256);
     expect(stored.uploadUrl).toBeUndefined();
+    expect(stored.uploadHeaders).toBeUndefined();
     expect(Buffer.from((await storage.fetch(EVIDENCE_SHA256))!)).toEqual(
       Buffer.from(EVIDENCE),
     );
@@ -132,11 +152,14 @@ describe('media upload with the S3 backend', () => {
     expect(stored.storageKey).toBe(EVIDENCE_SHA256);
     expect(stored.sha256).toBe(EVIDENCE_SHA256);
     expect(typeof stored.uploadUrl).toBe('string');
-
-    const put = await fetch(stored.uploadUrl!, {
-      method: 'PUT',
-      body: Buffer.from(EVIDENCE),
+    expect(stored.uploadHeaders).toMatchObject({
+      'If-None-Match': '*',
+      'x-amz-checksum-sha256': createHash('sha256')
+        .update(EVIDENCE)
+        .digest('base64'),
     });
+
+    const put = await putUpload(stored, EVIDENCE);
     expect(put.status, await put.clone().text()).toBe(200);
 
     const fetched = await storage.fetch(EVIDENCE_SHA256);
@@ -152,10 +175,7 @@ describe('media upload with the S3 backend', () => {
     expect(first.storageKey).toMatch(/^[0-9a-f]{64}$/);
     expect(typeof first.uploadUrl).toBe('string');
 
-    const put = await fetch(first.uploadUrl!, {
-      method: 'PUT',
-      body: Buffer.from(DEDUPE),
-    });
+    const put = await putUpload(first, DEDUPE);
     expect(put.status, await put.clone().text()).toBe(200);
 
     const before = await admin.send(
@@ -176,6 +196,41 @@ describe('media upload with the S3 backend', () => {
     expect(Buffer.from((await storage.fetch(DEDUPE_SHA256))!)).toEqual(
       Buffer.from(DEDUPE),
     );
+  });
+
+  it('rejects an overwrite of an existing object through the same presigned URL (C3)', async () => {
+    const storage = createS3Storage(s3Config);
+    const stored = await storage.store(OVERWRITE);
+
+    const first = await putUpload(stored, OVERWRITE);
+    expect(first.status, await first.clone().text()).toBe(200);
+
+    const overwrite = await putUpload(stored, OVERWRITE);
+    expect(overwrite.status).toBe(412);
+  });
+
+  it('rejects a PUT larger than the size the API accepted, including over maxUploadBytes (C3)', async () => {
+    const storage = createS3Storage(s3Config);
+    expect(SIZED.byteLength).toBeLessThanOrEqual(MAX_UPLOAD_BYTES);
+    const stored = await storage.store(SIZED);
+
+    const oversized = new Uint8Array(MAX_UPLOAD_BYTES + 1).fill(0x42);
+    const response = await putUpload(stored, oversized);
+
+    expect(response.status).toBe(403);
+  });
+
+  it('rejects a PUT whose bytes do not hash to the storageKey (C3)', async () => {
+    const storage = createS3Storage(s3Config);
+    const stored = await storage.store(HASHED);
+
+    const different = Uint8Array.from(HASHED);
+    different[0] = different[0]! ^ 0xff;
+    expect(different.byteLength).toBe(HASHED.byteLength);
+
+    const response = await putUpload(stored, different);
+
+    expect(response.status).toBe(400);
   });
 });
 
