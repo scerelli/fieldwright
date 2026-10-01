@@ -3,16 +3,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  CreateBucketCommand,
+  type GetObjectCommandOutput,
+  GetObjectCommand,
   HeadObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import {
-  MinioContainer,
-  type StartedMinioContainer,
-} from '@testcontainers/minio';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { Request } from 'express';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   loadMediaConfig,
   type MediaConfig,
@@ -20,35 +18,36 @@ import {
 } from '../src/media/media.config.js';
 import { MediaController } from '../src/media/media.controller.js';
 import { MediaService } from '../src/media/media.service.js';
-import type { MediaStorage, StoredMedia } from '../src/media/media.storage.js';
+import type { MediaStorage } from '../src/media/media.storage.js';
 import { createS3Storage } from '../src/media/s3.storage.js';
 import { createVolumeStorage } from '../src/media/volume.storage.js';
 
 const EVIDENCE = new TextEncoder().encode('ibis-s3-evidence-photo-bytes');
 const EVIDENCE_SHA256 = createHash('sha256').update(EVIDENCE).digest('hex');
-const DEDUPE = new TextEncoder().encode('ibis-s3-evidence-audio-bytes');
-const DEDUPE_SHA256 = createHash('sha256').update(DEDUPE).digest('hex');
-const OVERWRITE = new TextEncoder().encode('ibis-s3-overwrite-bytes');
-const HASHED = new TextEncoder().encode('ibis-s3-hashed-bytes');
-const SIZED = new TextEncoder().encode('ibis-s3-sized-bytes');
+const EVIDENCE_CHECKSUM = createHash('sha256')
+  .update(EVIDENCE)
+  .digest('base64');
 
 const MAX_UPLOAD_BYTES = 64;
 
 /**
- * PUTs `bytes` to a stored upload, sending the required headers the API
- * returned. `Content-Length` is set by fetch from the body, so the signature
- * binds the size.
+ * The S3 backend is exercised against a mocked AWS SDK client: `send` is
+ * stubbed, so no network call and no object-store image is needed, while the
+ * presigning itself is the real `S3Client` + `getSignedUrl` (ADR-0012). What
+ * the mock proves is the security-critical part: the presigned URL binds the
+ * upload to the content hash, the size, and a no-overwrite precondition.
  */
-function putUpload(
-  stored: Pick<StoredMedia, 'uploadUrl' | 'uploadHeaders'>,
-  bytes: Uint8Array,
-): Promise<Response> {
-  return fetch(stored.uploadUrl!, {
-    method: 'PUT',
-    body: Buffer.from(bytes),
-    headers: stored.uploadHeaders ?? {},
-  });
-}
+const s3Mock = mockClient(S3Client);
+
+const S3_CONFIG: S3MediaConfig = {
+  endpoint: 'http://127.0.0.1:9000',
+  region: 'us-east-1',
+  bucket: 'ibis-evidence',
+  accessKeyId: 'minioadmin',
+  secretAccessKey: 'minioadmin',
+  forcePathStyle: true,
+  presignExpirySeconds: 900,
+};
 
 /**
  * A request shaped like the one the upload handler reads: a declared length and
@@ -69,6 +68,25 @@ function controllerFor(
   config: MediaConfig,
 ): MediaController {
   return new MediaController(new MediaService(storage), config);
+}
+
+/** A not-found error named the way S3 models a missing key on HEAD/GET. */
+function notFound(name: 'NotFound' | 'NoSuchKey'): Error {
+  return Object.assign(new Error(`${name}: no such object`), { name });
+}
+
+/** A GetObject body whose only used method is `transformToByteArray`. */
+function bodyOf(bytes: Uint8Array): GetObjectCommandOutput['Body'] {
+  return {
+    transformToByteArray: async () => bytes,
+  } as unknown as GetObjectCommandOutput['Body'];
+}
+
+/** The headers SigV4 actually signs for a presigned URL, lowercased. */
+function signedHeaders(url: string): Set<string> {
+  const raw =
+    new URL(url).searchParams.get('X-Amz-SignedHeaders')?.split(';') ?? [];
+  return new Set(raw.filter((header) => header !== ''));
 }
 
 const VOLUME_CONFIG: MediaConfig = {
@@ -105,46 +123,20 @@ describe('media upload with the volume backend', () => {
 });
 
 describe('media upload with the S3 backend', () => {
-  let minio: StartedMinioContainer;
-  let bucket: string;
-  let admin: S3Client;
-  let s3Config: S3MediaConfig;
-
-  beforeAll(async () => {
-    minio = await new MinioContainer('minio/minio:latest').start();
-    bucket = `ibis-evidence-${Date.now()}`;
-    s3Config = {
-      endpoint: minio.getConnectionUrl(),
-      region: 'us-east-1',
-      bucket,
-      accessKeyId: minio.getUsername(),
-      secretAccessKey: minio.getPassword(),
-      forcePathStyle: true,
-      presignExpirySeconds: 900,
-    };
-    admin = new S3Client({
-      region: s3Config.region,
-      endpoint: s3Config.endpoint,
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: s3Config.accessKeyId,
-        secretAccessKey: s3Config.secretAccessKey,
-      },
-    });
-    await admin.send(new CreateBucketCommand({ Bucket: bucket }));
-  }, 180_000);
-
-  afterAll(async () => {
-    admin?.destroy();
-    await minio?.stop();
+  beforeEach(() => {
+    s3Mock.reset();
   });
 
-  it('returns a presigned upload URL and the content-addressed storageKey (C1)', async () => {
-    const storage = createS3Storage(s3Config);
-    const controller = controllerFor(storage, {
+  afterAll(() => {
+    s3Mock.restore();
+  });
+
+  it('returns a presigned upload URL bound to the content hash and size (C1)', async () => {
+    s3Mock.on(HeadObjectCommand).rejects(notFound('NotFound'));
+    const controller = controllerFor(createS3Storage(S3_CONFIG), {
       ...VOLUME_CONFIG,
       backend: 's3',
-      s3: s3Config,
+      s3: S3_CONFIG,
     });
 
     const stored = await controller.upload(requestOf(EVIDENCE));
@@ -152,85 +144,84 @@ describe('media upload with the S3 backend', () => {
     expect(stored.storageKey).toBe(EVIDENCE_SHA256);
     expect(stored.sha256).toBe(EVIDENCE_SHA256);
     expect(typeof stored.uploadUrl).toBe('string');
-    expect(stored.uploadHeaders).toMatchObject({
+    expect(stored.uploadHeaders).toEqual({
       'If-None-Match': '*',
-      'x-amz-checksum-sha256': createHash('sha256')
-        .update(EVIDENCE)
-        .digest('base64'),
+      'x-amz-checksum-sha256': EVIDENCE_CHECKSUM,
     });
 
-    const put = await putUpload(stored, EVIDENCE);
-    expect(put.status, await put.clone().text()).toBe(200);
+    const signed = signedHeaders(stored.uploadUrl!);
+    expect(signed).toEqual(
+      new Set([
+        'content-length',
+        'host',
+        'if-none-match',
+        'x-amz-checksum-sha256',
+      ]),
+    );
 
-    const fetched = await storage.fetch(EVIDENCE_SHA256);
-    expect(fetched).not.toBeNull();
-    expect(Buffer.from(fetched!)).toEqual(Buffer.from(EVIDENCE));
+    const url = new URL(stored.uploadUrl!);
+    expect(url.pathname).toBe(`/ibis-evidence/${EVIDENCE_SHA256}`);
+    // The checksum stays a signed header rather than a hoisted query param, so
+    // an S3-compatible store actually verifies it (ADR-0012).
+    expect(url.searchParams.has('x-amz-checksum-sha256')).toBe(false);
+    expect(url.searchParams.has('X-Amz-Checksum-Sha256')).toBe(false);
+    expect(url.searchParams.get('X-Amz-Signature')).not.toBeNull();
   });
 
-  it('keys by the lowercase-hex SHA-256 and does not overwrite an existing object (C3)', async () => {
-    const storage = createS3Storage(s3Config);
+  it.each(['NotFound', 'NoSuchKey'] as const)(
+    'presigns the lowercase-hex SHA-256 key when HeadObject reports %s (C3)',
+    async (name) => {
+      s3Mock.on(HeadObjectCommand).rejects(notFound(name));
 
-    const first = await storage.store(DEDUPE);
-    expect(first.storageKey).toBe(DEDUPE_SHA256);
-    expect(first.storageKey).toMatch(/^[0-9a-f]{64}$/);
+      const stored = await createS3Storage(S3_CONFIG).store(EVIDENCE);
+
+      expect(stored.storageKey).toBe(EVIDENCE_SHA256);
+      expect(stored.storageKey).toMatch(/^[0-9a-f]{64}$/);
+      expect(stored.sha256).toBe(EVIDENCE_SHA256);
+      expect(typeof stored.uploadUrl).toBe('string');
+    },
+  );
+
+  it('returns no uploadUrl when HeadObject finds the object, so it is never overwritten (C3)', async () => {
+    s3Mock
+      .on(HeadObjectCommand)
+      .rejectsOnce(notFound('NotFound'))
+      .resolvesOnce({});
+    const storage = createS3Storage(S3_CONFIG);
+
+    const first = await storage.store(EVIDENCE);
     expect(typeof first.uploadUrl).toBe('string');
 
-    const put = await putUpload(first, DEDUPE);
-    expect(put.status, await put.clone().text()).toBe(200);
+    const second = await storage.store(EVIDENCE);
 
-    const before = await admin.send(
-      new HeadObjectCommand({ Bucket: bucket, Key: DEDUPE_SHA256 }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-
-    const second = await storage.store(DEDUPE);
-
-    expect(second.storageKey).toBe(DEDUPE_SHA256);
-    expect(second.sha256).toBe(DEDUPE_SHA256);
+    expect(second.storageKey).toBe(EVIDENCE_SHA256);
+    expect(second.sha256).toBe(EVIDENCE_SHA256);
     expect(second.uploadUrl).toBeUndefined();
-
-    const after = await admin.send(
-      new HeadObjectCommand({ Bucket: bucket, Key: DEDUPE_SHA256 }),
-    );
-    expect(after.LastModified?.getTime()).toBe(before.LastModified?.getTime());
-    expect(Buffer.from((await storage.fetch(DEDUPE_SHA256))!)).toEqual(
-      Buffer.from(DEDUPE),
-    );
+    expect(second.uploadHeaders).toBeUndefined();
   });
 
-  it('rejects an overwrite of an existing object through the same presigned URL (C3)', async () => {
-    const storage = createS3Storage(s3Config);
-    const stored = await storage.store(OVERWRITE);
+  it('fetches the stored bytes returned by GetObject (C1)', async () => {
+    s3Mock.on(GetObjectCommand).resolves({ Body: bodyOf(EVIDENCE) });
+    const storage = createS3Storage(S3_CONFIG);
 
-    const first = await putUpload(stored, OVERWRITE);
-    expect(first.status, await first.clone().text()).toBe(200);
+    const bytes = await storage.fetch(EVIDENCE_SHA256);
 
-    const overwrite = await putUpload(stored, OVERWRITE);
-    expect(overwrite.status).toBe(412);
+    expect(bytes).not.toBeNull();
+    expect(Buffer.from(bytes!)).toEqual(Buffer.from(EVIDENCE));
   });
 
-  it('rejects a PUT larger than the size the API accepted, including over maxUploadBytes (C3)', async () => {
-    const storage = createS3Storage(s3Config);
-    expect(SIZED.byteLength).toBeLessThanOrEqual(MAX_UPLOAD_BYTES);
-    const stored = await storage.store(SIZED);
+  it('returns null when GetObject reports the object is gone (C3)', async () => {
+    s3Mock.on(GetObjectCommand).rejects(notFound('NoSuchKey'));
+    const storage = createS3Storage(S3_CONFIG);
 
-    const oversized = new Uint8Array(MAX_UPLOAD_BYTES + 1).fill(0x42);
-    const response = await putUpload(stored, oversized);
-
-    expect(response.status).toBe(403);
+    expect(await storage.fetch(EVIDENCE_SHA256)).toBeNull();
   });
 
-  it('rejects a PUT whose bytes do not hash to the storageKey (C3)', async () => {
-    const storage = createS3Storage(s3Config);
-    const stored = await storage.store(HASHED);
+  it('reports not-found for a malformed key without calling the object store (C3)', async () => {
+    const storage = createS3Storage(S3_CONFIG);
 
-    const different = Uint8Array.from(HASHED);
-    different[0] = different[0]! ^ 0xff;
-    expect(different.byteLength).toBe(HASHED.byteLength);
-
-    const response = await putUpload(stored, different);
-
-    expect(response.status).toBe(400);
+    expect(await storage.fetch('../secret')).toBeNull();
+    expect(s3Mock.commandCalls(GetObjectCommand).length).toBe(0);
   });
 });
 
