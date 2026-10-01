@@ -32,7 +32,9 @@ import {
 } from '../db/schema.js';
 import {
   assertRequiredEffortFields,
+  assertTargetTaxonCompleteness,
   requiredEffortFieldsOf,
+  targetTaxaOf,
 } from './visit-rules.js';
 
 export interface StoreDeterminationInput {
@@ -137,6 +139,10 @@ export class VisitsService {
       assertRequiredEffortFields(
         input.effort,
         requiredEffortFieldsOf(version.document),
+      );
+      assertTargetTaxonCompleteness(
+        detections,
+        targetTaxaOf(version.document),
       );
 
       const [created] = await tx
