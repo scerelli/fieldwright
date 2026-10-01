@@ -10,7 +10,11 @@
 import {
   Body,
   Controller,
+  HttpCode,
+  HttpStatus,
   Inject,
+  Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
   UsePipes,
@@ -33,7 +37,8 @@ import {
 } from 'class-validator';
 import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { AuthGuard } from '../auth/auth.guard.js';
+import { AuthGuard, type Person } from '../auth/auth.guard.js';
+import { CurrentPerson } from '../auth/current-person.decorator.js';
 import { DATABASE } from '../db/database.provider.js';
 import { visit, type MeasurementProvenance, type Visit } from '../db/schema.js';
 import {
@@ -177,6 +182,15 @@ export class SubmitVisitDto {
   evidence?: EvidenceDto[];
 }
 
+/**
+ * The Validation a validator records against a submitted Visit (GLOSSARY.md
+ * Validation): acceptance (`validated`) or rejection (`rejected`).
+ */
+export class ApplyValidationDto {
+  @IsIn(['validated', 'rejected'])
+  state!: 'validated' | 'rejected';
+}
+
 @Controller('api/v1/visits')
 @UsePipes(
   new ValidationPipe({
@@ -214,6 +228,25 @@ export class VisitsController {
       }
       return existing;
     }
+  }
+
+  /**
+   * Records a Validation against a `submitted` Visit: acceptance (`validated`)
+   * or rejection (`rejected`) (INV-013). Requires the `validator` Membership
+   * in the Visit's Project; a Project with validation disabled, or a Visit
+   * that is not `submitted`, is refused and left unchanged. The change writes
+   * only the Visit's validation columns, so a rejected Visit keeps its
+   * submitted data (INV-001).
+   */
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/validation')
+  async applyValidation(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ApplyValidationDto,
+  ): Promise<Visit> {
+    return this.visits.applyValidation(person.id, id, dto.state);
   }
 
   private async findVisit(id: string): Promise<Visit | undefined> {
