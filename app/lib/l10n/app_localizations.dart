@@ -356,6 +356,54 @@ abstract class AppLocalizations {
   /// **'Ended'**
   String get visitStateEnded;
 
+  /// Title of the Visit detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit details'**
+  String get visitDetailTitle;
+
+  /// Label of a Visit's Validation status on the Visit detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation status'**
+  String get visitDetailStatus;
+
+  /// Visit Validation status once submitted but not yet validated (INV-013).
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get visitStatusSubmitted;
+
+  /// Visit Validation status once a validator accepts the submitted Visit (INV-013).
+  ///
+  /// In en, this message translates to:
+  /// **'Validated'**
+  String get visitStatusValidated;
+
+  /// Visit Validation status once a validator rejects the submitted Visit (INV-013).
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get visitStatusRejected;
+
+  /// Heading of the Corrections list on the Visit detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Corrections'**
+  String get visitDetailCorrectionsHeading;
+
+  /// Empty state shown when a Visit has no Corrections.
+  ///
+  /// In en, this message translates to:
+  /// **'This visit has no corrections.'**
+  String get visitDetailCorrectionsEmpty;
+
+  /// Error shown when loading a Visit's Validation status or Corrections fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the visit. Try again.'**
+  String get visitDetailLoadFailed;
+
   /// Title of the capture screen for the in-progress visit.
   ///
   /// In en, this message translates to:

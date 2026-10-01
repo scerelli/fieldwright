@@ -140,6 +140,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitStateEnded => 'Ended';
 
   @override
+  String get visitDetailTitle => 'Visit details';
+
+  @override
+  String get visitDetailStatus => 'Validation status';
+
+  @override
+  String get visitStatusSubmitted => 'Submitted';
+
+  @override
+  String get visitStatusValidated => 'Validated';
+
+  @override
+  String get visitStatusRejected => 'Rejected';
+
+  @override
+  String get visitDetailCorrectionsHeading => 'Corrections';
+
+  @override
+  String get visitDetailCorrectionsEmpty => 'This visit has no corrections.';
+
+  @override
+  String get visitDetailLoadFailed => 'Could not load the visit. Try again.';
+
+  @override
   String get captureTitle => 'Visit';
 
   @override
