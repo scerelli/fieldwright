@@ -10,6 +10,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -288,6 +289,25 @@ export class VisitsController {
       reason: dto.reason,
       payload: dto.payload,
     });
+  }
+
+  /**
+   * Lists a stored Visit's Corrections (GLOSSARY.md Correction, INV-001),
+   * oldest first, each carrying its author, `createdAt`, `reason` and
+   * `payload`; a stored Visit with no Corrections returns an empty list, and a
+   * Visit id that does not exist is refused with 404. Read authorization
+   * mirrors `recordCorrection`'s write path — a `collector` or `validator`
+   * Membership in the Visit's Project is required — so a Visit's Corrections
+   * are read by the same people who may record them; anyone else is refused
+   * with 403.
+   */
+  @UseGuards(AuthGuard)
+  @Get(':id/corrections')
+  async listCorrections(
+    @CurrentPerson() person: Person,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Correction[]> {
+    return this.visits.listCorrections(person.id, id);
   }
 
   private async findVisit(id: string): Promise<Visit | undefined> {
