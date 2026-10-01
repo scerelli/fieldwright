@@ -242,6 +242,11 @@ export const visitState = pgEnum('visit_state', [
  * stored Visit is immutable (INV-001): the `visit_immutable` trigger in the
  * migration rejects an UPDATE or DELETE of a `submitted`/`validated`/`rejected`
  * row, so a later change is a Correction.
+ *
+ * `taxonomic_reference_id` and `taxonomic_reference_version` record the
+ * Project's pinned Taxonomic reference version the Visit's data was captured
+ * against (INV-008); the ingest transaction copies the pin from the Project,
+ * and the NOT NULL columns reject a Visit row stored without one.
  */
 export const visit = pgTable(
   'visit',
@@ -259,6 +264,8 @@ export const visit = pgTable(
     protocolVersionId: uuid('protocol_version_id')
       .notNull()
       .references(() => protocolVersion.id, { onDelete: 'cascade' }),
+    taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
+    taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
     state: visitState('state').notNull(),
     effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
     startedAt: timestamp('started_at').notNull(),
