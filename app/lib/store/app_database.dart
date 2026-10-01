@@ -94,6 +94,11 @@ class Evidences extends Table {
 
   TextColumn get contentHash => text()();
 
+  /// The content-addressed key the media API returned when this Evidence was
+  /// uploaded, or null while it has never been uploaded. It is the transport
+  /// reference the submission's evidence manifest carries.
+  TextColumn get storageKey => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -275,7 +280,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -303,6 +308,8 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await migrator.createTable(evidences);
+      } else if (from < 13) {
+        await migrator.addColumn(evidences, evidences.storageKey);
       }
       if (from < 8) {
         await migrator.createTable(measurements);

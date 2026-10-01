@@ -588,7 +588,7 @@ void main() {
 
   group('migration', () {
     test(
-      'migrates a version 11 client schema to version 12 adding method and count',
+      'migrates a version 11 client schema to version 13 adding method and count',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -614,6 +614,18 @@ CREATE TABLE detections (
   PRIMARY KEY (visit_id, taxon_ref)
 );
 ''');
+              raw.execute('''
+CREATE TABLE evidences (
+  id TEXT NOT NULL,
+  visit_id TEXT NOT NULL,
+  taxon_ref TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  captured_at INTEGER NOT NULL,
+  content_hash TEXT NOT NULL,
+  PRIMARY KEY (id)
+);
+''');
               raw.execute(
                 "INSERT INTO visits (id, site_id, survey_period_id, protocol_version_id, state, effort_started_at) "
                 "VALUES ('visit-1', 'site-1', 'sp-1', 'pv-1', 'inProgress', 1767225600);",
@@ -631,7 +643,7 @@ CREATE TABLE detections (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 12);
+        expect(version.data['user_version'], 13);
 
         final columns = await database
             .customSelect('PRAGMA table_info(detections)')
@@ -663,7 +675,7 @@ CREATE TABLE detections (
     );
 
     test(
-      'migrates a version 4 client schema to version 12 forward-only',
+      'migrates a version 4 client schema to version 13 forward-only',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -705,7 +717,7 @@ CREATE TABLE visits (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 12);
+        expect(version.data['user_version'], 13);
 
         final tables = await database
             .customSelect(
