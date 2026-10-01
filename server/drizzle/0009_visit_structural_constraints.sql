@@ -1,0 +1,3 @@
+ALTER TABLE "measurement" DROP CONSTRAINT "measurement_provenance_method";--> statement-breakpoint
+ALTER TABLE "measurement" ADD CONSTRAINT "measurement_provenance_method" CHECK (nullif(btrim("measurement"."provenance"->>'method'), '') is not null);--> statement-breakpoint
+ALTER TABLE "visit" ADD CONSTRAINT "visit_timestamps_ordered" CHECK (("visit"."ended_at" is null or "visit"."ended_at" >= "visit"."started_at") and "visit"."submitted_at" >= "visit"."started_at");
