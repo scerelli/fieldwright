@@ -236,30 +236,43 @@ export const visitState = pgEnum('visit_state', [
  * Visit (DOMAIN.md): the unit of offline capture, submission and immutability.
  * Its id is a client-generated UUIDv7. It references exactly one Site, one
  * Survey period and one Protocol version (INV-006), enforced by the non-null
- * foreign keys below. `effort` holds the Sampling effort fields the Protocol
- * version requires; `submitted_at` is the submission instant.
+ * foreign keys below; `ended_at` and `submitted_at` never precede `started_at`
+ * (check `visit_timestamps_ordered`). `effort` holds the Sampling effort fields
+ * the Protocol version requires; `submitted_at` is the submission instant. A
+ * stored Visit is immutable (INV-001): the `visit_immutable` trigger in the
+ * migration rejects an UPDATE or DELETE of a `submitted`/`validated`/`rejected`
+ * row, so a later change is a Correction.
  */
-export const visit = pgTable('visit', {
-  id: uuid('id').primaryKey(),
-  projectId: uuid('project_id')
-    .notNull()
-    .references(() => project.id, { onDelete: 'cascade' }),
-  siteId: uuid('site_id')
-    .notNull()
-    .references(() => site.id, { onDelete: 'cascade' }),
-  surveyPeriodId: uuid('survey_period_id')
-    .notNull()
-    .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
-  protocolVersionId: uuid('protocol_version_id')
-    .notNull()
-    .references(() => protocolVersion.id, { onDelete: 'cascade' }),
-  state: visitState('state').notNull(),
-  effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
-  startedAt: timestamp('started_at').notNull(),
-  endedAt: timestamp('ended_at'),
-  submittedAt: timestamp('submitted_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const visit = pgTable(
+  'visit',
+  {
+    id: uuid('id').primaryKey(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    siteId: uuid('site_id')
+      .notNull()
+      .references(() => site.id, { onDelete: 'cascade' }),
+    surveyPeriodId: uuid('survey_period_id')
+      .notNull()
+      .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
+    protocolVersionId: uuid('protocol_version_id')
+      .notNull()
+      .references(() => protocolVersion.id, { onDelete: 'cascade' }),
+    state: visitState('state').notNull(),
+    effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    endedAt: timestamp('ended_at'),
+    submittedAt: timestamp('submitted_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      'visit_timestamps_ordered',
+      sql`(${table.endedAt} is null or ${table.endedAt} >= ${table.startedAt}) and ${table.submittedAt} >= ${table.startedAt}`,
+    ),
+  ],
+);
 
 export type Visit = typeof visit.$inferSelect;
 
@@ -309,7 +322,8 @@ export const determinationQualifier = pgEnum('determination_qualifier', [
  * Determination (DOMAIN.md): a taxon assignment for a Detection, carrying its
  * qualifier, specimen code, determiner and date. Append-only (INV-009): a
  * revision is a new row whose `replaces_id` links to the one it replaces;
- * there is no update path, so nothing is overwritten.
+ * there is no update path, so nothing is overwritten. The
+ * `determination_immutable` trigger in the migration rejects any UPDATE.
  */
 export const determination = pgTable('determination', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -331,8 +345,8 @@ export type Determination = typeof determination.$inferSelect;
 
 /**
  * Measurement provenance (DOMAIN.md): how a Measurement was obtained. A
- * Measurement without a method is invalid (INV-010), enforced by the check on
- * the `measurement` table.
+ * Measurement whose Provenance has no method — absent, null or blank — is
+ * invalid (INV-010), enforced by the check on the `measurement` table.
  */
 export interface MeasurementProvenance {
   method: string;
@@ -361,7 +375,7 @@ export const measurement = pgTable(
   (table) => [
     check(
       'measurement_provenance_method',
-      sql`${table.provenance}->>'method' is not null`,
+      sql`nullif(btrim(${table.provenance}->>'method'), '') is not null`,
     ),
   ],
 );

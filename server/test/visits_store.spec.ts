@@ -19,6 +19,7 @@ import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
   detection,
+  determination,
   evidence,
   measurement,
   project,
@@ -492,6 +493,149 @@ describe('Visit store', () => {
     expect(evidenceRows.find((row) => row.kind === 'photo')!.detectionId).toBe(
       byTaxon['Sylvia borin']!.id,
     );
+  });
+
+  it('rejects an UPDATE or a DELETE of a submitted Visit row at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+    });
+
+    await expect(
+      db.execute(sql`update visit set effort = '{}'::jsonb where id = ${id}`),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`delete from visit where id = ${id}`),
+    ).rejects.toThrow();
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      1,
+    );
+  });
+
+  it('rejects an UPDATE of a stored Determination at the database', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: new Date('2026-04-01T09:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:05:00Z'),
+      detections: [
+        {
+          taxon: 'Anthus trivialis',
+          detected: true,
+          method: 'visual',
+          determinations: [
+            {
+              taxon: 'Anthus trivialis',
+              determiner: 'A. Determiner',
+              date: '2026-04-01',
+            },
+          ],
+        },
+      ],
+    });
+
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    const [storedDetermination] = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.detectionId, storedDetection!.id));
+    expect(storedDetermination).toBeDefined();
+
+    await expect(
+      db.execute(
+        sql`update determination set taxon = 'Corvus corax' where id = ${storedDetermination!.id}`,
+      ),
+    ).rejects.toThrow();
+
+    const rows = await db
+      .select()
+      .from(determination)
+      .where(eq(determination.id, storedDetermination!.id));
+    expect(rows[0]!.taxon).toBe('Anthus trivialis');
+  });
+
+  it('rejects a Visit whose ended_at or submitted_at precedes started_at at the database', async () => {
+    const refs = await seedReferences();
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const beforeStart = new Date('2026-04-01T07:00:00Z');
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: beforeStart,
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      db.insert(visit).values({
+        id: randomUUID(),
+        ...refs,
+        state: 'submitted',
+        effort: {},
+        startedAt,
+        endedAt: null,
+        submittedAt: beforeStart,
+      }),
+    ).rejects.toThrow();
+
+    expect(
+      await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
+    ).toHaveLength(0);
+  });
+
+  it('rejects a Measurement whose Provenance has no method at the database', async () => {
+    const refs = await seedReferences();
+    const visitId = randomUUID();
+    await db.insert(visit).values({
+      id: visitId,
+      ...refs,
+      state: 'submitted',
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      endedAt: null,
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+    });
+
+    const withoutMethod: MeasurementProvenance[] = [
+      {} as MeasurementProvenance,
+      { method: '' },
+      { method: '   ' },
+    ];
+    for (const provenance of withoutMethod) {
+      await expect(
+        db
+          .insert(measurement)
+          .values({ visitId, value: '1', unit: 'count', provenance }),
+      ).rejects.toThrow();
+    }
+
+    expect(
+      await db
+        .select()
+        .from(measurement)
+        .where(eq(measurement.visitId, visitId)),
+    ).toHaveLength(0);
   });
 
   it('applies the Visit schema through a forward-only migration', async () => {
