@@ -15,6 +15,11 @@
  * an Evidence object is immutable and provably the SHA-256 of its contents,
  * independent of client cooperation — the checksum header is force-signed (not
  * hoisted to the query) because S3-compatible stores only validate a header.
+ *
+ * The same backend carries the additive server-side `put` the `exports` worker
+ * writes an Export artifact through: the server sends `PutObject` itself and
+ * gets the content-addressed key back, rather than returning a presigned URL
+ * for a client PUT.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -25,12 +30,12 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { S3MediaConfig } from './media.config.js';
-import type { MediaStorage, StoredMedia } from './media.storage.js';
+import type { StorageBackend, StoredMedia } from './media.storage.js';
 
 /** A storage key is exactly the lowercase-hex SHA-256 of the stored bytes. */
 const STORAGE_KEY_PATTERN = /^[0-9a-f]{64}$/;
 
-export function createS3Storage(config: S3MediaConfig): MediaStorage {
+export function createS3Storage(config: S3MediaConfig): StorageBackend {
   const client = new S3Client({
     region: config.region,
     ...(config.endpoint === undefined ? {} : { endpoint: config.endpoint }),
@@ -84,6 +89,26 @@ export function createS3Storage(config: S3MediaConfig): MediaStorage {
           'x-amz-checksum-sha256': checksumSha256,
         },
       };
+    },
+
+    async put(bytes: Uint8Array): Promise<string> {
+      const digest = createHash('sha256').update(bytes).digest();
+      const sha256 = digest.toString('hex');
+
+      if (await objectExists(client, config.bucket, sha256)) {
+        return sha256;
+      }
+
+      await client.send(
+        new PutObjectCommand({
+          Bucket: config.bucket,
+          Key: sha256,
+          Body: bytes,
+          ChecksumSHA256: digest.toString('base64'),
+        }),
+      );
+
+      return sha256;
     },
 
     async fetch(storageKey: string): Promise<Uint8Array | null> {
