@@ -65,11 +65,12 @@ field-created Site exist on the device until linked or submitted.
 
 | Module | Responsibility | Interface | Owns |
 |---|---|---|---|
-| `shell` | App shell, routing, design tokens, Riverpod wiring (the foundational Epic) | navigation + theme providers | — |
+| `shell` | App shell with project-scoped routing (Projects at the top level, Account in the app bar) and the persistent system-state indicator; design tokens, Riverpod wiring (the foundational Epic) | navigation + theme providers | — |
 | `identity` | Better Auth client; current person and their project roles | sign-in/out, session | — |
-| `projects` | Own the local Project aggregate: create and edit Project config offline with no account, and pull/join existing Projects — Protocol version, Survey periods, Target list, Sites | config + creation providers | local Project (until linked) |
+| `projects` | Own the local Project aggregate: create and edit Project config offline with no account, pull/join existing Projects, seed and own the first-run Example Project and the Project cards/description — Protocol version, Survey periods, Target list, Sites | config + creation providers | local Project (until linked) |
 | `capture` | Offline Visit capture loop: effort timer, per-target Detection entry, opportunistic taxa, covariates, end Visit | Visit state notifiers | in-progress Visit (local) |
-| `sites` | Site list/map display and field Site creation | site editor | field-created Site (local) |
+| `sites` | Site list/map display and field Site creation, inside a Project | site editor | field-created Site (local) |
+| `help` | In-app manual explaining the core field journey (UX-023) | help screen | — |
 | `store` | drift database, schema, forward-only migrations | DAOs | local SQLite schema |
 | `sensors` | sensors_plus / geolocator / record / image_picker wrappers + Provenance | measurement/evidence services | — |
 | `outbox` | Submission upload, retry/backoff, config pull, and the link/upload of locally-created Projects and their Visits on sign-up | sync orchestration | — |
@@ -112,14 +113,14 @@ erDiagram
   VISIT ||--o{ CORRECTION : corrected_by
 ```
 
-- **Project** → `project` (settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`. The `project.id` is the client-assigned UUIDv7 for a locally-created Project, or the server-generated id for one created online (ADR-0014).
+- **Project** → `project` (nullable `description`, settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`. The `project.id` is the client-assigned UUIDv7 for a locally-created Project, or the server-generated id for one created online (ADR-0014). An **Example Project** is never synced, so its `example` flag is client-only and no server column exists for it (INV-017, ADR-0016).
 - **Site** → `site` with `geom geometry(Geometry, 4326)` and `origin` enum; `site_measurement` for site covariates.
 - **Visit** → `visit` (project/site/survey_period/protocol_version FKs, `state` enum, effort jsonb, timestamps, validation fields); `detection` (unique per target taxon per Visit, `opportunistic` flag); `determination` (`replaces_id` self-reference for append-only revisions); `measurement` (value, unit, `provenance` jsonb, owner = visit or detection); `evidence` (storage key + `sha256`, immutable); `correction` (author, reason, payload jsonb, append-only).
 - **Constraints**: FKs, `state` enums, `CHECK` on non-negative counts, `ST_IsValid`/SRID checks, partial unique index `(visit_id, taxon_ref) WHERE NOT opportunistic`.
 - **Immutability & append-only** (INV-001, INV-009): no UPDATE path for a submitted Visit, Determination or Correction in application code.
 - **Provenance** (INV-010): `provenance.method` NOT NULL whenever a `measurement` row exists.
 - **Sensitive coordinates** (INV-011): true geometry is stored; obfuscation happens in the read/export layer, never in storage.
-- **Client local store** (drift, ADR-0002): owns one local **Project** aggregate — `projects` with its `protocol_versions`, `survey_periods`, and `sites` — populated by offline creation and the config pull alike; there is no separate pull-cache copy. A locally-created Project keeps its client-assigned identity when linked (INV-015).
+- **Client local store** (drift, ADR-0002): owns one local **Project** aggregate — `projects` with its `protocol_versions`, `survey_periods`, and `sites` — populated by offline creation and the config pull alike; there is no separate pull-cache copy. `projects` also carries the synced `description` and the client-only `example` flag. A locally-created Project keeps its client-assigned identity when linked (INV-015); an Example Project is never linked or exported (INV-017).
 - **Auth tables** are owned by Better Auth, co-located in Postgres via Drizzle.
 
 ## Compatibility surfaces
@@ -127,7 +128,7 @@ erDiagram
 | Surface | Paths | Other side & skew tolerated | Rule | Proof owed |
 |---|---|---|---|---|
 | Sync REST API | `server/src/sync/**`, `app/lib/outbox/**` | app ↔ server; server may be one release behind | `/api/v1`, additive only, unknown fields ignored | contract tests both sides (OpenAPI + client) |
-| Projects API | `server/src/projects/**`, `app/lib/projects/**` | app ↔ server | additive; `POST /projects` accepts an optional client-supplied id (idempotent create-or-return) | contract tests both sides |
+| Projects API | `server/src/projects/**`, `app/lib/projects/**` | app ↔ server | additive; `POST /projects` accepts an optional client-supplied id (idempotent create-or-return); a nullable `description` is additive | contract tests both sides |
 | Protocol format | `packages/protocol/**` | app ↔ server | versioned; additive changes extend; Project pins a version | golden fixtures validated in Dart and TS |
 | Client schema | `app/lib/store/**` | device upgrades | forward-only migrations | migration test from each prior version |
 | Server schema | `server/drizzle/**` | operator upgrades | forward-only migrations | migration test on a populated DB |
@@ -145,6 +146,13 @@ Project or capture a Visit (INV-016).
 (client-assigned UUIDv7 identity, INV-015) and captures Visits offline; its
 Protocol version, Survey periods and Sites are local. Nothing reaches the
 server.
+
+**Onboarding.** On first launch, while the person has no non-example Project,
+the client seeds an Example Project (`projects` module): a flagged local
+Project that is browsable but never linked or exported (INV-017), with a
+streamlined in-app manual from the `help` module (UX-018, UX-023). The person
+may browse it, delete it, or create their own Project; once a non-example
+Project exists the example is no longer seeded.
 
 **Link journey.** On sign-up, the client outbox links the local data:
 `POST /projects` with the client id creates the Project server-side and a
@@ -225,6 +233,8 @@ flowchart TB
 - Evidence uploaded through the API, presigned S3 when configured (ADR-0012).
 - Hosting via Docker Compose + GHCR (ADR-0006); storage volume by default with optional S3 (ADR-0007).
 - Local-first Projects: client-assigned identity, linked on sign-up (ADR-0014).
+- Project-scoped client navigation: Projects at the top level, a Project the hub for its Sites, Visits and config (ADR-0015).
+- First-run Example Project: a flagged, client-only seeded Project, never linked or exported, with an optional synced Project `description` (ADR-0016).
 
 ## Open questions
 
