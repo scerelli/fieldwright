@@ -563,6 +563,17 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _effortObserversMeta = const VerificationMeta(
+    'effortObservers',
+  );
+  @override
+  late final GeneratedColumn<String> effortObservers = GeneratedColumn<String>(
+    'effort_observers',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -572,6 +583,7 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
     state,
     effortStartedAt,
     effortEndedAt,
+    effortObservers,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -640,6 +652,15 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         ),
       );
     }
+    if (data.containsKey('effort_observers')) {
+      context.handle(
+        _effortObserversMeta,
+        effortObservers.isAcceptableOrUnknown(
+          data['effort_observers']!,
+          _effortObserversMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -679,6 +700,10 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}effort_ended_at'],
       ),
+      effortObservers: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}effort_observers'],
+      ),
     );
   }
 
@@ -699,6 +724,11 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
   final VisitState state;
   final DateTime effortStartedAt;
   final DateTime? effortEndedAt;
+
+  /// The Visit's recorded observers, the `observers` Sampling-effort field the
+  /// Protocol version may require, as a JSON-encoded list of names (INV-005).
+  /// Null for a Visit captured before the client schema recorded them.
+  final String? effortObservers;
   const VisitRow({
     required this.id,
     required this.siteId,
@@ -707,6 +737,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     required this.state,
     required this.effortStartedAt,
     this.effortEndedAt,
+    this.effortObservers,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -724,6 +755,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     if (!nullToAbsent || effortEndedAt != null) {
       map['effort_ended_at'] = Variable<DateTime>(effortEndedAt);
     }
+    if (!nullToAbsent || effortObservers != null) {
+      map['effort_observers'] = Variable<String>(effortObservers);
+    }
     return map;
   }
 
@@ -738,6 +772,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       effortEndedAt: effortEndedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(effortEndedAt),
+      effortObservers: effortObservers == null && nullToAbsent
+          ? const Value.absent()
+          : Value(effortObservers),
     );
   }
 
@@ -756,6 +793,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       ),
       effortStartedAt: serializer.fromJson<DateTime>(json['effortStartedAt']),
       effortEndedAt: serializer.fromJson<DateTime?>(json['effortEndedAt']),
+      effortObservers: serializer.fromJson<String?>(json['effortObservers']),
     );
   }
   @override
@@ -771,6 +809,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       ),
       'effortStartedAt': serializer.toJson<DateTime>(effortStartedAt),
       'effortEndedAt': serializer.toJson<DateTime?>(effortEndedAt),
+      'effortObservers': serializer.toJson<String?>(effortObservers),
     };
   }
 
@@ -782,6 +821,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     VisitState? state,
     DateTime? effortStartedAt,
     Value<DateTime?> effortEndedAt = const Value.absent(),
+    Value<String?> effortObservers = const Value.absent(),
   }) => VisitRow(
     id: id ?? this.id,
     siteId: siteId ?? this.siteId,
@@ -792,6 +832,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     effortEndedAt: effortEndedAt.present
         ? effortEndedAt.value
         : this.effortEndedAt,
+    effortObservers: effortObservers.present
+        ? effortObservers.value
+        : this.effortObservers,
   );
   VisitRow copyWithCompanion(VisitsCompanion data) {
     return VisitRow(
@@ -810,6 +853,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       effortEndedAt: data.effortEndedAt.present
           ? data.effortEndedAt.value
           : this.effortEndedAt,
+      effortObservers: data.effortObservers.present
+          ? data.effortObservers.value
+          : this.effortObservers,
     );
   }
 
@@ -822,7 +868,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
           ..write('protocolVersionId: $protocolVersionId, ')
           ..write('state: $state, ')
           ..write('effortStartedAt: $effortStartedAt, ')
-          ..write('effortEndedAt: $effortEndedAt')
+          ..write('effortEndedAt: $effortEndedAt, ')
+          ..write('effortObservers: $effortObservers')
           ..write(')'))
         .toString();
   }
@@ -836,6 +883,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     state,
     effortStartedAt,
     effortEndedAt,
+    effortObservers,
   );
   @override
   bool operator ==(Object other) =>
@@ -847,7 +895,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
           other.protocolVersionId == this.protocolVersionId &&
           other.state == this.state &&
           other.effortStartedAt == this.effortStartedAt &&
-          other.effortEndedAt == this.effortEndedAt);
+          other.effortEndedAt == this.effortEndedAt &&
+          other.effortObservers == this.effortObservers);
 }
 
 class VisitsCompanion extends UpdateCompanion<VisitRow> {
@@ -858,6 +907,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
   final Value<VisitState> state;
   final Value<DateTime> effortStartedAt;
   final Value<DateTime?> effortEndedAt;
+  final Value<String?> effortObservers;
   final Value<int> rowid;
   const VisitsCompanion({
     this.id = const Value.absent(),
@@ -867,6 +917,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     this.state = const Value.absent(),
     this.effortStartedAt = const Value.absent(),
     this.effortEndedAt = const Value.absent(),
+    this.effortObservers = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   VisitsCompanion.insert({
@@ -877,6 +928,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     required VisitState state,
     required DateTime effortStartedAt,
     this.effortEndedAt = const Value.absent(),
+    this.effortObservers = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        siteId = Value(siteId),
@@ -892,6 +944,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     Expression<String>? state,
     Expression<DateTime>? effortStartedAt,
     Expression<DateTime>? effortEndedAt,
+    Expression<String>? effortObservers,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -902,6 +955,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
       if (state != null) 'state': state,
       if (effortStartedAt != null) 'effort_started_at': effortStartedAt,
       if (effortEndedAt != null) 'effort_ended_at': effortEndedAt,
+      if (effortObservers != null) 'effort_observers': effortObservers,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -914,6 +968,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     Value<VisitState>? state,
     Value<DateTime>? effortStartedAt,
     Value<DateTime?>? effortEndedAt,
+    Value<String?>? effortObservers,
     Value<int>? rowid,
   }) {
     return VisitsCompanion(
@@ -924,6 +979,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
       state: state ?? this.state,
       effortStartedAt: effortStartedAt ?? this.effortStartedAt,
       effortEndedAt: effortEndedAt ?? this.effortEndedAt,
+      effortObservers: effortObservers ?? this.effortObservers,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -954,6 +1010,9 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     if (effortEndedAt.present) {
       map['effort_ended_at'] = Variable<DateTime>(effortEndedAt.value);
     }
+    if (effortObservers.present) {
+      map['effort_observers'] = Variable<String>(effortObservers.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -970,6 +1029,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
           ..write('state: $state, ')
           ..write('effortStartedAt: $effortStartedAt, ')
           ..write('effortEndedAt: $effortEndedAt, ')
+          ..write('effortObservers: $effortObservers, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1021,6 +1081,24 @@ class $DetectionsTable extends Detections
       'CHECK ("detected" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _opportunisticMeta = const VerificationMeta(
     'opportunistic',
   );
@@ -1041,6 +1119,8 @@ class $DetectionsTable extends Detections
     visitId,
     taxonRef,
     detected,
+    method,
+    count,
     opportunistic,
   ];
   @override
@@ -1079,6 +1159,18 @@ class $DetectionsTable extends Detections
     } else if (isInserting) {
       context.missing(_detectedMeta);
     }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
     if (data.containsKey('opportunistic')) {
       context.handle(
         _opportunisticMeta,
@@ -1109,6 +1201,14 @@ class $DetectionsTable extends Detections
         DriftSqlType.bool,
         data['${effectivePrefix}detected'],
       )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      ),
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      ),
       opportunistic: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}opportunistic'],
@@ -1126,11 +1226,15 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
   final String visitId;
   final String taxonRef;
   final bool detected;
+  final String? method;
+  final int? count;
   final bool opportunistic;
   const DetectionRow({
     required this.visitId,
     required this.taxonRef,
     required this.detected,
+    this.method,
+    this.count,
     required this.opportunistic,
   });
   @override
@@ -1139,6 +1243,12 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     map['visit_id'] = Variable<String>(visitId);
     map['taxon_ref'] = Variable<String>(taxonRef);
     map['detected'] = Variable<bool>(detected);
+    if (!nullToAbsent || method != null) {
+      map['method'] = Variable<String>(method);
+    }
+    if (!nullToAbsent || count != null) {
+      map['count'] = Variable<int>(count);
+    }
     map['opportunistic'] = Variable<bool>(opportunistic);
     return map;
   }
@@ -1148,6 +1258,12 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: Value(visitId),
       taxonRef: Value(taxonRef),
       detected: Value(detected),
+      method: method == null && nullToAbsent
+          ? const Value.absent()
+          : Value(method),
+      count: count == null && nullToAbsent
+          ? const Value.absent()
+          : Value(count),
       opportunistic: Value(opportunistic),
     );
   }
@@ -1161,6 +1277,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: serializer.fromJson<String>(json['visitId']),
       taxonRef: serializer.fromJson<String>(json['taxonRef']),
       detected: serializer.fromJson<bool>(json['detected']),
+      method: serializer.fromJson<String?>(json['method']),
+      count: serializer.fromJson<int?>(json['count']),
       opportunistic: serializer.fromJson<bool>(json['opportunistic']),
     );
   }
@@ -1171,6 +1289,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       'visitId': serializer.toJson<String>(visitId),
       'taxonRef': serializer.toJson<String>(taxonRef),
       'detected': serializer.toJson<bool>(detected),
+      'method': serializer.toJson<String?>(method),
+      'count': serializer.toJson<int?>(count),
       'opportunistic': serializer.toJson<bool>(opportunistic),
     };
   }
@@ -1179,11 +1299,15 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
     String? visitId,
     String? taxonRef,
     bool? detected,
+    Value<String?> method = const Value.absent(),
+    Value<int?> count = const Value.absent(),
     bool? opportunistic,
   }) => DetectionRow(
     visitId: visitId ?? this.visitId,
     taxonRef: taxonRef ?? this.taxonRef,
     detected: detected ?? this.detected,
+    method: method.present ? method.value : this.method,
+    count: count.present ? count.value : this.count,
     opportunistic: opportunistic ?? this.opportunistic,
   );
   DetectionRow copyWithCompanion(DetectionsCompanion data) {
@@ -1191,6 +1315,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
       visitId: data.visitId.present ? data.visitId.value : this.visitId,
       taxonRef: data.taxonRef.present ? data.taxonRef.value : this.taxonRef,
       detected: data.detected.present ? data.detected.value : this.detected,
+      method: data.method.present ? data.method.value : this.method,
+      count: data.count.present ? data.count.value : this.count,
       opportunistic: data.opportunistic.present
           ? data.opportunistic.value
           : this.opportunistic,
@@ -1203,13 +1329,16 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
           ..write('detected: $detected, ')
+          ..write('method: $method, ')
+          ..write('count: $count, ')
           ..write('opportunistic: $opportunistic')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(visitId, taxonRef, detected, opportunistic);
+  int get hashCode =>
+      Object.hash(visitId, taxonRef, detected, method, count, opportunistic);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1217,6 +1346,8 @@ class DetectionRow extends DataClass implements Insertable<DetectionRow> {
           other.visitId == this.visitId &&
           other.taxonRef == this.taxonRef &&
           other.detected == this.detected &&
+          other.method == this.method &&
+          other.count == this.count &&
           other.opportunistic == this.opportunistic);
 }
 
@@ -1224,12 +1355,16 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
   final Value<String> visitId;
   final Value<String> taxonRef;
   final Value<bool> detected;
+  final Value<String?> method;
+  final Value<int?> count;
   final Value<bool> opportunistic;
   final Value<int> rowid;
   const DetectionsCompanion({
     this.visitId = const Value.absent(),
     this.taxonRef = const Value.absent(),
     this.detected = const Value.absent(),
+    this.method = const Value.absent(),
+    this.count = const Value.absent(),
     this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1237,6 +1372,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     required String visitId,
     required String taxonRef,
     required bool detected,
+    this.method = const Value.absent(),
+    this.count = const Value.absent(),
     this.opportunistic = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : visitId = Value(visitId),
@@ -1246,6 +1383,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Expression<String>? visitId,
     Expression<String>? taxonRef,
     Expression<bool>? detected,
+    Expression<String>? method,
+    Expression<int>? count,
     Expression<bool>? opportunistic,
     Expression<int>? rowid,
   }) {
@@ -1253,6 +1392,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
       if (visitId != null) 'visit_id': visitId,
       if (taxonRef != null) 'taxon_ref': taxonRef,
       if (detected != null) 'detected': detected,
+      if (method != null) 'method': method,
+      if (count != null) 'count': count,
       if (opportunistic != null) 'opportunistic': opportunistic,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1262,6 +1403,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     Value<String>? visitId,
     Value<String>? taxonRef,
     Value<bool>? detected,
+    Value<String?>? method,
+    Value<int?>? count,
     Value<bool>? opportunistic,
     Value<int>? rowid,
   }) {
@@ -1269,6 +1412,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
       visitId: visitId ?? this.visitId,
       taxonRef: taxonRef ?? this.taxonRef,
       detected: detected ?? this.detected,
+      method: method ?? this.method,
+      count: count ?? this.count,
       opportunistic: opportunistic ?? this.opportunistic,
       rowid: rowid ?? this.rowid,
     );
@@ -1286,6 +1431,12 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
     if (detected.present) {
       map['detected'] = Variable<bool>(detected.value);
     }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
     if (opportunistic.present) {
       map['opportunistic'] = Variable<bool>(opportunistic.value);
     }
@@ -1301,6 +1452,8 @@ class DetectionsCompanion extends UpdateCompanion<DetectionRow> {
           ..write('visitId: $visitId, ')
           ..write('taxonRef: $taxonRef, ')
           ..write('detected: $detected, ')
+          ..write('method: $method, ')
+          ..write('count: $count, ')
           ..write('opportunistic: $opportunistic, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1390,6 +1543,17 @@ class $EvidencesTable extends Evidences
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _storageKeyMeta = const VerificationMeta(
+    'storageKey',
+  );
+  @override
+  late final GeneratedColumn<String> storageKey = GeneratedColumn<String>(
+    'storage_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1399,6 +1563,7 @@ class $EvidencesTable extends Evidences
     filePath,
     capturedAt,
     contentHash,
+    storageKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1460,6 +1625,12 @@ class $EvidencesTable extends Evidences
     } else if (isInserting) {
       context.missing(_contentHashMeta);
     }
+    if (data.containsKey('storage_key')) {
+      context.handle(
+        _storageKeyMeta,
+        storageKey.isAcceptableOrUnknown(data['storage_key']!, _storageKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -1499,6 +1670,10 @@ class $EvidencesTable extends Evidences
         DriftSqlType.string,
         data['${effectivePrefix}content_hash'],
       )!,
+      storageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}storage_key'],
+      ),
     );
   }
 
@@ -1519,6 +1694,11 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
   final String filePath;
   final DateTime capturedAt;
   final String contentHash;
+
+  /// The content-addressed key the media API returned when this Evidence was
+  /// uploaded, or null while it has never been uploaded. It is the transport
+  /// reference the submission's evidence manifest carries.
+  final String? storageKey;
   const EvidenceRow({
     required this.id,
     required this.visitId,
@@ -1527,6 +1707,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     required this.filePath,
     required this.capturedAt,
     required this.contentHash,
+    this.storageKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1542,6 +1723,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     map['file_path'] = Variable<String>(filePath);
     map['captured_at'] = Variable<DateTime>(capturedAt);
     map['content_hash'] = Variable<String>(contentHash);
+    if (!nullToAbsent || storageKey != null) {
+      map['storage_key'] = Variable<String>(storageKey);
+    }
     return map;
   }
 
@@ -1554,6 +1738,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       filePath: Value(filePath),
       capturedAt: Value(capturedAt),
       contentHash: Value(contentHash),
+      storageKey: storageKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storageKey),
     );
   }
 
@@ -1572,6 +1759,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       filePath: serializer.fromJson<String>(json['filePath']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
       contentHash: serializer.fromJson<String>(json['contentHash']),
+      storageKey: serializer.fromJson<String?>(json['storageKey']),
     );
   }
   @override
@@ -1587,6 +1775,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       'filePath': serializer.toJson<String>(filePath),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
       'contentHash': serializer.toJson<String>(contentHash),
+      'storageKey': serializer.toJson<String?>(storageKey),
     };
   }
 
@@ -1598,6 +1787,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     String? filePath,
     DateTime? capturedAt,
     String? contentHash,
+    Value<String?> storageKey = const Value.absent(),
   }) => EvidenceRow(
     id: id ?? this.id,
     visitId: visitId ?? this.visitId,
@@ -1606,6 +1796,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     filePath: filePath ?? this.filePath,
     capturedAt: capturedAt ?? this.capturedAt,
     contentHash: contentHash ?? this.contentHash,
+    storageKey: storageKey.present ? storageKey.value : this.storageKey,
   );
   EvidenceRow copyWithCompanion(EvidencesCompanion data) {
     return EvidenceRow(
@@ -1620,6 +1811,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       contentHash: data.contentHash.present
           ? data.contentHash.value
           : this.contentHash,
+      storageKey: data.storageKey.present
+          ? data.storageKey.value
+          : this.storageKey,
     );
   }
 
@@ -1632,7 +1826,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           ..write('kind: $kind, ')
           ..write('filePath: $filePath, ')
           ..write('capturedAt: $capturedAt, ')
-          ..write('contentHash: $contentHash')
+          ..write('contentHash: $contentHash, ')
+          ..write('storageKey: $storageKey')
           ..write(')'))
         .toString();
   }
@@ -1646,6 +1841,7 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     filePath,
     capturedAt,
     contentHash,
+    storageKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -1657,7 +1853,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           other.kind == this.kind &&
           other.filePath == this.filePath &&
           other.capturedAt == this.capturedAt &&
-          other.contentHash == this.contentHash);
+          other.contentHash == this.contentHash &&
+          other.storageKey == this.storageKey);
 }
 
 class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
@@ -1668,6 +1865,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
   final Value<String> filePath;
   final Value<DateTime> capturedAt;
   final Value<String> contentHash;
+  final Value<String?> storageKey;
   final Value<int> rowid;
   const EvidencesCompanion({
     this.id = const Value.absent(),
@@ -1677,6 +1875,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     this.filePath = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.contentHash = const Value.absent(),
+    this.storageKey = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EvidencesCompanion.insert({
@@ -1687,6 +1886,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     required String filePath,
     required DateTime capturedAt,
     required String contentHash,
+    this.storageKey = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        visitId = Value(visitId),
@@ -1703,6 +1903,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     Expression<String>? filePath,
     Expression<DateTime>? capturedAt,
     Expression<String>? contentHash,
+    Expression<String>? storageKey,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1713,6 +1914,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
       if (filePath != null) 'file_path': filePath,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (contentHash != null) 'content_hash': contentHash,
+      if (storageKey != null) 'storage_key': storageKey,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1725,6 +1927,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     Value<String>? filePath,
     Value<DateTime>? capturedAt,
     Value<String>? contentHash,
+    Value<String?>? storageKey,
     Value<int>? rowid,
   }) {
     return EvidencesCompanion(
@@ -1735,6 +1938,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
       filePath: filePath ?? this.filePath,
       capturedAt: capturedAt ?? this.capturedAt,
       contentHash: contentHash ?? this.contentHash,
+      storageKey: storageKey ?? this.storageKey,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1765,6 +1969,9 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
     if (contentHash.present) {
       map['content_hash'] = Variable<String>(contentHash.value);
     }
+    if (storageKey.present) {
+      map['storage_key'] = Variable<String>(storageKey.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1781,6 +1988,7 @@ class EvidencesCompanion extends UpdateCompanion<EvidenceRow> {
           ..write('filePath: $filePath, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('contentHash: $contentHash, ')
+          ..write('storageKey: $storageKey, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4599,6 +4807,283 @@ class ConfigStatesCompanion extends UpdateCompanion<ConfigStateRow> {
   }
 }
 
+class $OutboxEntriesTable extends OutboxEntries
+    with TableInfo<$OutboxEntriesTable, OutboxRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OutboxEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _visitIdMeta = const VerificationMeta(
+    'visitId',
+  );
+  @override
+  late final GeneratedColumn<String> visitId = GeneratedColumn<String>(
+    'visit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES visits (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncState, String> syncState =
+      GeneratedColumn<String>(
+        'sync_state',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncState>($OutboxEntriesTable.$convertersyncState);
+  static const VerificationMeta _queuedAtMeta = const VerificationMeta(
+    'queuedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> queuedAt = GeneratedColumn<DateTime>(
+    'queued_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [visitId, syncState, queuedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'outbox_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OutboxRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('visit_id')) {
+      context.handle(
+        _visitIdMeta,
+        visitId.isAcceptableOrUnknown(data['visit_id']!, _visitIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitIdMeta);
+    }
+    if (data.containsKey('queued_at')) {
+      context.handle(
+        _queuedAtMeta,
+        queuedAt.isAcceptableOrUnknown(data['queued_at']!, _queuedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_queuedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {visitId};
+  @override
+  OutboxRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OutboxRow(
+      visitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visit_id'],
+      )!,
+      syncState: $OutboxEntriesTable.$convertersyncState.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sync_state'],
+        )!,
+      ),
+      queuedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}queued_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OutboxEntriesTable createAlias(String alias) {
+    return $OutboxEntriesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncState, String, String> $convertersyncState =
+      const EnumNameConverter<SyncState>(SyncState.values);
+}
+
+class OutboxRow extends DataClass implements Insertable<OutboxRow> {
+  final String visitId;
+  final SyncState syncState;
+  final DateTime queuedAt;
+  const OutboxRow({
+    required this.visitId,
+    required this.syncState,
+    required this.queuedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['visit_id'] = Variable<String>(visitId);
+    {
+      map['sync_state'] = Variable<String>(
+        $OutboxEntriesTable.$convertersyncState.toSql(syncState),
+      );
+    }
+    map['queued_at'] = Variable<DateTime>(queuedAt);
+    return map;
+  }
+
+  OutboxEntriesCompanion toCompanion(bool nullToAbsent) {
+    return OutboxEntriesCompanion(
+      visitId: Value(visitId),
+      syncState: Value(syncState),
+      queuedAt: Value(queuedAt),
+    );
+  }
+
+  factory OutboxRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OutboxRow(
+      visitId: serializer.fromJson<String>(json['visitId']),
+      syncState: $OutboxEntriesTable.$convertersyncState.fromJson(
+        serializer.fromJson<String>(json['syncState']),
+      ),
+      queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'visitId': serializer.toJson<String>(visitId),
+      'syncState': serializer.toJson<String>(
+        $OutboxEntriesTable.$convertersyncState.toJson(syncState),
+      ),
+      'queuedAt': serializer.toJson<DateTime>(queuedAt),
+    };
+  }
+
+  OutboxRow copyWith({
+    String? visitId,
+    SyncState? syncState,
+    DateTime? queuedAt,
+  }) => OutboxRow(
+    visitId: visitId ?? this.visitId,
+    syncState: syncState ?? this.syncState,
+    queuedAt: queuedAt ?? this.queuedAt,
+  );
+  OutboxRow copyWithCompanion(OutboxEntriesCompanion data) {
+    return OutboxRow(
+      visitId: data.visitId.present ? data.visitId.value : this.visitId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxRow(')
+          ..write('visitId: $visitId, ')
+          ..write('syncState: $syncState, ')
+          ..write('queuedAt: $queuedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(visitId, syncState, queuedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OutboxRow &&
+          other.visitId == this.visitId &&
+          other.syncState == this.syncState &&
+          other.queuedAt == this.queuedAt);
+}
+
+class OutboxEntriesCompanion extends UpdateCompanion<OutboxRow> {
+  final Value<String> visitId;
+  final Value<SyncState> syncState;
+  final Value<DateTime> queuedAt;
+  final Value<int> rowid;
+  const OutboxEntriesCompanion({
+    this.visitId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.queuedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OutboxEntriesCompanion.insert({
+    required String visitId,
+    required SyncState syncState,
+    required DateTime queuedAt,
+    this.rowid = const Value.absent(),
+  }) : visitId = Value(visitId),
+       syncState = Value(syncState),
+       queuedAt = Value(queuedAt);
+  static Insertable<OutboxRow> custom({
+    Expression<String>? visitId,
+    Expression<String>? syncState,
+    Expression<DateTime>? queuedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (visitId != null) 'visit_id': visitId,
+      if (syncState != null) 'sync_state': syncState,
+      if (queuedAt != null) 'queued_at': queuedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OutboxEntriesCompanion copyWith({
+    Value<String>? visitId,
+    Value<SyncState>? syncState,
+    Value<DateTime>? queuedAt,
+    Value<int>? rowid,
+  }) {
+    return OutboxEntriesCompanion(
+      visitId: visitId ?? this.visitId,
+      syncState: syncState ?? this.syncState,
+      queuedAt: queuedAt ?? this.queuedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (visitId.present) {
+      map['visit_id'] = Variable<String>(visitId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(
+        $OutboxEntriesTable.$convertersyncState.toSql(syncState.value),
+      );
+    }
+    if (queuedAt.present) {
+      map['queued_at'] = Variable<DateTime>(queuedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxEntriesCompanion(')
+          ..write('visitId: $visitId, ')
+          ..write('syncState: $syncState, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4615,6 +5100,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SurveyPeriodsTable surveyPeriods = $SurveyPeriodsTable(this);
   late final $ConfigSitesTable configSites = $ConfigSitesTable(this);
   late final $ConfigStatesTable configStates = $ConfigStatesTable(this);
+  late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4631,6 +5117,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     surveyPeriods,
     configSites,
     configStates,
+    outboxEntries,
   ];
 }
 
@@ -4885,6 +5372,7 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   required VisitState state,
   required DateTime effortStartedAt,
   Value<DateTime?> effortEndedAt,
+  Value<String?> effortObservers,
   Value<int> rowid,
 });
 typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
@@ -4895,6 +5383,7 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<VisitState> state,
   Value<DateTime> effortStartedAt,
   Value<DateTime?> effortEndedAt,
+  Value<String?> effortObservers,
   Value<int> rowid,
 });
 
@@ -4973,6 +5462,24 @@ final class $$VisitsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$OutboxEntriesTable, List<OutboxRow>>
+  _outboxEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.outboxEntries,
+    aliasName: 'visits__id__outbox_entries__visit_id',
+  );
+
+  $$OutboxEntriesTableProcessedTableManager get outboxEntriesRefs {
+    final manager = $$OutboxEntriesTableTableManager(
+      $_db,
+      $_db.outboxEntries,
+    ).filter((f) => f.visitId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_outboxEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$VisitsTableFilterComposer
@@ -5017,6 +5524,11 @@ class $$VisitsTableFilterComposer
 
   ColumnFilters<DateTime> get effortEndedAt => $composableBuilder(
     column: $table.effortEndedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5119,6 +5631,31 @@ class $$VisitsTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> outboxEntriesRefs(
+    Expression<bool> Function($$OutboxEntriesTableFilterComposer f) f,
+  ) {
+    final $$OutboxEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxEntries,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.outboxEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableOrderingComposer
@@ -5164,6 +5701,11 @@ class $$VisitsTableOrderingComposer
     column: $table.effortEndedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$VisitsTableAnnotationComposer
@@ -5201,6 +5743,11 @@ class $$VisitsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get effortEndedAt => $composableBuilder(
     column: $table.effortEndedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
     builder: (column) => column,
   );
 
@@ -5303,6 +5850,31 @@ class $$VisitsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> outboxEntriesRefs<T extends Object>(
+    Expression<T> Function($$OutboxEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$OutboxEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxEntries,
+      getReferencedColumn: (t) => t.visitId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.outboxEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VisitsTableTableManager
@@ -5323,6 +5895,7 @@ class $$VisitsTableTableManager
             bool evidencesRefs,
             bool determinationsRefs,
             bool measurementsRefs,
+            bool outboxEntriesRefs,
           })
         > {
   $$VisitsTableTableManager(_$AppDatabase db, $VisitsTable table)
@@ -5345,6 +5918,7 @@ class $$VisitsTableTableManager
                 Value<VisitState> state = const Value.absent(),
                 Value<DateTime> effortStartedAt = const Value.absent(),
                 Value<DateTime?> effortEndedAt = const Value.absent(),
+                Value<String?> effortObservers = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion(
                 id: id,
@@ -5354,6 +5928,7 @@ class $$VisitsTableTableManager
                 state: state,
                 effortStartedAt: effortStartedAt,
                 effortEndedAt: effortEndedAt,
+                effortObservers: effortObservers,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5365,6 +5940,7 @@ class $$VisitsTableTableManager
                 required VisitState state,
                 required DateTime effortStartedAt,
                 Value<DateTime?> effortEndedAt = const Value.absent(),
+                Value<String?> effortObservers = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion.insert(
                 id: id,
@@ -5374,6 +5950,7 @@ class $$VisitsTableTableManager
                 state: state,
                 effortStartedAt: effortStartedAt,
                 effortEndedAt: effortEndedAt,
+                effortObservers: effortObservers,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5390,6 +5967,7 @@ class $$VisitsTableTableManager
                 evidencesRefs = false,
                 determinationsRefs = false,
                 measurementsRefs = false,
+                outboxEntriesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5398,6 +5976,7 @@ class $$VisitsTableTableManager
                     if (evidencesRefs) db.evidences,
                     if (determinationsRefs) db.determinations,
                     if (measurementsRefs) db.measurements,
+                    if (outboxEntriesRefs) db.outboxEntries,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5486,6 +6065,27 @@ class $$VisitsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (outboxEntriesRefs)
+                        await $_getPrefetchedData<
+                          VisitRow,
+                          $VisitsTable,
+                          OutboxRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VisitsTableReferences
+                              ._outboxEntriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VisitsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).outboxEntriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.visitId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5511,12 +6111,15 @@ typedef $$VisitsTableProcessedTableManager =
         bool evidencesRefs,
         bool determinationsRefs,
         bool measurementsRefs,
+        bool outboxEntriesRefs,
       })
     >;
 typedef $$DetectionsTableCreateCompanionBuilder = DetectionsCompanion Function({
   required String visitId,
   required String taxonRef,
   required bool detected,
+  Value<String?> method,
+  Value<int?> count,
   Value<bool> opportunistic,
   Value<int> rowid,
 });
@@ -5524,6 +6127,8 @@ typedef $$DetectionsTableUpdateCompanionBuilder = DetectionsCompanion Function({
   Value<String> visitId,
   Value<String> taxonRef,
   Value<bool> detected,
+  Value<String?> method,
+  Value<int?> count,
   Value<bool> opportunistic,
   Value<int> rowid,
 });
@@ -5566,6 +6171,16 @@ class $$DetectionsTableFilterComposer
 
   ColumnFilters<bool> get detected => $composableBuilder(
     column: $table.detected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5617,6 +6232,16 @@ class $$DetectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get opportunistic => $composableBuilder(
     column: $table.opportunistic,
     builder: (column) => ColumnOrderings(column),
@@ -5660,6 +6285,12 @@ class $$DetectionsTableAnnotationComposer
 
   GeneratedColumn<bool> get detected =>
       $composableBuilder(column: $table.detected, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
 
   GeneratedColumn<bool> get opportunistic => $composableBuilder(
     column: $table.opportunistic,
@@ -5721,12 +6352,16 @@ class $$DetectionsTableTableManager
                 Value<String> visitId = const Value.absent(),
                 Value<String> taxonRef = const Value.absent(),
                 Value<bool> detected = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<int?> count = const Value.absent(),
                 Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                method: method,
+                count: count,
                 opportunistic: opportunistic,
                 rowid: rowid,
               ),
@@ -5735,12 +6370,16 @@ class $$DetectionsTableTableManager
                 required String visitId,
                 required String taxonRef,
                 required bool detected,
+                Value<String?> method = const Value.absent(),
+                Value<int?> count = const Value.absent(),
                 Value<bool> opportunistic = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DetectionsCompanion.insert(
                 visitId: visitId,
                 taxonRef: taxonRef,
                 detected: detected,
+                method: method,
+                count: count,
                 opportunistic: opportunistic,
                 rowid: rowid,
               ),
@@ -5817,6 +6456,7 @@ typedef $$EvidencesTableCreateCompanionBuilder = EvidencesCompanion Function({
   required String filePath,
   required DateTime capturedAt,
   required String contentHash,
+  Value<String?> storageKey,
   Value<int> rowid,
 });
 typedef $$EvidencesTableUpdateCompanionBuilder = EvidencesCompanion Function({
@@ -5827,6 +6467,7 @@ typedef $$EvidencesTableUpdateCompanionBuilder = EvidencesCompanion Function({
   Value<String> filePath,
   Value<DateTime> capturedAt,
   Value<String> contentHash,
+  Value<String?> storageKey,
   Value<int> rowid,
 });
 
@@ -5889,6 +6530,11 @@ class $$EvidencesTableFilterComposer
 
   ColumnFilters<String> get contentHash => $composableBuilder(
     column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5955,6 +6601,11 @@ class $$EvidencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$VisitsTableOrderingComposer get visitId {
     final $$VisitsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6007,6 +6658,11 @@ class $$EvidencesTableAnnotationComposer
 
   GeneratedColumn<String> get contentHash => $composableBuilder(
     column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get storageKey => $composableBuilder(
+    column: $table.storageKey,
     builder: (column) => column,
   );
 
@@ -6069,6 +6725,7 @@ class $$EvidencesTableTableManager
                 Value<String> filePath = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<String> contentHash = const Value.absent(),
+                Value<String?> storageKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidencesCompanion(
                 id: id,
@@ -6078,6 +6735,7 @@ class $$EvidencesTableTableManager
                 filePath: filePath,
                 capturedAt: capturedAt,
                 contentHash: contentHash,
+                storageKey: storageKey,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6089,6 +6747,7 @@ class $$EvidencesTableTableManager
                 required String filePath,
                 required DateTime capturedAt,
                 required String contentHash,
+                Value<String?> storageKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidencesCompanion.insert(
                 id: id,
@@ -6098,6 +6757,7 @@ class $$EvidencesTableTableManager
                 filePath: filePath,
                 capturedAt: capturedAt,
                 contentHash: contentHash,
+                storageKey: storageKey,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7967,6 +8627,288 @@ typedef $$ConfigStatesTableProcessedTableManager =
       ConfigStateRow,
       PrefetchHooks Function()
     >;
+typedef $$OutboxEntriesTableCreateCompanionBuilder =
+    OutboxEntriesCompanion Function({
+      required String visitId,
+      required SyncState syncState,
+      required DateTime queuedAt,
+      Value<int> rowid,
+    });
+typedef $$OutboxEntriesTableUpdateCompanionBuilder =
+    OutboxEntriesCompanion Function({
+      Value<String> visitId,
+      Value<SyncState> syncState,
+      Value<DateTime> queuedAt,
+      Value<int> rowid,
+    });
+
+final class $$OutboxEntriesTableReferences
+    extends BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxRow> {
+  $$OutboxEntriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $VisitsTable _visitIdTable(_$AppDatabase db) =>
+      db.visits.createAlias('outbox_entries__visit_id__visits__id');
+
+  $$VisitsTableProcessedTableManager get visitId {
+    final $_column = $_itemColumn<String>('visit_id')!;
+
+    final manager = $$VisitsTableTableManager(
+      $_db,
+      $_db.visits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_visitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$OutboxEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncState, SyncState, String> get syncState =>
+      $composableBuilder(
+        column: $table.syncState,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VisitsTableFilterComposer get visitId {
+    final $$VisitsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableFilterComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VisitsTableOrderingComposer get visitId {
+    final $$VisitsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableOrderingComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncState, String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get queuedAt =>
+      $composableBuilder(column: $table.queuedAt, builder: (column) => column);
+
+  $$VisitsTableAnnotationComposer get visitId {
+    final $$VisitsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.visitId,
+      referencedTable: $db.visits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VisitsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.visits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OutboxEntriesTable,
+          OutboxRow,
+          $$OutboxEntriesTableFilterComposer,
+          $$OutboxEntriesTableOrderingComposer,
+          $$OutboxEntriesTableAnnotationComposer,
+          $$OutboxEntriesTableCreateCompanionBuilder,
+          $$OutboxEntriesTableUpdateCompanionBuilder,
+          (OutboxRow, $$OutboxEntriesTableReferences),
+          OutboxRow,
+          PrefetchHooks Function({bool visitId})
+        > {
+  $$OutboxEntriesTableTableManager(_$AppDatabase db, $OutboxEntriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OutboxEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OutboxEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OutboxEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> visitId = const Value.absent(),
+                Value<SyncState> syncState = const Value.absent(),
+                Value<DateTime> queuedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxEntriesCompanion(
+                visitId: visitId,
+                syncState: syncState,
+                queuedAt: queuedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String visitId,
+                required SyncState syncState,
+                required DateTime queuedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxEntriesCompanion.insert(
+                visitId: visitId,
+                syncState: syncState,
+                queuedAt: queuedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OutboxEntriesTable, OutboxRow>(table),
+                  $$OutboxEntriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({visitId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (visitId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.visitId,
+                        referencedTable: $$OutboxEntriesTableReferences
+                            ._visitIdTable(db),
+                        referencedColumn: $$OutboxEntriesTableReferences
+                            ._visitIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$OutboxEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OutboxEntriesTable,
+      OutboxRow,
+      $$OutboxEntriesTableFilterComposer,
+      $$OutboxEntriesTableOrderingComposer,
+      $$OutboxEntriesTableAnnotationComposer,
+      $$OutboxEntriesTableCreateCompanionBuilder,
+      $$OutboxEntriesTableUpdateCompanionBuilder,
+      (OutboxRow, $$OutboxEntriesTableReferences),
+      OutboxRow,
+      PrefetchHooks Function({bool visitId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7993,4 +8935,6 @@ class $AppDatabaseManager {
       $$ConfigSitesTableTableManager(_db, _db.configSites);
   $$ConfigStatesTableTableManager get configStates =>
       $$ConfigStatesTableTableManager(_db, _db.configStates);
+  $$OutboxEntriesTableTableManager get outboxEntries =>
+      $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
 }

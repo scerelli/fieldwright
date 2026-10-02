@@ -43,6 +43,7 @@
   "visitsEndVisitTitle": "Concludere la visita?",
   "visitStateInProgress": "In corso",
   "visitStateEnded": "Conclusa",
+  "visitStateSubmitted": "Inviata",
   "visitDetailTitle": "Dettagli visita",
   "visitDetailStatus": "Stato di validazione",
   "visitStatusSubmitted": "Inviata",
@@ -154,5 +155,10 @@
   "surveyPeriodEndRequired": "Inserisci una data di fine.",
   "surveyPeriodInvalidDate": "Inserisci ogni data come AAAA-MM-GG.",
   "surveyPeriodEndBeforeStart": "La data di fine non può precedere quella di inizio.",
-  "surveyPeriodsAddFailed": "Impossibile aggiungere il periodo di indagine. Riprova."
+  "surveyPeriodsAddFailed": "Impossibile aggiungere il periodo di indagine. Riprova.",
+  "syncIndicatorQueued": "In coda",
+  "syncIndicatorSyncing": "Sincronizzazione in corso",
+  "syncIndicatorSynced": "Sincronizzata",
+  "syncIndicatorFailed": "Sincronizzazione non riuscita",
+  "syncIndicatorRetry": "Riprova"
 }

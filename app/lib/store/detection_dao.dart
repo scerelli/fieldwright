@@ -18,6 +18,13 @@ class DetectionDao {
   final AppDatabase _database;
 
   Future<void> record(Detection detection) async {
+    final method = detection.method;
+    if (method == null || method.trim().isEmpty) {
+      throw ArgumentError(
+        'A Detection cannot be persisted without a method '
+        '(GLOSSARY.md › Detection method)',
+      );
+    }
     await _database
         .into(_database.detections)
         .insertOnConflictUpdate(_toCompanion(detection));
@@ -46,6 +53,8 @@ class DetectionDao {
         visitId: detection.visitId,
         taxonRef: detection.taxonRef,
         detected: detection.detected,
+        method: Value(detection.method),
+        count: Value(detection.count),
         opportunistic: Value(detection.opportunistic),
       );
 
@@ -53,6 +62,8 @@ class DetectionDao {
     visitId: row.visitId,
     taxonRef: row.taxonRef,
     detected: row.detected,
+    method: row.method,
+    count: row.count,
     opportunistic: row.opportunistic,
   );
 }

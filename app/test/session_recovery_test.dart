@@ -45,6 +45,7 @@ void main() {
             visitId: visit.id,
             taxonRef: 'Aves|Turdus|merula',
             detected: false,
+            method: 'visual',
           ),
         );
 
@@ -77,6 +78,7 @@ void main() {
             visitId: visit.id,
             taxonRef: 'Aves|Turdus|merula',
             detected: true,
+            method: 'visual',
           ),
         );
     await container

@@ -6,8 +6,9 @@ enum EvidenceKind { photo, audio }
 /// references the Detection it was captured for by that Detection's identity,
 /// the pair of [visitId] and [taxonRef].
 ///
-/// An attached Evidence is immutable: every field is final and there is no
-/// copy or mutator path, so nothing can rewrite it once it is stored.
+/// An attached Evidence is immutable: every field is final and the only
+/// derivation is [withStorageKey], which returns a new value after an upload
+/// rather than rewriting a stored one.
 class Evidence {
   const Evidence({
     required this.id,
@@ -17,6 +18,7 @@ class Evidence {
     required this.filePath,
     required this.capturedAt,
     required this.contentHash,
+    this.storageKey,
   });
 
   /// Client-generated UUIDv7 identity of the Evidence.
@@ -40,6 +42,25 @@ class Evidence {
   /// SHA-256 of the media file's bytes, for integrity and deduplication.
   final String contentHash;
 
+  /// The content-addressed key `POST /api/v1/media` returned when this
+  /// Evidence was uploaded, or `null` while it has never been uploaded.
+  /// It is the transport reference a submission's [EvidenceManifestEntry]
+  /// carries, never part of the Evidence's own content.
+  final String? storageKey;
+
+  /// Returns this Evidence with [storageKey] filled in after a successful
+  /// upload; the media file and its content are unchanged.
+  Evidence withStorageKey(String storageKey) => Evidence(
+    id: id,
+    visitId: visitId,
+    taxonRef: taxonRef,
+    kind: kind,
+    filePath: filePath,
+    capturedAt: capturedAt,
+    contentHash: contentHash,
+    storageKey: storageKey,
+  );
+
   @override
   bool operator ==(Object other) =>
       other is Evidence &&
@@ -49,7 +70,8 @@ class Evidence {
       other.kind == kind &&
       other.filePath == filePath &&
       other.capturedAt == capturedAt &&
-      other.contentHash == contentHash;
+      other.contentHash == contentHash &&
+      other.storageKey == storageKey;
 
   @override
   int get hashCode => Object.hash(
@@ -60,5 +82,40 @@ class Evidence {
     filePath,
     capturedAt,
     contentHash,
+    storageKey,
   );
 }
+
+/// One reference in a Visit's evidence manifest, the list the submission
+/// carries (DOMAIN.md › Visit submitted): the [storageKey] the media API
+/// returned for an uploaded Evidence and the [sha256] of its stored bytes.
+class EvidenceManifestEntry {
+  const EvidenceManifestEntry({required this.storageKey, required this.sha256});
+
+  final String storageKey;
+  final String sha256;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EvidenceManifestEntry &&
+      other.storageKey == storageKey &&
+      other.sha256 == sha256;
+
+  @override
+  int get hashCode => Object.hash(storageKey, sha256);
+}
+
+/// Builds the evidence manifest for a Visit from its Evidence: only Evidence
+/// that has been uploaded (a non-null [Evidence.storageKey]) is referenced, so
+/// Evidence that has never been uploaded is excluded. Each entry carries the
+/// Evidence's [Evidence.contentHash] as its [EvidenceManifestEntry.sha256],
+/// which is the SHA-256 of the uploaded file's bytes.
+List<EvidenceManifestEntry> evidenceManifest(Iterable<Evidence> evidence) =>
+    <EvidenceManifestEntry>[
+      for (final entry in evidence)
+        if (entry.storageKey != null)
+          EvidenceManifestEntry(
+            storageKey: entry.storageKey!,
+            sha256: entry.contentHash,
+          ),
+    ];

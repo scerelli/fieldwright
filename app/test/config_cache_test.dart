@@ -122,6 +122,18 @@ void main() {
     expect(sites.single.geom, '{"type":"Point","coordinates":[9.19,45.46]}');
   });
 
+  test('the cached Protocol version is readable by its exact id, and an unknown id is null', () async {
+    final dao = ConfigDao(openDatabase());
+
+    await dao.apply(fullPull(), projectId: 'p1');
+
+    final version = await dao.protocolVersion('pv1');
+    expect(version, isNotNull);
+    expect(version!.id, 'pv1');
+    expect(version.document.targetList?.single.taxonRef, 'Aves|Turdus|merula');
+    expect(await dao.protocolVersion('missing'), isNull);
+  });
+
   test('the persisted version token advances to an applied pull so the next pull sends it', () async {
     final dao = ConfigDao(openDatabase());
 
@@ -233,7 +245,7 @@ CREATE TABLE measurements (
         final version = await migrated
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 10);
+        expect(version.data['user_version'], 14);
 
         final tables = await migrated
             .customSelect(

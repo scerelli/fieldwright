@@ -267,7 +267,7 @@ CREATE TABLE detections (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 10);
+        expect(version.data['user_version'], 14);
 
         final tables = await database
             .customSelect(
@@ -313,7 +313,12 @@ CREATE TABLE detections (
 
     Future<void> recordDetection(AppDatabase database, Visit visit) =>
         DetectionDao(database).record(
-          Detection(visitId: visit.id, taxonRef: taxonRef, detected: true),
+          Detection(
+            visitId: visit.id,
+            taxonRef: taxonRef,
+            detected: true,
+            method: 'visual',
+          ),
         );
 
     Future<void> pumpCapture(

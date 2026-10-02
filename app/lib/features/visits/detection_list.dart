@@ -33,8 +33,15 @@ class _DetectionListState extends ConsumerState<DetectionList> {
   List<Detection> _detections = const <Detection>[];
   String? _activeTaxonRef;
 
+  /// The Detection method the next Detection is recorded with — chosen from
+  /// the Protocol version's `detectionMethods` (GLOSSARY.md › Detection
+  /// method). Recording is unavailable until one is chosen.
+  String? _methodId;
+
   List<TargetTaxon> get _targets =>
       widget.protocol.targetList ?? const <TargetTaxon>[];
+
+  List<DetectionMethod> get _methods => widget.protocol.detectionMethods;
 
   @override
   void initState() {
@@ -66,6 +73,8 @@ class _DetectionListState extends ConsumerState<DetectionList> {
   }
 
   Future<void> _record(TargetTaxon target, bool detected) async {
+    final method = _methodId;
+    if (method == null) return;
     await ref
         .read(detectionDaoProvider)
         .record(
@@ -73,18 +82,22 @@ class _DetectionListState extends ConsumerState<DetectionList> {
             visitId: widget.visitId,
             taxonRef: target.taxonRef,
             detected: detected,
+            method: method,
           ),
         );
     await _load();
   }
 
   Future<void> _recordOpportunistic(Taxon taxon) async {
+    final method = _methodId;
+    if (method == null) return;
     await ref
         .read(detectionDaoProvider)
         .record(
           Detection.opportunistic(
             visitId: widget.visitId,
             taxonRef: taxon.name,
+            method: method,
           ),
         );
     await _load();
@@ -118,6 +131,23 @@ class _DetectionListState extends ConsumerState<DetectionList> {
         Text(
           l10n.detectionTargetsHeading,
           style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        DropdownButton<String>(
+          key: const Key('detection_method'),
+          value: _methodId,
+          isExpanded: true,
+          hint: Text(l10n.measurementMethod),
+          onChanged: _methods.isEmpty
+              ? null
+              : (method) => setState(() => _methodId = method),
+          items: [
+            for (final method in _methods)
+              DropdownMenuItem<String>(
+                value: method.id,
+                child: Text(method.label),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         if (targets.isEmpty)
@@ -208,12 +238,15 @@ class _DetectionListState extends ConsumerState<DetectionList> {
           ),
           const SizedBox(height: 8),
           SegmentedButton<bool>(
+            key: Key('detection_control_${target.taxonRef}'),
             emptySelectionAllowed: true,
             selected: recorded ? <bool>{detection.detected} : const <bool>{},
-            onSelectionChanged: (selection) {
-              if (selection.isEmpty) return;
-              _record(target, selection.first);
-            },
+            onSelectionChanged: _methodId == null
+                ? null
+                : (selection) {
+                    if (selection.isEmpty) return;
+                    _record(target, selection.first);
+                  },
             segments: [
               ButtonSegment(
                 value: true,

@@ -40,17 +40,25 @@ class DeterminationDao {
   }
 
   /// The Determinations recorded for one Detection, identified by its Visit
-  /// and target taxon, in no particular order.
+  /// and target taxon, in insertion order (`rowid`).
+  ///
+  /// The append-only chain needs a deterministic order: a revision is appended
+  /// after the Determination it replaces (INV-009), and the submission nests
+  /// them so that a revision's `replacesIndex` can point back at its
+  /// predecessor. `rowid` gives exactly that append order, which the unordered
+  /// read did not.
   Future<List<Determination>> forDetection(
     String visitId,
     String taxonRef,
   ) async {
     final rows =
-        await (_database.select(_database.determinations)..where(
-              (table) =>
-                  table.visitId.equals(visitId) &
-                  table.taxonRef.equals(taxonRef),
-            ))
+        await (_database.select(_database.determinations)
+              ..where(
+                (table) =>
+                    table.visitId.equals(visitId) &
+                    table.taxonRef.equals(taxonRef),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.rowId)]))
             .get();
     return rows.map(_toDetermination).toList(growable: false);
   }

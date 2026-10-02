@@ -3,7 +3,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../protocol/protocol.dart';
+import '../../store/database_provider.dart';
 import '../../store/measurement_dao.dart';
+import '../../widgets/sync_indicator.dart';
 import 'detection_list.dart';
 import 'effort_timer.dart';
 import 'measurement.dart';
@@ -38,7 +40,7 @@ class CaptureScreen extends ConsumerWidget {
   }
 }
 
-class _CaptureView extends StatelessWidget {
+class _CaptureView extends ConsumerWidget {
   const _CaptureView({required this.visit, this.protocol, this.clock});
 
   final Visit visit;
@@ -46,20 +48,71 @@ class _CaptureView extends StatelessWidget {
   final DateTime Function()? clock;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final stateLabel = visit.isEnded
-        ? l10n.visitStateEnded
-        : l10n.visitStateInProgress;
+    final stateLabel = switch (visit.state) {
+      VisitState.inProgress => l10n.visitStateInProgress,
+      VisitState.ended => l10n.visitStateEnded,
+      VisitState.submitted => l10n.visitStateSubmitted,
+    };
     final visitCovariates =
         protocol?.visitCovariates ?? const <CovariateDefinition>[];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.captureTitle)),
+      appBar: AppBar(
+        title: Text(l10n.captureTitle),
+        actions: [
+          if (visit.isEnded)
+            IconButton(
+              key: const Key('submit_visit'),
+              onPressed: () async {
+                final outbox = ref.read(outboxProvider);
+                await outbox.submit(visit);
+                // Show the queued state as soon as it is recorded, then follow
+                // the delivery to its outcome so the indicator reaches synced
+                // or failed instead of stalling (UX-008). Guard every
+                // invalidate against disposal: delivery can outlast the screen
+                // and `ref` throws once the widget is unmounted.
+                if (context.mounted) {
+                  ref.invalidate(visitSyncStateProvider(visit.id));
+                }
+                try {
+                  await outbox.flush();
+                } on StateError {
+                  // The outbox is not wired for delivery here (queue-only);
+                  // the Visit stays queued for the next delivery-capable flush
+                  // (UX-007).
+                }
+                if (context.mounted) {
+                  ref.invalidate(visitSyncStateProvider(visit.id));
+                }
+              },
+              icon: const Icon(Icons.cloud_upload_outlined),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(l10n.captureState(stateLabel), key: const Key('capture_state')),
+          const SizedBox(height: 8),
+          SyncIndicator(
+            visitId: visit.id,
+            onRetry: () async {
+              final outbox = ref.read(outboxProvider);
+              await outbox.submit(visit);
+              try {
+                await outbox.flush();
+              } on StateError {
+                // The outbox is not wired for delivery here (queue-only);
+                // the Visit stays queued for the next delivery-capable flush
+                // (UX-007).
+              }
+              if (context.mounted) {
+                ref.invalidate(visitSyncStateProvider(visit.id));
+              }
+            },
+          ),
           const SizedBox(height: 8),
           Text(
             l10n.captureEffortStarted(visit.effort.startedAt.toIso8601String()),
@@ -71,6 +124,12 @@ class _CaptureView extends StatelessWidget {
             endedAt: visit.effort.endedAt,
             clock: clock,
           ),
+          const SizedBox(height: 8),
+          VisitObservers(
+            visitId: visit.id,
+            observers: visit.effort.observers,
+            enabled: !visit.isSubmitted,
+          ),
           if (protocol != null) ...[
             const SizedBox(height: 16),
             DetectionList(protocol: protocol!, visitId: visit.id),
@@ -81,6 +140,74 @@ class _CaptureView extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The capture screen control for the Visit's `observers` Sampling-effort
+/// field (INV-005). The recorded names seed the field on open; saving persists
+/// them through the local store, so a relaunch reloads them (UX-013). A
+/// submitted Visit is immutable, so the field is disabled once it is submitted
+/// (INV-001).
+class VisitObservers extends ConsumerStatefulWidget {
+  const VisitObservers({
+    super.key,
+    required this.visitId,
+    required this.observers,
+    this.enabled = true,
+  });
+
+  final String visitId;
+  final List<String> observers;
+  final bool enabled;
+
+  @override
+  ConsumerState<VisitObservers> createState() => _VisitObserversState();
+}
+
+class _VisitObserversState extends ConsumerState<VisitObservers> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.observers.join(', '),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<String> _parse(String value) => value
+      .split(',')
+      .map((name) => name.trim())
+      .where((name) => name.isNotEmpty)
+      .toList(growable: false);
+
+  Future<void> _save() async {
+    await ref
+        .read(visitDaoProvider)
+        .recordObservers(widget.visitId, _parse(_controller.text));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: TextField(
+            key: const Key('observers_field'),
+            controller: _controller,
+            enabled: widget.enabled,
+            decoration: InputDecoration(labelText: l10n.effortFieldObservers),
+          ),
+        ),
+        IconButton(
+          key: const Key('observers_save'),
+          onPressed: widget.enabled ? _save : null,
+          icon: const Icon(Icons.check),
+        ),
+      ],
     );
   }
 }

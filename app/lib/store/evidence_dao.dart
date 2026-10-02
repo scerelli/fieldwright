@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../features/visits/evidence.dart';
+import '../features/visits/visit.dart';
 import 'app_database.dart';
 import 'database_provider.dart';
 
@@ -12,10 +13,11 @@ final evidenceDaoProvider = Provider<EvidenceDao>(
 
 /// Persists the Evidence attached to a Visit's Detections.
 ///
-/// The store is append-only by design: Evidence is immutable once attached
-/// (DOMAIN.md › Evidence), so this DAO exposes only [attach] and the reads
-/// [findById], [forDetection] and [forVisit] — there is no update or delete
-/// path anywhere in the client.
+/// Evidence is immutable once attached (DOMAIN.md › Evidence): this DAO
+/// exposes [attach] and the reads [findById], [forDetection] and [forVisit].
+/// The one field outside that immutability is the transport [storageKey],
+/// filled in once by [markUploaded] after a successful media upload — there is
+/// no delete path anywhere in the client.
 class EvidenceDao {
   EvidenceDao(this._database);
 
@@ -45,6 +47,34 @@ class EvidenceDao {
     );
     await _database.into(_database.evidences).insert(_toCompanion(evidence));
     return evidence;
+  }
+
+  /// Persists the content-addressed [storageKey] the media API returned for an
+  /// Evidence, so a later submission carries it in the evidence manifest. The
+  /// Evidence's own content is untouched; a row that already carries a key is
+  /// left as it is, so an uploaded Evidence is never rewritten.
+  ///
+  /// Refuses when the owning Visit is already `submitted`: a submitted Visit is
+  /// never edited (INV-001), and an upload — retryable by design — must not
+  /// mutate its Evidence. A Visit with no local row is not submitted.
+  Future<void> markUploaded(String id, String storageKey) async {
+    final row = await (_database.select(
+      _database.evidences,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    if (row == null || row.storageKey != null) {
+      return;
+    }
+    final visit = await (_database.select(
+      _database.visits,
+    )..where((table) => table.id.equals(row.visitId))).getSingleOrNull();
+    if (visit != null && visit.state == VisitState.submitted) {
+      throw StateError('Cannot upload Evidence of a submitted Visit');
+    }
+    await (_database.update(_database.evidences)
+          ..where(
+            (table) => table.id.equals(id) & table.storageKey.isNull(),
+          ))
+        .write(EvidencesCompanion(storageKey: Value(storageKey)));
   }
 
   Future<Evidence?> findById(String id) async {
@@ -83,6 +113,7 @@ class EvidenceDao {
         filePath: evidence.filePath,
         capturedAt: evidence.capturedAt,
         contentHash: evidence.contentHash,
+        storageKey: Value(evidence.storageKey),
       );
 
   Evidence _toEvidence(EvidenceRow row) => Evidence(
@@ -93,5 +124,6 @@ class EvidenceDao {
     filePath: row.filePath,
     capturedAt: row.capturedAt.toUtc(),
     contentHash: row.contentHash,
+    storageKey: row.storageKey,
   );
 }

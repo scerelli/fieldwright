@@ -172,6 +172,10 @@
   "@visitStateEnded": {
     "description": "Visit state label once the collector has ended the visit."
   },
+  "visitStateSubmitted": "Submitted",
+  "@visitStateSubmitted": {
+    "description": "Visit lifecycle state label once the submitted Visit has been delivered to the server."
+  },
   "visitDetailTitle": "Visit details",
   "@visitDetailTitle": {
     "description": "Title of the Visit detail screen."
@@ -644,5 +648,25 @@
   "surveyPeriodsAddFailed": "Could not add the survey period. Try again.",
   "@surveyPeriodsAddFailed": {
     "description": "Error shown when adding a Survey period fails."
+  },
+  "syncIndicatorQueued": "Queued",
+  "@syncIndicatorQueued": {
+    "description": "Sync indicator label while an ended Visit waits in the outbox for delivery (UX-008)."
+  },
+  "syncIndicatorSyncing": "Syncing",
+  "@syncIndicatorSyncing": {
+    "description": "Sync indicator label while an ended Visit's submission is in flight (UX-008)."
+  },
+  "syncIndicatorSynced": "Synced",
+  "@syncIndicatorSynced": {
+    "description": "Sync indicator label once an ended Visit has been delivered (UX-008)."
+  },
+  "syncIndicatorFailed": "Sync failed",
+  "@syncIndicatorFailed": {
+    "description": "Sync indicator label when an ended Visit's delivery was rejected and can be retried (UX-008)."
+  },
+  "syncIndicatorRetry": "Retry",
+  "@syncIndicatorRetry": {
+    "description": "Button that re-queues a Visit whose delivery failed (UX-008)."
   }
 }

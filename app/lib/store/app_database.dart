@@ -8,6 +8,7 @@ import '../features/sites/site.dart';
 import '../features/visits/determination.dart';
 import '../features/visits/evidence.dart';
 import '../features/visits/visit.dart';
+import '../outbox/outbox.dart';
 
 part 'app_database.g.dart';
 
@@ -54,6 +55,11 @@ class Visits extends Table {
 
   DateTimeColumn get effortEndedAt => dateTime().nullable()();
 
+  /// The Visit's recorded observers, the `observers` Sampling-effort field the
+  /// Protocol version may require, as a JSON-encoded list of names (INV-005).
+  /// Null for a Visit captured before the client schema recorded them.
+  TextColumn get effortObservers => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -65,6 +71,10 @@ class Detections extends Table {
   TextColumn get taxonRef => text()();
 
   BoolColumn get detected => boolean()();
+
+  TextColumn get method => text().nullable()();
+
+  IntColumn get count => integer().nullable()();
 
   BoolColumn get opportunistic =>
       boolean().withDefault(const Constant(false))();
@@ -88,6 +98,11 @@ class Evidences extends Table {
   DateTimeColumn get capturedAt => dateTime()();
 
   TextColumn get contentHash => text()();
+
+  /// The content-addressed key the media API returned when this Evidence was
+  /// uploaded, or null while it has never been uploaded. It is the transport
+  /// reference the submission's evidence manifest carries.
+  TextColumn get storageKey => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -138,6 +153,18 @@ class Measurements extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('OutboxRow')
+class OutboxEntries extends Table {
+  TextColumn get visitId => text().references(Visits, #id)();
+
+  TextColumn get syncState => textEnum<SyncState>()();
+
+  DateTimeColumn get queuedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {visitId};
 }
 
 /// The cached settings of a pulled Project (`DOMAIN.md` Project aggregate):
@@ -248,6 +275,7 @@ class ConfigStates extends Table {
     SurveyPeriods,
     ConfigSites,
     ConfigStates,
+    OutboxEntries,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -257,7 +285,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -271,14 +299,24 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await migrator.createTable(visits);
+      } else if (from < 14) {
+        await migrator.addColumn(visits, visits.effortObservers);
       }
       if (from < 5) {
         await migrator.createTable(detections);
-      } else if (from < 6) {
-        await migrator.addColumn(detections, detections.opportunistic);
+      } else {
+        if (from < 6) {
+          await migrator.addColumn(detections, detections.opportunistic);
+        }
+        if (from < 12) {
+          await migrator.addColumn(detections, detections.method);
+          await migrator.addColumn(detections, detections.count);
+        }
       }
       if (from < 7) {
         await migrator.createTable(evidences);
+      } else if (from < 13) {
+        await migrator.addColumn(evidences, evidences.storageKey);
       }
       if (from < 8) {
         await migrator.createTable(measurements);
@@ -292,6 +330,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 10) {
         await migrator.createTable(determinations);
+      }
+      if (from < 11) {
+        await migrator.createTable(outboxEntries);
       }
     },
   );
