@@ -13,6 +13,7 @@ import 'package:ibis/features/visits/visit.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/outbox/outbox.dart';
 import 'package:ibis/outbox/sync_client.dart';
+import 'package:ibis/protocol/protocol.dart';
 import 'package:ibis/store/app_database.dart';
 import 'package:ibis/store/database_provider.dart';
 import 'package:ibis/store/outbox_dao.dart';
@@ -35,6 +36,9 @@ class _DeliveringSyncClient extends SyncClient {
   Future<SubmitResult> submit(
     Visit visit, {
     required String projectId,
+    List<SamplingEffortField> requiredEffortFields =
+        const <SamplingEffortField>[],
+    List<String> detectionMethods = const <String>[],
     DateTime? submittedAt,
   }) async => SubmitResult.delivered;
 }
@@ -66,6 +70,9 @@ class _GatedSyncClient extends SyncClient {
   Future<SubmitResult> submit(
     Visit visit, {
     required String projectId,
+    List<SamplingEffortField> requiredEffortFields =
+        const <SamplingEffortField>[],
+    List<String> detectionMethods = const <String>[],
     DateTime? submittedAt,
   }) async {
     await gate.future;
@@ -162,9 +169,8 @@ void main() {
     expect(find.byKey(const Key('sync_indicator_synced')), findsOneWidget);
 
     await dao.setSyncState(visit.id, SyncState.failed);
-    ProviderScope.containerOf(
-      tester.element(find.byType(SyncIndicator)),
-    ).invalidate(visitSyncStateProvider(visit.id));
+    ProviderScope.containerOf(tester.element(find.byType(SyncIndicator)))
+        .invalidate(visitSyncStateProvider(visit.id));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('sync_indicator_failed')), findsOneWidget);
   });

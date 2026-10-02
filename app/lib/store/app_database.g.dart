@@ -563,6 +563,17 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _effortObserversMeta = const VerificationMeta(
+    'effortObservers',
+  );
+  @override
+  late final GeneratedColumn<String> effortObservers = GeneratedColumn<String>(
+    'effort_observers',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -572,6 +583,7 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
     state,
     effortStartedAt,
     effortEndedAt,
+    effortObservers,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -640,6 +652,15 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         ),
       );
     }
+    if (data.containsKey('effort_observers')) {
+      context.handle(
+        _effortObserversMeta,
+        effortObservers.isAcceptableOrUnknown(
+          data['effort_observers']!,
+          _effortObserversMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -679,6 +700,10 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}effort_ended_at'],
       ),
+      effortObservers: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}effort_observers'],
+      ),
     );
   }
 
@@ -699,6 +724,11 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
   final VisitState state;
   final DateTime effortStartedAt;
   final DateTime? effortEndedAt;
+
+  /// The Visit's recorded observers, the `observers` Sampling-effort field the
+  /// Protocol version may require, as a JSON-encoded list of names (INV-005).
+  /// Null for a Visit captured before the client schema recorded them.
+  final String? effortObservers;
   const VisitRow({
     required this.id,
     required this.siteId,
@@ -707,6 +737,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     required this.state,
     required this.effortStartedAt,
     this.effortEndedAt,
+    this.effortObservers,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -724,6 +755,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     if (!nullToAbsent || effortEndedAt != null) {
       map['effort_ended_at'] = Variable<DateTime>(effortEndedAt);
     }
+    if (!nullToAbsent || effortObservers != null) {
+      map['effort_observers'] = Variable<String>(effortObservers);
+    }
     return map;
   }
 
@@ -738,6 +772,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       effortEndedAt: effortEndedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(effortEndedAt),
+      effortObservers: effortObservers == null && nullToAbsent
+          ? const Value.absent()
+          : Value(effortObservers),
     );
   }
 
@@ -756,6 +793,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       ),
       effortStartedAt: serializer.fromJson<DateTime>(json['effortStartedAt']),
       effortEndedAt: serializer.fromJson<DateTime?>(json['effortEndedAt']),
+      effortObservers: serializer.fromJson<String?>(json['effortObservers']),
     );
   }
   @override
@@ -771,6 +809,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       ),
       'effortStartedAt': serializer.toJson<DateTime>(effortStartedAt),
       'effortEndedAt': serializer.toJson<DateTime?>(effortEndedAt),
+      'effortObservers': serializer.toJson<String?>(effortObservers),
     };
   }
 
@@ -782,6 +821,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     VisitState? state,
     DateTime? effortStartedAt,
     Value<DateTime?> effortEndedAt = const Value.absent(),
+    Value<String?> effortObservers = const Value.absent(),
   }) => VisitRow(
     id: id ?? this.id,
     siteId: siteId ?? this.siteId,
@@ -792,6 +832,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     effortEndedAt: effortEndedAt.present
         ? effortEndedAt.value
         : this.effortEndedAt,
+    effortObservers: effortObservers.present
+        ? effortObservers.value
+        : this.effortObservers,
   );
   VisitRow copyWithCompanion(VisitsCompanion data) {
     return VisitRow(
@@ -810,6 +853,9 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
       effortEndedAt: data.effortEndedAt.present
           ? data.effortEndedAt.value
           : this.effortEndedAt,
+      effortObservers: data.effortObservers.present
+          ? data.effortObservers.value
+          : this.effortObservers,
     );
   }
 
@@ -822,7 +868,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
           ..write('protocolVersionId: $protocolVersionId, ')
           ..write('state: $state, ')
           ..write('effortStartedAt: $effortStartedAt, ')
-          ..write('effortEndedAt: $effortEndedAt')
+          ..write('effortEndedAt: $effortEndedAt, ')
+          ..write('effortObservers: $effortObservers')
           ..write(')'))
         .toString();
   }
@@ -836,6 +883,7 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     state,
     effortStartedAt,
     effortEndedAt,
+    effortObservers,
   );
   @override
   bool operator ==(Object other) =>
@@ -847,7 +895,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
           other.protocolVersionId == this.protocolVersionId &&
           other.state == this.state &&
           other.effortStartedAt == this.effortStartedAt &&
-          other.effortEndedAt == this.effortEndedAt);
+          other.effortEndedAt == this.effortEndedAt &&
+          other.effortObservers == this.effortObservers);
 }
 
 class VisitsCompanion extends UpdateCompanion<VisitRow> {
@@ -858,6 +907,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
   final Value<VisitState> state;
   final Value<DateTime> effortStartedAt;
   final Value<DateTime?> effortEndedAt;
+  final Value<String?> effortObservers;
   final Value<int> rowid;
   const VisitsCompanion({
     this.id = const Value.absent(),
@@ -867,6 +917,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     this.state = const Value.absent(),
     this.effortStartedAt = const Value.absent(),
     this.effortEndedAt = const Value.absent(),
+    this.effortObservers = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   VisitsCompanion.insert({
@@ -877,6 +928,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     required VisitState state,
     required DateTime effortStartedAt,
     this.effortEndedAt = const Value.absent(),
+    this.effortObservers = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        siteId = Value(siteId),
@@ -892,6 +944,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     Expression<String>? state,
     Expression<DateTime>? effortStartedAt,
     Expression<DateTime>? effortEndedAt,
+    Expression<String>? effortObservers,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -902,6 +955,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
       if (state != null) 'state': state,
       if (effortStartedAt != null) 'effort_started_at': effortStartedAt,
       if (effortEndedAt != null) 'effort_ended_at': effortEndedAt,
+      if (effortObservers != null) 'effort_observers': effortObservers,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -914,6 +968,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     Value<VisitState>? state,
     Value<DateTime>? effortStartedAt,
     Value<DateTime?>? effortEndedAt,
+    Value<String?>? effortObservers,
     Value<int>? rowid,
   }) {
     return VisitsCompanion(
@@ -924,6 +979,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
       state: state ?? this.state,
       effortStartedAt: effortStartedAt ?? this.effortStartedAt,
       effortEndedAt: effortEndedAt ?? this.effortEndedAt,
+      effortObservers: effortObservers ?? this.effortObservers,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -954,6 +1010,9 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     if (effortEndedAt.present) {
       map['effort_ended_at'] = Variable<DateTime>(effortEndedAt.value);
     }
+    if (effortObservers.present) {
+      map['effort_observers'] = Variable<String>(effortObservers.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -970,6 +1029,7 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
           ..write('state: $state, ')
           ..write('effortStartedAt: $effortStartedAt, ')
           ..write('effortEndedAt: $effortEndedAt, ')
+          ..write('effortObservers: $effortObservers, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5312,6 +5372,7 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   required VisitState state,
   required DateTime effortStartedAt,
   Value<DateTime?> effortEndedAt,
+  Value<String?> effortObservers,
   Value<int> rowid,
 });
 typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
@@ -5322,6 +5383,7 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<VisitState> state,
   Value<DateTime> effortStartedAt,
   Value<DateTime?> effortEndedAt,
+  Value<String?> effortObservers,
   Value<int> rowid,
 });
 
@@ -5462,6 +5524,11 @@ class $$VisitsTableFilterComposer
 
   ColumnFilters<DateTime> get effortEndedAt => $composableBuilder(
     column: $table.effortEndedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5634,6 +5701,11 @@ class $$VisitsTableOrderingComposer
     column: $table.effortEndedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$VisitsTableAnnotationComposer
@@ -5671,6 +5743,11 @@ class $$VisitsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get effortEndedAt => $composableBuilder(
     column: $table.effortEndedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get effortObservers => $composableBuilder(
+    column: $table.effortObservers,
     builder: (column) => column,
   );
 
@@ -5841,6 +5918,7 @@ class $$VisitsTableTableManager
                 Value<VisitState> state = const Value.absent(),
                 Value<DateTime> effortStartedAt = const Value.absent(),
                 Value<DateTime?> effortEndedAt = const Value.absent(),
+                Value<String?> effortObservers = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion(
                 id: id,
@@ -5850,6 +5928,7 @@ class $$VisitsTableTableManager
                 state: state,
                 effortStartedAt: effortStartedAt,
                 effortEndedAt: effortEndedAt,
+                effortObservers: effortObservers,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5861,6 +5940,7 @@ class $$VisitsTableTableManager
                 required VisitState state,
                 required DateTime effortStartedAt,
                 Value<DateTime?> effortEndedAt = const Value.absent(),
+                Value<String?> effortObservers = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion.insert(
                 id: id,
@@ -5870,6 +5950,7 @@ class $$VisitsTableTableManager
                 state: state,
                 effortStartedAt: effortStartedAt,
                 effortEndedAt: effortEndedAt,
+                effortObservers: effortObservers,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

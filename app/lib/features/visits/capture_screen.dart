@@ -122,6 +122,12 @@ class _CaptureView extends ConsumerWidget {
             endedAt: visit.effort.endedAt,
             clock: clock,
           ),
+          const SizedBox(height: 8),
+          VisitObservers(
+            visitId: visit.id,
+            observers: visit.effort.observers,
+            enabled: !visit.isSubmitted,
+          ),
           if (protocol != null) ...[
             const SizedBox(height: 16),
             DetectionList(protocol: protocol!, visitId: visit.id),
@@ -132,6 +138,74 @@ class _CaptureView extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The capture screen control for the Visit's `observers` Sampling-effort
+/// field (INV-005). The recorded names seed the field on open; saving persists
+/// them through the local store, so a relaunch reloads them (UX-013). A
+/// submitted Visit is immutable, so the field is disabled once it is submitted
+/// (INV-001).
+class VisitObservers extends ConsumerStatefulWidget {
+  const VisitObservers({
+    super.key,
+    required this.visitId,
+    required this.observers,
+    this.enabled = true,
+  });
+
+  final String visitId;
+  final List<String> observers;
+  final bool enabled;
+
+  @override
+  ConsumerState<VisitObservers> createState() => _VisitObserversState();
+}
+
+class _VisitObserversState extends ConsumerState<VisitObservers> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.observers.join(', '),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<String> _parse(String value) => value
+      .split(',')
+      .map((name) => name.trim())
+      .where((name) => name.isNotEmpty)
+      .toList(growable: false);
+
+  Future<void> _save() async {
+    await ref
+        .read(visitDaoProvider)
+        .recordObservers(widget.visitId, _parse(_controller.text));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: TextField(
+            key: const Key('observers_field'),
+            controller: _controller,
+            enabled: widget.enabled,
+            decoration: InputDecoration(labelText: l10n.effortFieldObservers),
+          ),
+        ),
+        IconButton(
+          key: const Key('observers_save'),
+          onPressed: widget.enabled ? _save : null,
+          icon: const Icon(Icons.check),
+        ),
+      ],
     );
   }
 }

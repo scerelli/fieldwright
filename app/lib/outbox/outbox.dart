@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import '../features/visits/visit.dart';
+import '../protocol/protocol.dart';
 import '../store/outbox_dao.dart';
 import '../store/site_dao.dart';
 import '../store/visit_dao.dart';
@@ -105,6 +106,18 @@ class Outbox {
     }
 
     await _dao.enqueue(visit.id);
+
+    final requiredEffortFields = await visits.requiredEffortFieldsFor(visit);
+    if (requiredEffortFields.contains(SamplingEffortField.observers) &&
+        visit.effort.observers.isEmpty) {
+      // INV-005: a Visit whose Protocol version requires observers is not
+      // delivered until they are recorded. Refuse it like a rejection — no
+      // POST, never marked submitted — so it stays retryable once they are.
+      await _dao.setSyncState(visit.id, SyncState.failed);
+      return SyncState.failed;
+    }
+    final detectionMethods = await visits.detectionMethodsFor(visit.id);
+
     await _dao.setSyncState(visit.id, SyncState.syncing);
     var attempt = 0;
     while (true) {
@@ -113,6 +126,8 @@ class Outbox {
         final result = await client.submit(
           visit,
           projectId: site.projectId,
+          requiredEffortFields: requiredEffortFields,
+          detectionMethods: detectionMethods,
           submittedAt: (clock ?? DateTime.now)(),
         );
         if (result == SubmitResult.delivered) {
