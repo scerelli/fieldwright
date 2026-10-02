@@ -67,7 +67,7 @@ class TestModule {}
 
 interface ConfigPullBody {
   versionToken: string;
-  project?: { id: string };
+  project?: { id: string; description: string | null };
   protocolVersion?: { document: Record<string, unknown> };
   surveyPeriods: unknown[];
   sites: unknown[];
@@ -106,7 +106,9 @@ describe('GET /api/v1/projects/:projectId/config', () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
     db = app.get<NodePgDatabase>(DATABASE);
 
-    async function signIn(email: string): Promise<{ cookie: string; id: string }> {
+    async function signIn(
+      email: string,
+    ): Promise<{ cookie: string; id: string }> {
       const signUp = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -148,9 +150,10 @@ describe('GET /api/v1/projects/:projectId/config', () => {
     await container?.stop();
   });
 
-  async function newProject(): Promise<string> {
+  async function newProject(description?: string): Promise<string> {
     const project = await app.get(ProjectsService).create(memberId, {
       name: 'River survey',
+      description,
       validationEnabled: true,
       sensitiveTaxaObfuscation: false,
       taxonomicReferenceId: 'italy-vascular-flora',
@@ -224,6 +227,16 @@ describe('GET /api/v1/projects/:projectId/config', () => {
     expect(secondBody.surveyPeriods).toEqual([]);
     expect(secondBody.sites).toEqual([]);
     expect(secondBody.versionToken).toBe(firstBody.versionToken);
+  });
+
+  it('carries the Project description on a full pull', async () => {
+    const projectId = await newProject('A description for the members');
+
+    const response = await pull(projectId, undefined, { cookie: memberCookie });
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as ConfigPullBody;
+
+    expect(body.project?.description).toBe('A description for the members');
   });
 
   it('returns a Protocol version created after the token, with a newer token', async () => {

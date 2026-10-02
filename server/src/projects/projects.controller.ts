@@ -22,6 +22,7 @@ import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
 } from 'class-validator';
 import { AuthGuard, type Person } from '../auth/auth.guard.js';
@@ -36,6 +37,10 @@ export class CreateProjectDto implements CreateProjectInput {
   @IsString()
   @IsNotEmpty()
   name!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @IsBoolean()
   validationEnabled!: boolean;

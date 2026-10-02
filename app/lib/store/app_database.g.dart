@@ -3058,6 +3058,17 @@ class $ProjectsTable extends Projects
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _validationEnabledMeta = const VerificationMeta(
     'validationEnabled',
   );
@@ -3112,6 +3123,7 @@ class $ProjectsTable extends Projects
   List<GeneratedColumn> get $columns => [
     id,
     name,
+    description,
     validationEnabled,
     sensitiveTaxaObfuscation,
     taxonomicReferenceId,
@@ -3141,6 +3153,15 @@ class $ProjectsTable extends Projects
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
     }
     if (data.containsKey('validation_enabled')) {
       context.handle(
@@ -3203,6 +3224,10 @@ class $ProjectsTable extends Projects
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
       validationEnabled: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}validation_enabled'],
@@ -3231,6 +3256,11 @@ class $ProjectsTable extends Projects
 class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final String id;
   final String name;
+
+  /// Short authored text describing the Project (`DOMAIN.md` Project
+  /// aggregate, ADR-0016), or null when none was set. The config pull carries
+  /// the server's `project.description` into this column.
+  final String? description;
   final bool validationEnabled;
   final bool sensitiveTaxaObfuscation;
   final String taxonomicReferenceId;
@@ -3238,6 +3268,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   const ProjectRow({
     required this.id,
     required this.name,
+    this.description,
     required this.validationEnabled,
     required this.sensitiveTaxaObfuscation,
     required this.taxonomicReferenceId,
@@ -3248,6 +3279,9 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
     map['validation_enabled'] = Variable<bool>(validationEnabled);
     map['sensitive_taxa_obfuscation'] = Variable<bool>(
       sensitiveTaxaObfuscation,
@@ -3263,6 +3297,9 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     return ProjectsCompanion(
       id: Value(id),
       name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
       validationEnabled: Value(validationEnabled),
       sensitiveTaxaObfuscation: Value(sensitiveTaxaObfuscation),
       taxonomicReferenceId: Value(taxonomicReferenceId),
@@ -3278,6 +3315,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     return ProjectRow(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
       validationEnabled: serializer.fromJson<bool>(json['validationEnabled']),
       sensitiveTaxaObfuscation: serializer.fromJson<bool>(
         json['sensitiveTaxaObfuscation'],
@@ -3296,6 +3334,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
       'validationEnabled': serializer.toJson<bool>(validationEnabled),
       'sensitiveTaxaObfuscation': serializer.toJson<bool>(
         sensitiveTaxaObfuscation,
@@ -3310,6 +3349,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   ProjectRow copyWith({
     String? id,
     String? name,
+    Value<String?> description = const Value.absent(),
     bool? validationEnabled,
     bool? sensitiveTaxaObfuscation,
     String? taxonomicReferenceId,
@@ -3317,6 +3357,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   }) => ProjectRow(
     id: id ?? this.id,
     name: name ?? this.name,
+    description: description.present ? description.value : this.description,
     validationEnabled: validationEnabled ?? this.validationEnabled,
     sensitiveTaxaObfuscation:
         sensitiveTaxaObfuscation ?? this.sensitiveTaxaObfuscation,
@@ -3328,6 +3369,9 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     return ProjectRow(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       validationEnabled: data.validationEnabled.present
           ? data.validationEnabled.value
           : this.validationEnabled,
@@ -3348,6 +3392,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     return (StringBuffer('ProjectRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('description: $description, ')
           ..write('validationEnabled: $validationEnabled, ')
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
           ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
@@ -3360,6 +3405,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   int get hashCode => Object.hash(
     id,
     name,
+    description,
     validationEnabled,
     sensitiveTaxaObfuscation,
     taxonomicReferenceId,
@@ -3371,6 +3417,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       (other is ProjectRow &&
           other.id == this.id &&
           other.name == this.name &&
+          other.description == this.description &&
           other.validationEnabled == this.validationEnabled &&
           other.sensitiveTaxaObfuscation == this.sensitiveTaxaObfuscation &&
           other.taxonomicReferenceId == this.taxonomicReferenceId &&
@@ -3380,6 +3427,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
 class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<String> id;
   final Value<String> name;
+  final Value<String?> description;
   final Value<bool> validationEnabled;
   final Value<bool> sensitiveTaxaObfuscation;
   final Value<String> taxonomicReferenceId;
@@ -3388,6 +3436,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   const ProjectsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.description = const Value.absent(),
     this.validationEnabled = const Value.absent(),
     this.sensitiveTaxaObfuscation = const Value.absent(),
     this.taxonomicReferenceId = const Value.absent(),
@@ -3397,6 +3446,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   ProjectsCompanion.insert({
     required String id,
     required String name,
+    this.description = const Value.absent(),
     required bool validationEnabled,
     required bool sensitiveTaxaObfuscation,
     required String taxonomicReferenceId,
@@ -3411,6 +3461,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   static Insertable<ProjectRow> custom({
     Expression<String>? id,
     Expression<String>? name,
+    Expression<String>? description,
     Expression<bool>? validationEnabled,
     Expression<bool>? sensitiveTaxaObfuscation,
     Expression<String>? taxonomicReferenceId,
@@ -3420,6 +3471,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (description != null) 'description': description,
       if (validationEnabled != null) 'validation_enabled': validationEnabled,
       if (sensitiveTaxaObfuscation != null)
         'sensitive_taxa_obfuscation': sensitiveTaxaObfuscation,
@@ -3434,6 +3486,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   ProjectsCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
+    Value<String?>? description,
     Value<bool>? validationEnabled,
     Value<bool>? sensitiveTaxaObfuscation,
     Value<String>? taxonomicReferenceId,
@@ -3443,6 +3496,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     return ProjectsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      description: description ?? this.description,
       validationEnabled: validationEnabled ?? this.validationEnabled,
       sensitiveTaxaObfuscation:
           sensitiveTaxaObfuscation ?? this.sensitiveTaxaObfuscation,
@@ -3461,6 +3515,9 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
     }
     if (validationEnabled.present) {
       map['validation_enabled'] = Variable<bool>(validationEnabled.value);
@@ -3491,6 +3548,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     return (StringBuffer('ProjectsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('description: $description, ')
           ..write('validationEnabled: $validationEnabled, ')
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
           ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
@@ -7635,6 +7693,7 @@ typedef $$MeasurementsTableProcessedTableManager =
 typedef $$ProjectsTableCreateCompanionBuilder = ProjectsCompanion Function({
   required String id,
   required String name,
+  Value<String?> description,
   required bool validationEnabled,
   required bool sensitiveTaxaObfuscation,
   required String taxonomicReferenceId,
@@ -7644,6 +7703,7 @@ typedef $$ProjectsTableCreateCompanionBuilder = ProjectsCompanion Function({
 typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
   Value<String> id,
   Value<String> name,
+  Value<String?> description,
   Value<bool> validationEnabled,
   Value<bool> sensitiveTaxaObfuscation,
   Value<String> taxonomicReferenceId,
@@ -7667,6 +7727,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7710,6 +7775,11 @@ class $$ProjectsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get validationEnabled => $composableBuilder(
     column: $table.validationEnabled,
     builder: (column) => ColumnOrderings(column),
@@ -7745,6 +7815,11 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get validationEnabled => $composableBuilder(
     column: $table.validationEnabled,
@@ -7800,6 +7875,7 @@ class $$ProjectsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
                 Value<bool> validationEnabled = const Value.absent(),
                 Value<bool> sensitiveTaxaObfuscation = const Value.absent(),
                 Value<String> taxonomicReferenceId = const Value.absent(),
@@ -7808,6 +7884,7 @@ class $$ProjectsTableTableManager
               }) => ProjectsCompanion(
                 id: id,
                 name: name,
+                description: description,
                 validationEnabled: validationEnabled,
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
                 taxonomicReferenceId: taxonomicReferenceId,
@@ -7818,6 +7895,7 @@ class $$ProjectsTableTableManager
               ({
                 required String id,
                 required String name,
+                Value<String?> description = const Value.absent(),
                 required bool validationEnabled,
                 required bool sensitiveTaxaObfuscation,
                 required String taxonomicReferenceId,
@@ -7826,6 +7904,7 @@ class $$ProjectsTableTableManager
               }) => ProjectsCompanion.insert(
                 id: id,
                 name: name,
+                description: description,
                 validationEnabled: validationEnabled,
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
                 taxonomicReferenceId: taxonomicReferenceId,

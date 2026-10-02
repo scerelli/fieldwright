@@ -15,6 +15,7 @@ class Project {
     required this.sensitiveTaxaObfuscation,
     required this.taxonomicReferenceId,
     required this.taxonomicReferenceVersion,
+    this.description,
   });
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -25,6 +26,7 @@ class Project {
     return Project(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
+      description: json['description'] as String?,
       validationEnabled: map['validationEnabled'] as bool? ?? false,
       sensitiveTaxaObfuscation:
           map['sensitiveTaxaObfuscation'] as bool? ?? false,
@@ -36,6 +38,11 @@ class Project {
 
   final String id;
   final String name;
+
+  /// Short authored text describing the Project (`DOMAIN.md` Project aggregate,
+  /// ADR-0016), or null when none was set.
+  final String? description;
+
   final bool validationEnabled;
   final bool sensitiveTaxaObfuscation;
   final String taxonomicReferenceId;
