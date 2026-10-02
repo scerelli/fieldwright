@@ -427,7 +427,7 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> _hasTable(String name) async {
     final rows = await customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-      variables: [Variable.withString(name)],
+      variables: [Variable.withString(name)], // glossary:allow drift API type
     ).get();
     return rows.isNotEmpty;
   }
