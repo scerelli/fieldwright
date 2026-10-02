@@ -515,4 +515,19 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get surveyPeriodsAddFailed =>
       'Impossibile aggiungere il periodo di indagine. Riprova.';
+
+  @override
+  String get syncIndicatorQueued => 'In coda';
+
+  @override
+  String get syncIndicatorSyncing => 'Sincronizzazione in corso';
+
+  @override
+  String get syncIndicatorSynced => 'Sincronizzata';
+
+  @override
+  String get syncIndicatorFailed => 'Sincronizzazione non riuscita';
+
+  @override
+  String get syncIndicatorRetry => 'Riprova';
 }
