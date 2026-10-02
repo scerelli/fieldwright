@@ -1063,6 +1063,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get syncIndicatorRetry;
+
+  /// Title of the in-app manual screen (UX-023).
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get helpTitle;
+
+  /// Tooltip of the Projects list action that opens the in-app manual (UX-023).
+  ///
+  /// In en, this message translates to:
+  /// **'Open the manual'**
+  String get helpOpen;
+
+  /// Manual section heading: creating a Project.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a Project'**
+  String get helpCreateProjectTitle;
+
+  /// Manual copy explaining how to create a Project offline.
+  ///
+  /// In en, this message translates to:
+  /// **'From the Projects list, tap + to create a Project — no account needed. Name it and pin a taxonomic reference; you can add a Protocol version, Survey periods and Sites afterwards.'**
+  String get helpCreateProjectBody;
+
+  /// Manual section heading: capturing a Visit.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture a Visit'**
+  String get helpCaptureVisitTitle;
+
+  /// Manual copy explaining the offline Visit capture loop.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a Project and start a Visit at a Site; the effort timer starts. Record each target taxon as detected or not detected, add opportunistic taxa and Evidence, then end the Visit.'**
+  String get helpCaptureVisitBody;
+
+  /// Manual section heading: submitting a Visit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit the Visit'**
+  String get helpSubmitVisitTitle;
+
+  /// Manual copy explaining how a Visit is submitted and made immutable.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit an ended Visit when you have a connection. Submission is safe to retry, the Visit becomes immutable, and a validator may validate it when the Project enables validation.'**
+  String get helpSubmitVisitBody;
 }
 
 class _AppLocalizationsDelegate
