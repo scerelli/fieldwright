@@ -19,15 +19,18 @@ Trained researchers and students. Domain-skilled (they know their taxa and
 protocol) but not necessarily phone-skilled, and often interrupted mid-task.
 They work either alone or as a collector following someone else's protocol. A
 creator may start with no account at all and adopt one later, so nothing may
-assume a person is signed in.
+assume a person is signed in. A newcomer may have no Project yet: the app
+onboards them with an Example Project and an in-app manual.
 
 ## Critical tasks
 
 | Task | Frequency | Budget | Rules |
 |---|---|---|---|
-| Create a Project and start a Visit with no account | once per project | ≤ 5 taps to start, no sign-in wall | UX-015 |
+| Learn the app from the Example Project and the manual | once | example browsable from the Projects list; manual ≤ 2 taps | UX-018, UX-023 |
+| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-018 |
 | Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
-| Start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011 |
+| Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019 |
+| Resume an in-progress Visit from home | 1–5/day | ≤ 1 tap | UX-021 |
 | Mark a target taxon detected / not detected | dozens–hundreds/session | ≤ 2 taps, no typing, one-handed | UX-003, UX-004, UX-012 |
 | Add an opportunistic taxon by abbreviation search | 0–20/session | ≤ 5 taps, ≤ 15 s, one-handed | UX-005 |
 | Attach Evidence (photo/audio) to a Detection | 0–20/session | ≤ 3 taps | UX-010 |
@@ -46,9 +49,9 @@ than writing it on paper.
 | UX-003 | Detection marking is a two-state control (detected / not detected); "not yet recorded" is a visibly distinct third state; submission is disabled while any target is unrecorded. | Non-detection is only data if the search is recorded; the domain makes "not recorded" and "not detected" different. | test |
 | UX-004 | The next unrecorded target is reachable in ≤ 1 tap from the visit screen, without scrolling to find it. | The core loop must beat the paper sheet. | test |
 | UX-005 | Taxa are entered by picking from a list or by abbreviation search; free text is never the only path. | Typing outdoors in gloves is slow and error-prone. | test |
-| UX-006 | Every destructive action (end Visit, discard an in-progress Visit, delete Evidence) requires confirmation and offers undo where feasible. | A mis-tap must not lose field work. | test |
+| UX-006 | Every destructive action (end Visit, discard an in-progress Visit, delete Evidence, delete the Example Project) requires confirmation and offers undo where feasible. | A mis-tap must not lose field work. | test |
 | UX-007 | Offline never blocks capture: recording detections, capturing Evidence and ending a Visit all work with no network; only submission waits. | Connectivity is absent for whole days. | test |
-| UX-008 | Sync and save state are always visible on the visit screen as a persistent, non-modal indicator. | The user must always know whether work is safe. | render |
+| UX-008 | Sync and save state are always visible on every screen through one persistent, non-modal shell indicator. | The user must always know whether work is safe, whichever screen they are on. | render |
 | UX-009 | The effort timer keeps running across app backgrounding and device sleep, and is resumable after a kill. | Effort is data; a screen-off pause must not corrupt it. | test |
 | UX-010 | Evidence capture is ≤ 1 tap from the Detection it belongs to. | A sighting is a fleeting moment. | render |
 | UX-011 | Numeric and covariate fields default to the last used value or the protocol default, and manual entry is always available when a sensor is absent. | Many low-end phones lack sensors; manual entry is the fallback. | test |
@@ -58,16 +61,24 @@ than writing it on paper.
 | UX-015 | Creating a Project and capturing a Visit require no sign-in; the sign-in/up surface is offered, never enforced before field work. | A creator must be able to start a survey immediately; signing in is never a precondition (INV-016). | test |
 | UX-016 | An unlinked Project and its Visits persist indefinitely; signing in, signing out, or a failed link never deletes, hides, or blocks them. | Local-only work is real work and must never be held hostage to an account. | test |
 | UX-017 | Linking local data shows progress and, on failure, keeps all local data and offers a retry; a completed link is resumable without duplicating a Project or a Membership. | Linking may span a dead network; it must be idempotent and recoverable (INV-014). | test |
+| UX-018 | On first launch the app seeds an Example Project: clearly marked, browsable, never linked or exported (INV-017); it can be deleted, and is re-seeded while the person has no non-example Project. | A newcomer needs a working example, and only a real Project should replace it. | test |
+| UX-019 | Every Site and Visit is reached only inside its Project; no screen lists Sites or Visits across Projects. | The domain scopes both to one Project (INV-006, INV-012); a cross-project list hides that. | test |
+| UX-020 | While working inside a Project, its name is always visible. | The collector must never be unsure which Project a Visit belongs to. | render |
+| UX-021 | An in-progress Visit is resumable in ≤ 1 tap from the Projects list after a relaunch. | A field day is interrupted; the running Visit must be one tap away (UX-013). | test |
+| UX-022 | A Project card shows its name and a description — authored when set, otherwise derived from its data; an empty Project's card and hub show a first-run prompt to add a Site or define a Protocol. | The list must tell each Project's story and show what to do next, not just a name. | render |
+| UX-023 | A streamlined in-app manual is reachable from the Projects list and explains the core journey. | Users learn IBIS in the field, without external documentation. | inspect |
 
 ## System states
 
 | State | Trigger | The user sees | The user can still | Rules |
 |---|---|---|---|---|
-| Offline | no connection | a persistent offline indicator | capture everything; submission queued | UX-007, UX-008 |
+| First run | the person has no non-example Project | an Example Project card, clearly marked | browse the example; create their own Project | UX-018 |
+| Empty Project | a Project with no Sites or Visits | a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
+| Offline | no connection | a persistent offline indicator in the shell | capture everything; submission queued | UX-007, UX-008 |
 | Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
 | Linking | a link/upload in flight | a progress indicator | keep working; nothing is blocked | UX-017 |
 | Link failed | link rejected or network error | a retryable notice; local data intact | retry; keep working offline | UX-016, UX-017 |
-| Syncing | a submission in flight | a progress indicator on the visit screen | continue other work | UX-008 |
+| Syncing | a submission in flight | a progress indicator in the shell | continue other work | UX-008 |
 | Sync failed | upload rejected or network error | a retryable failure notice with the reason | keep editing (submitted data unchanged); retry | UX-006, UX-013 |
 | Effort timer in background | app backgrounded | a notification/ongoing-timer indicator | return and continue | UX-009 |
 | Missing sensor | phone has no such sensor | the field is manual, labelled as such | enter the value manually | UX-011 |
@@ -75,7 +86,6 @@ than writing it on paper.
 | GPS accuracy poor | low accuracy fix | an accuracy warning on the coordinate | record anyway (accuracy stored), or adjust | UX-011 |
 | Low battery | battery threshold | a low-battery notice | everything, with evidence capture warned | UX-013 |
 | Storage full | local store full | a blocking notice naming Evidence as the cause | end and submit; delete Evidence | UX-006 |
-| Empty | no project/sites yet | an empty state pointing to setup or a join code | create a project with no account, or join | UX-015 |
 | Error | unexpected failure | a non-destructive error with a next step | retry; no data lost | UX-013 |
 
 ## Data safety
@@ -100,4 +110,5 @@ failed link; linking is idempotent and resumable.
 - Italian translation source and reviewer.
 - Copy for the sensor-fallback and low-confidence states.
 - Camera/microphone permission timing (pre-grant vs on first use).
-- Copy for the unlinked and link-failed affordances, and whether linking is offered from the project list as well as the account screen.
+- Copy for the unlinked and link-failed affordances, and whether linking is offered from the Projects list as well as the Account screen.
+- The Example Project's seed content and the in-app manual's copy and source.
