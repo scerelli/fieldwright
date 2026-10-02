@@ -35,15 +35,21 @@ or future method.
   online. Linking a locally-created Project to an account preserves that
   identity.
 - holds: Memberships (role: creator, collector, or validator); Protocol
-  versions; Survey periods; the Target list or complete-list scope; and
-  settings — validation on/off, sensitive-taxa coordinate obfuscation, and the
-  pinned Taxonomic reference version.
+  versions; Survey periods; the Target list or complete-list scope; an optional
+  description (short authored text for the Project); and settings — validation
+  on/off, sensitive-taxa coordinate obfuscation, and the pinned Taxonomic
+  reference version.
 - lifecycle: `active` → `archived`. Archived projects keep their data readable
   and exports reproducible but accept no new visits.
 - A Project may be created and populated with Visits with no account. Whether
   it has been linked to a person is a **sync/link state**, not a lifecycle
   state: the lifecycle is the same before and after linking.
-- invariants: INV-007, INV-011, INV-015, INV-016.
+- An **Example Project** is seeded by the app for onboarding: a Project marked
+  as an example, browsable but never linked or exported. It is the only Project
+  that may be hard-deleted, with its seeded data (real Projects are archived,
+  never deleted); the app ensures one exists while the person has no non-example
+  Project (INV-017).
+- invariants: INV-007, INV-011, INV-015, INV-016, INV-017.
 
 ### Protocol version (entity inside Project)
 
@@ -166,6 +172,7 @@ stateDiagram-v2
 | INV-014 | A person has at most one Membership in a project, holding exactly one role. | Project | server |
 | INV-015 | A Project's identity is assigned at creation — by the client when created offline — and never changes; linking preserves it. | Project | both |
 | INV-016 | Creating a Project and capturing Visits require no account; linking them to a person creates exactly one creator Membership (INV-014). | Project | both |
+| INV-017 | An example Project is never linked to a person and never exported; it is the only Project that may be hard-deleted, with its seeded data. | Project | client |
 
 ## Events
 
@@ -192,6 +199,11 @@ stateDiagram-v2
 - When **validation is disabled** in a Project, a submitted Visit is terminal.
 - When a **Project is linked** to a person, store it under its existing
   identity, create exactly one creator Membership, and upload its Visits.
+- When the app starts and the person has **no non-example Project**, ensure an
+  Example Project exists.
+- When an **Example Project is deleted**, remove it with its seeded data; it is
+  re-seeded on a later launch only while the person still has no non-example
+  Project.
 
 ## Provenance & audit
 
@@ -200,7 +212,9 @@ Determinations carry their determiner and date and link to the ones they
 replace. Corrections carry author, time, and reason. Submitted Visits and
 Protocol versions are immutable, and their history is retained; nothing is
 deleted to fix a mistake. Linking a locally-created Project records who linked
-it and when; the Project's identity is unchanged by the link.
+it and when; the Project's identity is unchanged by the link. Example Projects
+hold only seeded sample data; deleting one is the model's one allowed deletion
+and loses no real observations.
 
 ## External vocabularies
 
