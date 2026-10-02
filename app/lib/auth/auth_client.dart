@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 /// The person an auth session belongs to. // glossary:allow Better Auth auth session, not the domain Visit
@@ -32,15 +34,42 @@ class AuthException implements Exception {
   String toString() => 'AuthException: $message';
 }
 
+/// Raised when Better Auth cannot be reached, or answers with a transient
+/// server fault, so the caller keeps the persisted sign-in and retries.
+class AuthTransportException implements Exception {
+  const AuthTransportException(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'AuthTransportException: $cause';
+}
+
 /// The client side of Better Auth's email/password REST surface, over the
 /// pinned HTTP client (dio, `TECH_STACK.md`).
 ///
 /// It only identifies a person; roles are project-scoped `Membership`s and
 /// never global (`ARCHITECTURE.md`).
 class AuthClient {
-  AuthClient({required String baseUrl, Dio? dio})
-    : _dio = dio ?? Dio(BaseOptions(baseUrl: baseUrl));
+  AuthClient({
+    required String baseUrl,
+    Dio? dio,
+    this.requestTimeout = defaultRequestTimeout,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: baseUrl,
+               connectTimeout: defaultRequestTimeout,
+               receiveTimeout: defaultRequestTimeout,
+             ),
+           );
 
+  /// Bounds a hung server so app-start restore cannot delay the first frame
+  /// indefinitely; overridable so a test can assert the bound cheaply.
+  static const Duration defaultRequestTimeout = Duration(seconds: 5);
+
+  final Duration requestTimeout;
   final Dio _dio;
 
   String?
@@ -49,6 +78,7 @@ class AuthClient {
   static const String _signInPath = '/api/auth/sign-in/email';
   static const String _signUpPath = '/api/auth/sign-up/email';
   static const String _signOutPath = '/api/auth/sign-out';
+  static const String _getSessionPath = '/api/auth/get-session'; // glossary:allow Better Auth get-session endpoint, not the domain Visit
 
   /// The Better Auth session cookie captured at sign-in, or `null` while signed
   /// out. // glossary:allow Better Auth session, not the domain Visit
@@ -109,6 +139,43 @@ class AuthClient {
       return Person.fromJson(user);
     } on DioException catch (error) {
       throw AuthException(_message(error));
+    }
+  }
+
+  /// Re-attaches a persisted [cookie] and validates it against Better Auth's
+  /// get-session endpoint. // glossary:allow Better Auth auth session, not the domain Visit
+  ///
+  /// Returns the person the server reports for the cookie, or `null` when the
+  /// server has no session for it — the caller clears the persisted sign-in. // glossary:allow Better Auth auth session, not the domain Visit
+  /// Throws [AuthException] when the server rejects the cookie with a 401/403, // glossary:allow Better Auth auth session rejection, not the domain Visit
+  /// or answers 200 with no session. A transport fault (unreachable, timeout) // glossary:allow Better Auth auth session, not the domain Visit
+  /// or any other status (a transient 5xx) raises [AuthTransportException]
+  /// with the cookie still attached, so the caller keeps the persisted
+  /// sign-in and retries once the server is reachable (UX-007).
+  Future<Person?> restoreSession(String cookie) async { // glossary:allow Better Auth session restore, not the domain Visit
+    _sessionCookie = cookie; // glossary:allow Better Auth session cookie, not the domain Visit
+    try {
+      final response = await _dio
+          .get<dynamic>(
+            _getSessionPath, // glossary:allow Better Auth get-session endpoint, not the domain Visit
+            options: Options(headers: authHeaders),
+          )
+          .timeout(requestTimeout);
+      final data = response.data;
+      if (data is Map && data['user'] is Map) {
+        return Person.fromJson((data['user'] as Map).cast<String, dynamic>());
+      }
+      _sessionCookie = null; // glossary:allow Better Auth session cookie, not the domain Visit
+      return null;
+    } on TimeoutException catch (error) {
+      throw AuthTransportException(error);
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 401 || status == 403) {
+        _sessionCookie = null; // glossary:allow Better Auth session cookie, not the domain Visit
+        throw AuthException(_message(error));
+      }
+      throw AuthTransportException(error);
     }
   }
 

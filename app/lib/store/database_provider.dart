@@ -6,6 +6,7 @@ import '../auth/auth_provider.dart';
 import '../outbox/outbox.dart';
 import '../outbox/sync_client.dart';
 import 'app_database.dart';
+import 'auth_session_dao.dart'; // glossary:allow auth session
 import 'config_dao.dart';
 import 'detection_dao.dart';
 import 'determination_dao.dart';
@@ -24,6 +25,13 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 final siteDaoProvider = Provider<SiteDao>(
   (ref) => SiteDao(ref.watch(databaseProvider)),
 );
+
+final authSessionDaoProvider = // glossary:allow auth session
+    Provider<AuthSessionDao /* glossary:allow auth session */>(
+      (ref) => AuthSessionDao( // glossary:allow auth session
+        ref.watch(databaseProvider),
+      ),
+    );
 
 final visitDaoProvider = Provider<VisitDao>(
   (ref) => VisitDao(ref.watch(databaseProvider)),
