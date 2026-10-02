@@ -42,13 +42,14 @@ const journal = JSON.parse(
   ),
 ) as { entries: JournalEntry[] };
 
-// The migration this Sub-task adds is the newest journal entry; un-recording
-// its `when` makes `migrate` treat it (and any later one) as pending again,
-// so it re-applies on top of a database that already holds data.
-function latestMigrationTimestamp(): number {
-  const entry = journal.entries[journal.entries.length - 1];
+// The `created_at` drizzle-kit writes for a migration is its journal `when`;
+// matching on it lets a test un-record exactly the export migration so `migrate`
+// re-applies it on top of a database that already holds data, rather than the
+// newest migration, which a later Sub-task appends.
+function migrationTimestamp(tag: string): number {
+  const entry = journal.entries.find((candidate) => candidate.tag === tag);
   if (entry === undefined) {
-    throw new Error('the drizzle journal is empty');
+    throw new Error(`migration ${tag} is not in the drizzle journal`);
   }
   return entry.when;
 }
@@ -177,7 +178,7 @@ describe('Export store', () => {
     await db.execute(sql`drop table if exists "export"`);
     await db.execute(sql`drop type if exists "export_state"`);
     await db.execute(
-      sql`delete from drizzle.__drizzle_migrations where created_at >= ${latestMigrationTimestamp()}`,
+      sql`delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0014_wakeful_doctor_spectrum')}`,
     );
 
     const migration = runDrizzleKitMigrate(databaseUrl);

@@ -94,11 +94,13 @@ export interface ProjectSettings {
 
 /**
  * Project (DOMAIN.md): the container a creator sets up. Its Memberships,
- * Protocol versions, Survey periods and Sites are scoped to it.
+ * Protocol versions, Survey periods and Sites are scoped to it. `description`
+ * is optional authored text that travels to the Project's members (ADR-0016).
  */
 export const project = pgTable('project', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
+  description: text('description'),
   settings: jsonb('settings').$type<ProjectSettings>().notNull(),
   taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
   taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),

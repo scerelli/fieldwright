@@ -23,6 +23,7 @@ import {
 
 export interface CreateProjectInput {
   name: string;
+  description?: string;
   validationEnabled: boolean;
   sensitiveTaxaObfuscation: boolean;
   taxonomicReferenceId: string;
@@ -60,6 +61,7 @@ export class ProjectsService {
         .insert(project)
         .values({
           name: input.name,
+          description: input.description ?? null,
           settings: {
             validationEnabled: input.validationEnabled,
             sensitiveTaxaObfuscation: input.sensitiveTaxaObfuscation,
