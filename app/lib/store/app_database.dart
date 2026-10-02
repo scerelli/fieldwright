@@ -427,7 +427,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) {
         // `projects` created fresh by an earlier branch already carries
         // `description`; only a store whose `projects` predates the column
-        // (v9–16) needs it added, so guard on the column's absence.
+        // (v9–16) needs it added, so guard on the column being missing.
         if (await _hasTable('projects') &&
             !await _hasColumn('projects', 'description')) {
           await migrator.addColumn(projects, projects.description);
