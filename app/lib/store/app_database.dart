@@ -370,12 +370,17 @@ class AppDatabase extends _$AppDatabase {
             // `config_sites` allowed a null `geom` and `created_at`; the
             // unified `sites` requires both. A row with no geometry cannot
             // become a domain Site (geometry cannot be fabricated), so it is
-            // dropped; a missing `created_at` is coalesced to now.
+            // dropped; a missing `created_at` is coalesced to now. On an id the
+            // store already holds, only the fields the pull models are updated
+            // — the Site keeps its client-owned origin, provenance and
+            // covariates (INV-012).
             await customStatement(
-              "INSERT OR REPLACE INTO sites (id, project_id, geometry, "
-              "origin, created_at, name) SELECT id, project_id, geom, "
-              "'planned', COALESCE(created_at, CAST(strftime('%s', 'now') "
-              'AS INTEGER)), name FROM config_sites WHERE geom IS NOT NULL',
+              "INSERT INTO sites (id, project_id, geometry, origin, "
+              "created_at, name) SELECT id, project_id, geom, 'planned', "
+              "COALESCE(created_at, CAST(strftime('%s', 'now') AS INTEGER)), "
+              'name FROM config_sites WHERE geom IS NOT NULL '
+              'ON CONFLICT(id) DO UPDATE SET geometry = excluded.geometry, '
+              'name = excluded.name, created_at = excluded.created_at',
             );
             await customStatement('DROP TABLE IF EXISTS config_sites');
           }

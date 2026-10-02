@@ -445,4 +445,60 @@ CREATE TABLE config_sites (
       unorderedEquals(<String>['s-undated', 's-valid']),
     );
   });
+
+  test('migration: a version 15 config_sites row colliding with a stored Site '
+      'keeps the Site\'s client-owned fields', () async {
+    final migrated = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute('''
+CREATE TABLE sites (
+  id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  geometry TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  location_provenance TEXT,
+  covariates TEXT,
+  PRIMARY KEY (id)
+);
+''');
+          raw.execute('''
+CREATE TABLE config_sites (
+  id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  name TEXT,
+  geom TEXT,
+  created_at INTEGER,
+  PRIMARY KEY (id)
+);
+''');
+          raw.execute(
+            "INSERT INTO sites VALUES "
+            "('s1', 'p1', "
+            "'{\"type\":\"Point\",\"coordinates\":[9.19,45.46]}', "
+            "'field', 1700000000, "
+            "'{\"method\":\"phoneSensor\",\"accuracyMeters\":4.2}', "
+            "'[{\"name\":\"canopy_cover\",\"value\":\"40\","
+            "\"unit\":null,\"provenance\":{\"method\":\"visualEstimate\"}}]')",
+          );
+          raw.execute(
+            "INSERT INTO config_sites VALUES "
+            "('s1', 'p1', 'Linked site', "
+            "'{\"type\":\"Point\",\"coordinates\":[9.2,45.5]}', 1700000100)",
+          );
+          raw.execute('PRAGMA user_version = 15');
+        },
+      ),
+    );
+    addTearDown(migrated.close);
+
+    final sites = await ProjectDao(migrated).sites('p1');
+    expect(sites.single.origin, SiteOrigin.field);
+    expect(sites.single.locationProvenance!.accuracyMeters, 4.2);
+    expect(sites.single.covariates.single.name, 'canopy_cover');
+
+    final transport = (await ConfigDao(migrated).sites('p1')).single;
+    expect(transport.name, 'Linked site');
+  });
 }
