@@ -523,4 +523,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncIndicatorRetry => 'Retry';
+
+  @override
+  String get helpTitle => 'Manual';
+
+  @override
+  String get helpOpen => 'Open the manual';
+
+  @override
+  String get helpCreateProjectTitle => 'Create a Project';
+
+  @override
+  String get helpCreateProjectBody =>
+      'From the Projects list, tap + to create a Project — no account needed. Name it and pin a taxonomic reference; you can add a Protocol version, Survey periods and Sites afterwards.';
+
+  @override
+  String get helpCaptureVisitTitle => 'Capture a Visit';
+
+  @override
+  String get helpCaptureVisitBody =>
+      'Open a Project and start a Visit at a Site; the effort timer starts. Record each target taxon as detected or not detected, add opportunistic taxa and Evidence, then end the Visit.';
+
+  @override
+  String get helpSubmitVisitTitle => 'Submit the Visit';
+
+  @override
+  String get helpSubmitVisitBody =>
+      'Submit an ended Visit when you have a connection. Submission is safe to retry, the Visit becomes immutable, and a validator may validate it when the Project enables validation.';
 }

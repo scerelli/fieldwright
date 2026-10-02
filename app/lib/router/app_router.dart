@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/account/account_screen.dart';
+import '../features/help/help_screen.dart';
 import '../features/projects/members_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/projects/protocol_version_screen.dart';
@@ -104,6 +105,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      GoRoute(path: '/help', builder: (context, state) => const HelpScreen()),
     ],
   );
 });
