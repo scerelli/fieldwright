@@ -34,7 +34,7 @@ class _DeliveringSyncClient extends SyncClient {
 
   @override
   Future<SubmitResult> submit(
-    Visit visit, {
+    SubmissionAggregate aggregate, {
     required String projectId,
     List<SamplingEffortField> requiredEffortFields =
         const <SamplingEffortField>[],
@@ -68,7 +68,7 @@ class _GatedSyncClient extends SyncClient {
 
   @override
   Future<SubmitResult> submit(
-    Visit visit, {
+    SubmissionAggregate aggregate, {
     required String projectId,
     List<SamplingEffortField> requiredEffortFields =
         const <SamplingEffortField>[],

@@ -1,8 +1,17 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import '../features/visits/detection.dart';
+import '../features/visits/determination.dart';
+import '../features/visits/evidence.dart';
+import '../features/visits/measurement.dart';
 import '../features/visits/visit.dart';
 import '../protocol/protocol.dart';
+import '../store/config_dao.dart';
+import '../store/detection_dao.dart';
+import '../store/determination_dao.dart';
+import '../store/evidence_dao.dart';
+import '../store/measurement_dao.dart';
 import '../store/outbox_dao.dart';
 import '../store/site_dao.dart';
 import '../store/visit_dao.dart';
@@ -49,12 +58,32 @@ Future<void> _defaultSleep(Duration duration) => Future<void>.delayed(duration);
 /// (ADR-0011). The transport, and the DAOs it writes through, are injected so
 /// the outbox stays testable and its wiring is explicit.
 class Outbox {
-  Outbox(this._dao, {this._client, this._visits, this._sites});
+  Outbox(
+    this._dao, {
+    this._client,
+    this._visits,
+    this._sites,
+    this._config,
+    this._detections,
+    this._determinations,
+    this._evidence,
+    this._measurements,
+  });
 
   final OutboxDao _dao;
   final SyncClient? _client;
   final VisitDao? _visits;
   final SiteDao? _sites;
+
+  /// The DAOs the submission aggregate is loaded from. Delivery needs the
+  /// Visit's Detections, Determinations, Measurements and Evidence; [ConfigDao]
+  /// additionally supplies the pinned Protocol version the INV-002 gate reads.
+  /// They are optional so an outbox can be wired for queuing alone.
+  final ConfigDao? _config;
+  final DetectionDao? _detections;
+  final DeterminationDao? _determinations;
+  final EvidenceDao? _evidence;
+  final MeasurementDao? _measurements;
 
   /// Queues [visit] for delivery. Only an ended Visit may be submitted
   /// (DOMAIN.md lifecycle); the submission is recorded as [SyncState.queued]
@@ -77,6 +106,28 @@ class Outbox {
   void _kickDelivery() {
     if (_client == null || _visits == null || _sites == null) return;
     unawaited(flush().catchError((Object _) {}));
+  }
+
+  /// Loads each Detection's Determinations, pairing them with the Detection
+  /// they belong to (DOMAIN.md › Determination) so the submission nests them
+  /// correctly.
+  Future<List<SubmittedDetection>> _withDeterminations(
+    String visitId,
+    List<Detection> detections,
+  ) async {
+    final determinations = _determinations;
+    final entries = <SubmittedDetection>[];
+    for (final detection in detections) {
+      entries.add(
+        SubmittedDetection(
+          detection: detection,
+          determinations: determinations == null
+              ? const <Determination>[]
+              : await determinations.forDetection(visitId, detection.taxonRef),
+        ),
+      );
+    }
+    return entries;
   }
 
   /// Delivers [visit] to the sync API and records the outcome. A delivered
@@ -116,6 +167,48 @@ class Outbox {
       await _dao.setSyncState(visit.id, SyncState.failed);
       return SyncState.failed;
     }
+
+    final detections =
+        await _detections?.forVisit(visit.id) ?? const <Detection>[];
+    final aggregate = SubmissionAggregate(
+      visit: visit,
+      detections: await _withDeterminations(visit.id, detections),
+      measurements:
+          await _measurements?.forVisit(visit.id) ?? const <Measurement>[],
+      evidence: await _evidence?.forVisit(visit.id) ?? const <Evidence>[],
+    );
+
+    // A Detection persisted before the client schema recorded methods carries a
+    // null method, and a blank one would pass a validity check but is rejected
+    // by the server just the same (`@IsNotEmpty`). The sync API's
+    // `DetectionDto` requires a non-empty method, so refuse locally and leave
+    // the Visit ended and retryable rather than POST a body the server would
+    // reject as permanently undeliverable. New Detections always carry a method
+    // — `DetectionDao.record` rejects a missing one (#318) — so this only
+    // affects legacy rows.
+    if (!allDetectionsHaveMethod(detections)) {
+      await _dao.setSyncState(visit.id, SyncState.failed);
+      return SyncState.failed;
+    }
+
+    // INV-002: a Visit cannot be submitted while any target taxon of its pinned
+    // Protocol version has no Detection. Read the exact version the Visit
+    // references — never the latest — and refuse locally, leaving the Visit
+    // ended and retryable rather than marking it submitted. The server enforces
+    // the same rule on its side.
+    final config = _config;
+    if (config != null) {
+      final protocolVersion = await config.protocolVersion(
+        visit.protocolVersionId,
+      );
+      final targets =
+          protocolVersion?.document.targetList ?? const <TargetTaxon>[];
+      if (!allTargetsRecorded(targets, detections)) {
+        await _dao.setSyncState(visit.id, SyncState.failed);
+        return SyncState.failed;
+      }
+    }
+
     final detectionMethods = await visits.detectionMethodsFor(visit.id);
 
     await _dao.setSyncState(visit.id, SyncState.syncing);
@@ -124,7 +217,7 @@ class Outbox {
       attempt += 1;
       try {
         final result = await client.submit(
-          visit,
+          aggregate,
           projectId: site.projectId,
           requiredEffortFields: requiredEffortFields,
           detectionMethods: detectionMethods,

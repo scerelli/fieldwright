@@ -99,3 +99,12 @@ bool allTargetsRecorded(
   List<TargetTaxon> targets,
   List<Detection> detections,
 ) => unrecordedTargets(targets, detections).isEmpty;
+
+/// Whether every Detection carries a non-blank method. A Detection persisted
+/// before the client schema recorded methods has a null one, and the sync API
+/// requires a method; a Visit holding such a Detection cannot be delivered as
+/// it stands (GLOSSARY.md › Detection method).
+bool allDetectionsHaveMethod(List<Detection> detections) => detections.every(
+  (detection) =>
+      detection.method != null && detection.method!.trim().isNotEmpty,
+);

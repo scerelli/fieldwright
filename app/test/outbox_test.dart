@@ -350,8 +350,14 @@ void main() {
       await SiteDao(database).save(_site());
       final visit = await _endedVisit(database);
 
-      final first = await client.submit(visit, projectId: 'project-1');
-      final second = await client.submit(visit, projectId: 'project-1');
+      final first = await client.submit(
+        SubmissionAggregate(visit: visit),
+        projectId: 'project-1',
+      );
+      final second = await client.submit(
+        SubmissionAggregate(visit: visit),
+        projectId: 'project-1',
+      );
 
       expect(first, SubmitResult.delivered);
       expect(second, SubmitResult.delivered);
@@ -377,7 +383,10 @@ void main() {
         await SiteDao(database).save(_site());
         final visit = await _endedVisit(database);
 
-        await client.submit(visit, projectId: 'project-1');
+        await client.submit(
+          SubmissionAggregate(visit: visit),
+          projectId: 'project-1',
+        );
 
         final submission = adapter.requests.firstWhere(
           (request) => request.path == SyncClient.submitPath,
@@ -402,7 +411,10 @@ void main() {
       final visit = await _endedVisit(database);
 
       expect(
-        await client.submit(visit, projectId: 'project-1'),
+        await client.submit(
+          SubmissionAggregate(visit: visit),
+          projectId: 'project-1',
+        ),
         SubmitResult.rejected,
       );
     });
@@ -425,7 +437,7 @@ void main() {
             () => _syncClient(
               adapter,
               _authWith(adapter),
-            ).submit(visit, projectId: 'project-1'),
+            ).submit(SubmissionAggregate(visit: visit), projectId: 'project-1'),
             throwsA(isA<SubmissionUnavailable>()),
           );
         }
@@ -449,7 +461,7 @@ void main() {
           () => _syncClient(
             serverError,
             _authWith(serverError),
-          ).submit(visit, projectId: 'project-1'),
+          ).submit(SubmissionAggregate(visit: visit), projectId: 'project-1'),
           throwsA(isA<SubmissionUnavailable>()),
         );
 
@@ -464,7 +476,7 @@ void main() {
           () => _syncClient(
             offline,
             _authWith(offline),
-          ).submit(visit, projectId: 'project-1'),
+          ).submit(SubmissionAggregate(visit: visit), projectId: 'project-1'),
           throwsA(isA<SubmissionUnavailable>()),
         );
       },

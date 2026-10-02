@@ -82,6 +82,16 @@ class ConfigDao {
     return row == null ? null : _toProtocolVersion(row);
   }
 
+  /// The cached Protocol version with [protocolVersionId], or null when it has
+  /// not been pulled. A Visit references the exact version it was captured
+  /// under, so submission reads it by id — never the latest (INV-006, INV-007).
+  Future<ProtocolVersion?> protocolVersion(String protocolVersionId) async {
+    final row = await (_database.select(
+      _database.protocolVersions,
+    )..where((table) => table.id.equals(protocolVersionId))).getSingleOrNull();
+    return row == null ? null : _toProtocolVersion(row);
+  }
+
   /// The cached Survey periods of a Project.
   Future<List<SurveyPeriod>> surveyPeriods(String projectId) async {
     final rows = await (_database.select(
