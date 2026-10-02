@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -10,6 +11,8 @@ import 'package:ibis/auth/auth_client.dart';
 import 'package:ibis/auth/auth_provider.dart';
 import 'package:ibis/features/account/account_screen.dart';
 import 'package:ibis/l10n/app_localizations.dart';
+import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/database_provider.dart';
 
 /// Fakes the HTTP layer: no request ever leaves the process.
 class FakeHttpAdapter implements HttpClientAdapter {
@@ -184,6 +187,42 @@ void main() {
 
       await clientWith(adapter).signOut();
     });
+
+    test('restore-session treats a 5xx as a transport fault and keeps the cookie', () async { // glossary:allow Better Auth session restore, not the domain Visit
+      final adapter = FakeHttpAdapter(
+        (options) async => jsonResponse(<String, dynamic>{
+          'message': 'boom',
+        }, statusCode: 500),
+      );
+      final client = clientWith(adapter);
+
+      await expectLater(
+        client.restoreSession('ibis.auth.token=x'), // glossary:allow Better Auth session cookie, not the domain Visit
+        throwsA(isA<AuthTransportException>()),
+      );
+      expect(
+        client.sessionCookie, // glossary:allow Better Auth session cookie, not the domain Visit
+        'ibis.auth.token=x',
+      );
+    });
+
+    test('restore-session still rejects a 401 and drops the cookie', () async { // glossary:allow Better Auth session restore, not the domain Visit
+      final adapter = FakeHttpAdapter(
+        (options) async => jsonResponse(<String, dynamic>{
+          'message': 'unauthorized',
+        }, statusCode: 401),
+      );
+      final client = clientWith(adapter);
+
+      await expectLater(
+        client.restoreSession('ibis.auth.token=x'), // glossary:allow Better Auth session cookie, not the domain Visit
+        throwsA(isA<AuthException>()),
+      );
+      expect(
+        client.sessionCookie, // glossary:allow Better Auth session cookie, not the domain Visit
+        isNull,
+      );
+    });
   });
 
   group('authProvider', () {
@@ -233,8 +272,11 @@ void main() {
     test(
       'a valid sign-up starts a session holding the current person', // glossary:allow Better Auth auth session, not the domain Visit
       () async {
+        final database = AppDatabase(NativeDatabase.memory());
+        addTearDown(database.close);
         final container = ProviderContainer.test(
           overrides: [
+            databaseProvider.overrideWithValue(database),
             authClientProvider.overrideWithValue(clientWith(signingUp())),
           ],
         );
@@ -252,6 +294,8 @@ void main() {
     );
 
     test('signing out clears the signed-in person', () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
       final adapter = FakeHttpAdapter((options) async {
         if (options.path == '/api/auth/sign-out') {
           return jsonResponse(<String, dynamic>{'success': true});
@@ -265,7 +309,10 @@ void main() {
         });
       });
       final container = ProviderContainer.test(
-        overrides: [authClientProvider.overrideWithValue(clientWith(adapter))],
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          authClientProvider.overrideWithValue(clientWith(adapter)),
+        ],
       );
       final auth = container.read(authProvider.notifier);
 
@@ -279,9 +326,14 @@ void main() {
 
   group('AccountScreen', () {
     Future<void> pumpAccount(WidgetTester tester, AuthClient client) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [authClientProvider.overrideWithValue(client)],
+          overrides: [
+            databaseProvider.overrideWithValue(database),
+            authClientProvider.overrideWithValue(client),
+          ],
           child: MaterialApp(
             localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
               AppLocalizations.delegate,
