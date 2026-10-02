@@ -33,6 +33,7 @@ class ProjectDao {
           ProjectsCompanion.insert(
             id: project.id,
             name: project.name,
+            description: Value(project.description),
             validationEnabled: project.validationEnabled,
             sensitiveTaxaObfuscation: project.sensitiveTaxaObfuscation,
             taxonomicReferenceId: project.taxonomicReferenceId,
@@ -122,6 +123,7 @@ class ProjectDao {
   Project _toProject(ProjectRow row) => Project(
     id: row.id,
     name: row.name,
+    description: row.description,
     validationEnabled: row.validationEnabled,
     sensitiveTaxaObfuscation: row.sensitiveTaxaObfuscation,
     taxonomicReferenceId: row.taxonomicReferenceId,

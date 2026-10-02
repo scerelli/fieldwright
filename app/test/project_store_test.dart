@@ -109,6 +109,128 @@ void main() {
     },
   );
 
+  test('C1: the store persists the Project description and reads it back after '
+      'the database is reopened', () async {
+    final path = '${_tempDirectory().path}/ibis.sqlite';
+
+    var database = AppDatabase.open(path);
+    await ProjectDao(database).save(
+      const Project(
+        id: 'p1',
+        name: 'River survey',
+        description: 'A river survey with an authored description.',
+        validationEnabled: true,
+        sensitiveTaxaObfuscation: false,
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      ),
+    );
+    await ProjectDao(database).save(
+      const Project(
+        id: 'p2',
+        name: 'Undescribed survey',
+        validationEnabled: false,
+        sensitiveTaxaObfuscation: false,
+        taxonomicReferenceId: 'it-flora',
+        taxonomicReferenceVersion: '2024.1',
+      ),
+    );
+    await database.close();
+
+    database = AppDatabase.open(path);
+    addTearDown(database.close);
+    final dao = ProjectDao(database);
+
+    expect(
+      (await dao.findById('p1'))!.description,
+      'A river survey with an authored description.',
+    );
+    expect((await dao.findById('p2'))!.description, isNull);
+  });
+
+  test('migration: a version 16 store gains the Project description column, '
+      'preserving an existing Project', () async {
+    final migrated = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute('''
+CREATE TABLE projects (
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  validation_enabled INTEGER NOT NULL,
+  sensitive_taxa_obfuscation INTEGER NOT NULL,
+  taxonomic_reference_id TEXT NOT NULL,
+  taxonomic_reference_version TEXT NOT NULL,
+  PRIMARY KEY (id)
+);
+''');
+          raw.execute(
+            "INSERT INTO projects VALUES "
+            "('p1', 'River survey', 1, 0, 'it-flora', '2024.1')",
+          );
+          raw.execute('PRAGMA user_version = 16');
+        },
+      ),
+    );
+    addTearDown(migrated.close);
+
+    final version = await migrated
+        .customSelect('PRAGMA user_version')
+        .getSingle();
+    expect(version.data['user_version'], 17);
+
+    final projects = ProjectDao(migrated);
+    final project = await projects.findById('p1');
+    expect(project, isNotNull);
+    expect(project!.name, 'River survey');
+    expect(project.description, isNull);
+
+    await projects.save(
+      const Project(
+        id: 'p1',
+        name: 'River survey',
+        description: 'Now described.',
+        validationEnabled: true,
+        sensitiveTaxaObfuscation: false,
+        taxonomicReferenceId: 'it-flora',
+        taxonomicReferenceVersion: '2024.1',
+      ),
+    );
+    expect((await projects.findById('p1'))!.description, 'Now described.');
+  });
+
+  test(
+    'C3: a config pull carrying a description stores it on the local Project',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+
+      final pull = ConfigPull.fromJson(<String, dynamic>{
+        'versionToken': 'token-1',
+        'project': <String, dynamic>{
+          'id': 'p2',
+          'name': 'Joined survey',
+          'description': 'A description set by another member.',
+          'settings': <String, dynamic>{
+            'validationEnabled': false,
+            'sensitiveTaxaObfuscation': true,
+          },
+          'taxonomicReferenceId': 'it-flora',
+          'taxonomicReferenceVersion': '2025.2',
+        },
+      });
+
+      expect(pull.project!.description, 'A description set by another member.');
+
+      await ConfigDao(database).apply(pull, projectId: 'p2');
+
+      expect(
+        (await ConfigDao(database).project('p2'))!.description,
+        'A description set by another member.',
+      );
+    },
+  );
+
   test('C2: a locally-created Project keeps the identity assigned at creation '
       'across reads (INV-015)', () async {
     final path = '${_tempDirectory().path}/ibis.sqlite';
@@ -295,7 +417,7 @@ void main() {
     expect(transport.name, 'Linked site');
   });
 
-  test('migration: a version 15 store migrates forward to 16, moving the pull '
+  test('migration: a version 15 store migrates forward to 17, moving the pull '
       'cache into the Project aggregate', () async {
     final migrated = AppDatabase(
       NativeDatabase.memory(
@@ -351,7 +473,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 16);
+    expect(version.data['user_version'], 17);
 
     final project = await ProjectDao(migrated).findById('p1');
     expect(project, isNotNull);
@@ -371,7 +493,7 @@ CREATE TABLE config_sites (
   });
 
   test('migration: a version 15 store with geometry-less and undated '
-      'config_sites rows migrates to 16 without aborting', () async {
+      'config_sites rows migrates to 17 without aborting', () async {
     final migrated = AppDatabase(
       NativeDatabase.memory(
         setup: (raw) {
@@ -435,7 +557,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 16);
+    expect(version.data['user_version'], 17);
 
     // The geometry-less row cannot become a domain Site and is dropped; the
     // undated row is kept with a safe created_at; the valid row survives.
