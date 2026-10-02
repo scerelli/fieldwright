@@ -25,6 +25,10 @@ class Sites extends Table {
 
   TextColumn get projectId => text()();
 
+  /// The name the config pull carries for a Site, or null for a Site created
+  /// on the device or one the server never named.
+  TextColumn get name => text().nullable()();
+
   TextColumn get geometry => text()();
 
   TextColumn get origin => textEnum<SiteOrigin>()();
@@ -167,11 +171,14 @@ class OutboxEntries extends Table {
   Set<Column<Object>> get primaryKey => {visitId};
 }
 
-/// The cached settings of a pulled Project (`DOMAIN.md` Project aggregate):
-/// validation, sensitive-taxa obfuscation and the pinned Taxonomic reference.
-@DataClassName('ProjectConfigRow')
-class ProjectConfigs extends Table {
-  TextColumn get projectId => text()();
+/// The local Project aggregate's root row (`DOMAIN.md` Project aggregate,
+/// `ARCHITECTURE.md` client local store): a Project's settings and its pinned
+/// Taxonomic reference. Its identity is assigned at creation — a client UUIDv7
+/// for a Project created offline, the server id for one created online — and
+/// never changes (INV-015). Written by local creation and the config pull alike.
+@DataClassName('ProjectRow')
+class Projects extends Table {
+  TextColumn get id => text()();
 
   TextColumn get name => text()();
 
@@ -184,7 +191,7 @@ class ProjectConfigs extends Table {
   TextColumn get taxonomicReferenceVersion => text()();
 
   @override
-  Set<Column<Object>> get primaryKey => {projectId};
+  Set<Column<Object>> get primaryKey => {id};
 }
 
 /// A cached Protocol version (`DOMAIN.md` Protocol version entity, ADR-0009):
@@ -222,29 +229,6 @@ class SurveyPeriods extends Table {
   TextColumn get startDate => text()();
 
   TextColumn get endDate => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-/// A Site as the versioned config pull carries it (`ARCHITECTURE.md` sync
-/// compatibility surface, ADR-0011).
-///
-/// It is the transport row, not the domain `Site`: the config route serves
-/// identity, an optional name and geometry as GeoJSON text, but not the origin
-/// the domain requires (INV-012), so pulled Sites are cached here rather than
-/// in [Sites], which stays for field-created Sites with their origin.
-@DataClassName('ConfigSiteRow')
-class ConfigSites extends Table {
-  TextColumn get id => text()();
-
-  TextColumn get projectId => text()();
-
-  TextColumn get name => text().nullable()();
-
-  TextColumn get geom => text().nullable()();
-
-  DateTimeColumn get createdAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -291,10 +275,9 @@ class AuthSessions /* glossary:allow auth session */ extends Table {
     Evidences,
     Determinations,
     Measurements,
-    ProjectConfigs,
+    Projects,
     ProtocolVersions,
     SurveyPeriods,
-    ConfigSites,
     ConfigStates,
     AuthSessions, // glossary:allow auth session
     OutboxEntries,
@@ -307,7 +290,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -344,10 +327,11 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(measurements);
       }
       if (from < 9) {
-        await migrator.createTable(projectConfigs);
+        // Pre-pull-cache era: create the unified Project aggregate tables
+        // directly, replacing the old `project_configs`/`config_sites` pair.
+        await migrator.createTable(projects);
         await migrator.createTable(protocolVersions);
         await migrator.createTable(surveyPeriods);
-        await migrator.createTable(configSites);
         await migrator.createTable(configStates);
       }
       if (from < 10) {
@@ -361,6 +345,53 @@ class AppDatabase extends _$AppDatabase {
           authSessions, // glossary:allow auth session
         );
       }
+      if (from >= 9 && from < 16) {
+        // The pull-cache era stored the Project root in `project_configs`;
+        // move it into the unified `projects` table (INV-015).
+        await migrator.createTable(projects);
+        if (await _hasTable('project_configs')) {
+          await customStatement(
+            'INSERT OR REPLACE INTO projects (id, name, validation_enabled, '
+            'sensitive_taxa_obfuscation, taxonomic_reference_id, '
+            'taxonomic_reference_version) SELECT project_id, name, '
+            'validation_enabled, sensitive_taxa_obfuscation, '
+            'taxonomic_reference_id, taxonomic_reference_version '
+            'FROM project_configs',
+          );
+        }
+      }
+      if (from < 16) {
+        final hasSites = await _hasTable('sites');
+        if (hasSites) {
+          await migrator.addColumn(sites, sites.name);
+        }
+        if (from >= 9) {
+          if (hasSites && await _hasTable('config_sites')) {
+            // `config_sites` allowed a null `geom` and `created_at`; the
+            // unified `sites` requires both. A row with no geometry cannot
+            // become a domain Site (geometry cannot be fabricated), so it is
+            // dropped; a missing `created_at` is coalesced to now.
+            await customStatement(
+              "INSERT OR REPLACE INTO sites (id, project_id, geometry, "
+              "origin, created_at, name) SELECT id, project_id, geom, "
+              "'planned', COALESCE(created_at, CAST(strftime('%s', 'now') "
+              'AS INTEGER)), name FROM config_sites WHERE geom IS NOT NULL',
+            );
+            await customStatement('DROP TABLE IF EXISTS config_sites');
+          }
+          await customStatement('DROP TABLE IF EXISTS project_configs');
+        }
+      }
     },
   );
+
+  /// Whether [name] is a table in the connected SQLite database, used to keep
+  /// the v16 migration forward-only over databases that predate a table.
+  Future<bool> _hasTable(String name) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(name)],
+    ).get();
+    return rows.isNotEmpty;
+  }
 }

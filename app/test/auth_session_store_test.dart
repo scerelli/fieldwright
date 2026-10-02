@@ -72,7 +72,7 @@ void main() {
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 15);
+      expect(version.data['user_version'], 16);
 
       final tables = await database
           .customSelect(

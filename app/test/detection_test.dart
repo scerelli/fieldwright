@@ -588,7 +588,7 @@ void main() {
 
   group('migration', () {
     test(
-      'migrates a version 11 client schema to version 13 adding method and count',
+      'migrates a version 11 client schema to version 16 adding method and count',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -643,7 +643,7 @@ CREATE TABLE evidences (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 15);
+        expect(version.data['user_version'], 16);
 
         final columns = await database
             .customSelect('PRAGMA table_info(detections)')
@@ -675,7 +675,7 @@ CREATE TABLE evidences (
     );
 
     test(
-      'migrates a version 4 client schema to version 13 forward-only',
+      'migrates a version 4 client schema to version 16 forward-only',
       () async {
         final database = AppDatabase(
           NativeDatabase.memory(
@@ -717,7 +717,7 @@ CREATE TABLE visits (
         final version = await database
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 15);
+        expect(version.data['user_version'], 16);
 
         final tables = await database
             .customSelect(
