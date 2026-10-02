@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -367,21 +368,52 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from >= 9) {
           if (hasSites && await _hasTable('config_sites')) {
-            // `config_sites` allowed a null `geom` and `created_at`; the
-            // unified `sites` requires both. A row with no geometry cannot
-            // become a domain Site (geometry cannot be fabricated), so it is
-            // dropped; a missing `created_at` is coalesced to now. On an id the
-            // store already holds, only the fields the pull models are updated
-            // — the Site keeps its client-owned origin, provenance and
-            // covariates (INV-012).
-            await customStatement(
-              "INSERT INTO sites (id, project_id, geometry, origin, "
-              "created_at, name) SELECT id, project_id, geom, 'planned', "
-              "COALESCE(created_at, CAST(strftime('%s', 'now') AS INTEGER)), "
-              'name FROM config_sites WHERE geom IS NOT NULL '
-              'ON CONFLICT(id) DO UPDATE SET geometry = excluded.geometry, '
-              'name = excluded.name, created_at = excluded.created_at',
-            );
+            // `config_sites` stored `geom` verbatim and allowed a null `geom`
+            // and `created_at`; the unified `sites` holds a parsed domain
+            // geometry and requires one. A row whose geometry the client does
+            // not model — null, an unsupported type, or malformed text — is
+            // not a domain Site and is dropped (ADR-0011); a missing
+            // `created_at` is coalesced to now. On an id the store already
+            // holds, only the fields the pull models are updated, so the Site
+            // keeps its client-owned origin, provenance and covariates
+            // (INV-012).
+            final cached = await customSelect(
+              'SELECT id, project_id, name, geom, created_at FROM config_sites',
+            ).get();
+            for (final row in cached) {
+              final geometry = _parseCachedGeometry(
+                row.data['geom'] as String?,
+              );
+              if (geometry == null) {
+                continue;
+              }
+              final createdAtSeconds = row.data['created_at'] as int?;
+              final createdAt = createdAtSeconds == null
+                  ? DateTime.now()
+                  : DateTime.fromMillisecondsSinceEpoch(
+                      createdAtSeconds * 1000,
+                      isUtc: true,
+                    );
+              final name = row.data['name'] as String?;
+              final geometryJson = jsonEncode(geometry.toJson());
+              await into(sites).insert(
+                SitesCompanion.insert(
+                  id: row.data['id'] as String,
+                  projectId: row.data['project_id'] as String,
+                  name: name == null ? const Value.absent() : Value(name),
+                  geometry: geometryJson,
+                  origin: SiteOrigin.planned,
+                  createdAt: createdAt,
+                ),
+                onConflict: DoUpdate(
+                  (_) => SitesCompanion(
+                    name: name == null ? const Value.absent() : Value(name),
+                    geometry: Value(geometryJson),
+                    createdAt: Value(createdAt),
+                  ),
+                ),
+              );
+            }
             await customStatement('DROP TABLE IF EXISTS config_sites');
           }
           await customStatement('DROP TABLE IF EXISTS project_configs');
@@ -398,5 +430,29 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(name)],
     ).get();
     return rows.isNotEmpty;
+  }
+
+  /// Parses a legacy cached Site `geom`, returning null when the client does
+  /// not model it — an unsupported type, malformed coordinates, or text that is
+  /// not a GeoJSON object. Mirrors the pull-time rejection in `ConfigDao`
+  /// (ADR-0011), so a version-15 cache row cannot leave the unified `sites`
+  /// table holding a geometry that makes reads throw.
+  SiteGeometry? _parseCachedGeometry(String? geom) {
+    if (geom == null) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(geom);
+      if (decoded is! Map) {
+        return null;
+      }
+      return SiteGeometry.fromJson(decoded.cast<String, Object?>());
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    } on StateError {
+      return null;
+    }
   }
 }

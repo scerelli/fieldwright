@@ -501,4 +501,59 @@ CREATE TABLE config_sites (
     final transport = (await ConfigDao(migrated).sites('p1')).single;
     expect(transport.name, 'Linked site');
   });
+
+  test(
+    'migration: a version 15 config_sites row whose geometry the client does '
+    'not model is dropped instead of making the Project unreadable',
+    () async {
+      final migrated = AppDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw.execute('''
+CREATE TABLE sites (
+  id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  geometry TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  location_provenance TEXT,
+  covariates TEXT,
+  PRIMARY KEY (id)
+);
+''');
+            raw.execute('''
+CREATE TABLE config_sites (
+  id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  name TEXT,
+  geom TEXT,
+  created_at INTEGER,
+  PRIMARY KEY (id)
+);
+''');
+            raw.execute(
+              "INSERT INTO config_sites VALUES "
+              "('s-modeled', 'p1', 'Modeled', "
+              "'{\"type\":\"Point\",\"coordinates\":[9.19,45.46]}', 1700000000)",
+            );
+            raw.execute(
+              "INSERT INTO config_sites VALUES "
+              "('s-unmodeled', 'p1', 'Unmodeled', "
+              "'{\"type\":\"MultiPoint\",\"coordinates\":[[9.2,45.5]]}', "
+              '1700000000)',
+            );
+            raw.execute(
+              "INSERT INTO config_sites VALUES "
+              "('s-malformed', 'p1', 'Malformed', 'not json', 1700000000)",
+            );
+            raw.execute('PRAGMA user_version = 15');
+          },
+        ),
+      );
+      addTearDown(migrated.close);
+
+      final sites = await ProjectDao(migrated).sites('p1');
+      expect(sites.map((site) => site.id), ['s-modeled']);
+    },
+  );
 }
