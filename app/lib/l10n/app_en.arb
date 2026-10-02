@@ -172,6 +172,10 @@
   "@visitStateEnded": {
     "description": "Visit state label once the collector has ended the visit."
   },
+  "visitStateSubmitted": "Submitted",
+  "@visitStateSubmitted": {
+    "description": "Visit lifecycle state label once the submitted Visit has been delivered to the server."
+  },
   "visitDetailTitle": "Visit details",
   "@visitDetailTitle": {
     "description": "Title of the Visit detail screen."

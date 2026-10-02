@@ -140,6 +140,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitStateEnded => 'Ended';
 
   @override
+  String get visitStateSubmitted => 'Submitted';
+
+  @override
   String get visitDetailTitle => 'Visit details';
 
   @override

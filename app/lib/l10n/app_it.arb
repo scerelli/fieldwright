@@ -43,6 +43,7 @@
   "visitsEndVisitTitle": "Concludere la visita?",
   "visitStateInProgress": "In corso",
   "visitStateEnded": "Conclusa",
+  "visitStateSubmitted": "Inviata",
   "visitDetailTitle": "Dettagli visita",
   "visitDetailStatus": "Stato di validazione",
   "visitStatusSubmitted": "Inviata",
