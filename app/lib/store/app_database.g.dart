@@ -28,6 +28,15 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _geometryMeta = const VerificationMeta(
     'geometry',
   );
@@ -85,6 +94,7 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
   List<GeneratedColumn> get $columns => [
     id,
     projectId,
+    name,
     geometry,
     origin,
     createdAt,
@@ -115,6 +125,12 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
       );
     } else if (isInserting) {
       context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
     }
     if (data.containsKey('geometry')) {
       context.handle(
@@ -164,6 +180,10 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
         DriftSqlType.string,
         data['${effectivePrefix}project_id'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
       geometry: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}geometry'],
@@ -201,6 +221,10 @@ class $SitesTable extends Sites with TableInfo<$SitesTable, SiteRow> {
 class SiteRow extends DataClass implements Insertable<SiteRow> {
   final String id;
   final String projectId;
+
+  /// The name the config pull carries for a Site, or null for a Site created
+  /// on the device or one the server never named.
+  final String? name;
   final String geometry;
   final SiteOrigin origin;
   final DateTime createdAt;
@@ -209,6 +233,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
   const SiteRow({
     required this.id,
     required this.projectId,
+    this.name,
     required this.geometry,
     required this.origin,
     required this.createdAt,
@@ -220,6 +245,9 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['project_id'] = Variable<String>(projectId);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
     map['geometry'] = Variable<String>(geometry);
     {
       map['origin'] = Variable<String>(
@@ -240,6 +268,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     return SitesCompanion(
       id: Value(id),
       projectId: Value(projectId),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
       geometry: Value(geometry),
       origin: Value(origin),
       createdAt: Value(createdAt),
@@ -260,6 +289,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     return SiteRow(
       id: serializer.fromJson<String>(json['id']),
       projectId: serializer.fromJson<String>(json['projectId']),
+      name: serializer.fromJson<String?>(json['name']),
       geometry: serializer.fromJson<String>(json['geometry']),
       origin: $SitesTable.$converterorigin.fromJson(
         serializer.fromJson<String>(json['origin']),
@@ -277,6 +307,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'projectId': serializer.toJson<String>(projectId),
+      'name': serializer.toJson<String?>(name),
       'geometry': serializer.toJson<String>(geometry),
       'origin': serializer.toJson<String>(
         $SitesTable.$converterorigin.toJson(origin),
@@ -290,6 +321,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
   SiteRow copyWith({
     String? id,
     String? projectId,
+    Value<String?> name = const Value.absent(),
     String? geometry,
     SiteOrigin? origin,
     DateTime? createdAt,
@@ -298,6 +330,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
   }) => SiteRow(
     id: id ?? this.id,
     projectId: projectId ?? this.projectId,
+    name: name.present ? name.value : this.name,
     geometry: geometry ?? this.geometry,
     origin: origin ?? this.origin,
     createdAt: createdAt ?? this.createdAt,
@@ -310,6 +343,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     return SiteRow(
       id: data.id.present ? data.id.value : this.id,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      name: data.name.present ? data.name.value : this.name,
       geometry: data.geometry.present ? data.geometry.value : this.geometry,
       origin: data.origin.present ? data.origin.value : this.origin,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -327,6 +361,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
     return (StringBuffer('SiteRow(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
           ..write('geometry: $geometry, ')
           ..write('origin: $origin, ')
           ..write('createdAt: $createdAt, ')
@@ -340,6 +375,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
   int get hashCode => Object.hash(
     id,
     projectId,
+    name,
     geometry,
     origin,
     createdAt,
@@ -352,6 +388,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
       (other is SiteRow &&
           other.id == this.id &&
           other.projectId == this.projectId &&
+          other.name == this.name &&
           other.geometry == this.geometry &&
           other.origin == this.origin &&
           other.createdAt == this.createdAt &&
@@ -362,6 +399,7 @@ class SiteRow extends DataClass implements Insertable<SiteRow> {
 class SitesCompanion extends UpdateCompanion<SiteRow> {
   final Value<String> id;
   final Value<String> projectId;
+  final Value<String?> name;
   final Value<String> geometry;
   final Value<SiteOrigin> origin;
   final Value<DateTime> createdAt;
@@ -371,6 +409,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
   const SitesCompanion({
     this.id = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.name = const Value.absent(),
     this.geometry = const Value.absent(),
     this.origin = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -381,6 +420,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
   SitesCompanion.insert({
     required String id,
     required String projectId,
+    this.name = const Value.absent(),
     required String geometry,
     required SiteOrigin origin,
     required DateTime createdAt,
@@ -395,6 +435,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
   static Insertable<SiteRow> custom({
     Expression<String>? id,
     Expression<String>? projectId,
+    Expression<String>? name,
     Expression<String>? geometry,
     Expression<String>? origin,
     Expression<DateTime>? createdAt,
@@ -405,6 +446,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (projectId != null) 'project_id': projectId,
+      if (name != null) 'name': name,
       if (geometry != null) 'geometry': geometry,
       if (origin != null) 'origin': origin,
       if (createdAt != null) 'created_at': createdAt,
@@ -417,6 +459,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
   SitesCompanion copyWith({
     Value<String>? id,
     Value<String>? projectId,
+    Value<String?>? name,
     Value<String>? geometry,
     Value<SiteOrigin>? origin,
     Value<DateTime>? createdAt,
@@ -427,6 +470,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     return SitesCompanion(
       id: id ?? this.id,
       projectId: projectId ?? this.projectId,
+      name: name ?? this.name,
       geometry: geometry ?? this.geometry,
       origin: origin ?? this.origin,
       createdAt: createdAt ?? this.createdAt,
@@ -444,6 +488,9 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     }
     if (projectId.present) {
       map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
     }
     if (geometry.present) {
       map['geometry'] = Variable<String>(geometry.value);
@@ -473,6 +520,7 @@ class SitesCompanion extends UpdateCompanion<SiteRow> {
     return (StringBuffer('SitesCompanion(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('name: $name, ')
           ..write('geometry: $geometry, ')
           ..write('origin: $origin, ')
           ..write('createdAt: $createdAt, ')
@@ -2986,18 +3034,16 @@ class MeasurementsCompanion extends UpdateCompanion<MeasurementRow> {
   }
 }
 
-class $ProjectConfigsTable extends ProjectConfigs
-    with TableInfo<$ProjectConfigsTable, ProjectConfigRow> {
+class $ProjectsTable extends Projects
+    with TableInfo<$ProjectsTable, ProjectRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ProjectConfigsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _projectIdMeta = const VerificationMeta(
-    'projectId',
-  );
+  $ProjectsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
-    'project_id',
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -3064,7 +3110,7 @@ class $ProjectConfigsTable extends ProjectConfigs
       );
   @override
   List<GeneratedColumn> get $columns => [
-    projectId,
+    id,
     name,
     validationEnabled,
     sensitiveTaxaObfuscation,
@@ -3075,21 +3121,18 @@ class $ProjectConfigsTable extends ProjectConfigs
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'project_configs';
+  static const String $name = 'projects';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ProjectConfigRow> instance, {
+    Insertable<ProjectRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('project_id')) {
-      context.handle(
-        _projectIdMeta,
-        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
-      );
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
-      context.missing(_projectIdMeta);
+      context.missing(_idMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -3147,14 +3190,14 @@ class $ProjectConfigsTable extends ProjectConfigs
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {projectId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  ProjectConfigRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  ProjectRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ProjectConfigRow(
-      projectId: attachedDatabase.typeMapping.read(
+    return ProjectRow(
+      id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}project_id'],
+        data['${effectivePrefix}id'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3180,21 +3223,20 @@ class $ProjectConfigsTable extends ProjectConfigs
   }
 
   @override
-  $ProjectConfigsTable createAlias(String alias) {
-    return $ProjectConfigsTable(attachedDatabase, alias);
+  $ProjectsTable createAlias(String alias) {
+    return $ProjectsTable(attachedDatabase, alias);
   }
 }
 
-class ProjectConfigRow extends DataClass
-    implements Insertable<ProjectConfigRow> {
-  final String projectId;
+class ProjectRow extends DataClass implements Insertable<ProjectRow> {
+  final String id;
   final String name;
   final bool validationEnabled;
   final bool sensitiveTaxaObfuscation;
   final String taxonomicReferenceId;
   final String taxonomicReferenceVersion;
-  const ProjectConfigRow({
-    required this.projectId,
+  const ProjectRow({
+    required this.id,
     required this.name,
     required this.validationEnabled,
     required this.sensitiveTaxaObfuscation,
@@ -3204,7 +3246,7 @@ class ProjectConfigRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['project_id'] = Variable<String>(projectId);
+    map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['validation_enabled'] = Variable<bool>(validationEnabled);
     map['sensitive_taxa_obfuscation'] = Variable<bool>(
@@ -3217,9 +3259,9 @@ class ProjectConfigRow extends DataClass
     return map;
   }
 
-  ProjectConfigsCompanion toCompanion(bool nullToAbsent) {
-    return ProjectConfigsCompanion(
-      projectId: Value(projectId),
+  ProjectsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectsCompanion(
+      id: Value(id),
       name: Value(name),
       validationEnabled: Value(validationEnabled),
       sensitiveTaxaObfuscation: Value(sensitiveTaxaObfuscation),
@@ -3228,13 +3270,13 @@ class ProjectConfigRow extends DataClass
     );
   }
 
-  factory ProjectConfigRow.fromJson(
+  factory ProjectRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ProjectConfigRow(
-      projectId: serializer.fromJson<String>(json['projectId']),
+    return ProjectRow(
+      id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       validationEnabled: serializer.fromJson<bool>(json['validationEnabled']),
       sensitiveTaxaObfuscation: serializer.fromJson<bool>(
@@ -3252,7 +3294,7 @@ class ProjectConfigRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'projectId': serializer.toJson<String>(projectId),
+      'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'validationEnabled': serializer.toJson<bool>(validationEnabled),
       'sensitiveTaxaObfuscation': serializer.toJson<bool>(
@@ -3265,15 +3307,15 @@ class ProjectConfigRow extends DataClass
     };
   }
 
-  ProjectConfigRow copyWith({
-    String? projectId,
+  ProjectRow copyWith({
+    String? id,
     String? name,
     bool? validationEnabled,
     bool? sensitiveTaxaObfuscation,
     String? taxonomicReferenceId,
     String? taxonomicReferenceVersion,
-  }) => ProjectConfigRow(
-    projectId: projectId ?? this.projectId,
+  }) => ProjectRow(
+    id: id ?? this.id,
     name: name ?? this.name,
     validationEnabled: validationEnabled ?? this.validationEnabled,
     sensitiveTaxaObfuscation:
@@ -3282,9 +3324,9 @@ class ProjectConfigRow extends DataClass
     taxonomicReferenceVersion:
         taxonomicReferenceVersion ?? this.taxonomicReferenceVersion,
   );
-  ProjectConfigRow copyWithCompanion(ProjectConfigsCompanion data) {
-    return ProjectConfigRow(
-      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+  ProjectRow copyWithCompanion(ProjectsCompanion data) {
+    return ProjectRow(
+      id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       validationEnabled: data.validationEnabled.present
           ? data.validationEnabled.value
@@ -3303,8 +3345,8 @@ class ProjectConfigRow extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ProjectConfigRow(')
-          ..write('projectId: $projectId, ')
+    return (StringBuffer('ProjectRow(')
+          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('validationEnabled: $validationEnabled, ')
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
@@ -3316,7 +3358,7 @@ class ProjectConfigRow extends DataClass
 
   @override
   int get hashCode => Object.hash(
-    projectId,
+    id,
     name,
     validationEnabled,
     sensitiveTaxaObfuscation,
@@ -3326,8 +3368,8 @@ class ProjectConfigRow extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ProjectConfigRow &&
-          other.projectId == this.projectId &&
+      (other is ProjectRow &&
+          other.id == this.id &&
           other.name == this.name &&
           other.validationEnabled == this.validationEnabled &&
           other.sensitiveTaxaObfuscation == this.sensitiveTaxaObfuscation &&
@@ -3335,16 +3377,16 @@ class ProjectConfigRow extends DataClass
           other.taxonomicReferenceVersion == this.taxonomicReferenceVersion);
 }
 
-class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
-  final Value<String> projectId;
+class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
+  final Value<String> id;
   final Value<String> name;
   final Value<bool> validationEnabled;
   final Value<bool> sensitiveTaxaObfuscation;
   final Value<String> taxonomicReferenceId;
   final Value<String> taxonomicReferenceVersion;
   final Value<int> rowid;
-  const ProjectConfigsCompanion({
-    this.projectId = const Value.absent(),
+  const ProjectsCompanion({
+    this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.validationEnabled = const Value.absent(),
     this.sensitiveTaxaObfuscation = const Value.absent(),
@@ -3352,22 +3394,22 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
     this.taxonomicReferenceVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  ProjectConfigsCompanion.insert({
-    required String projectId,
+  ProjectsCompanion.insert({
+    required String id,
     required String name,
     required bool validationEnabled,
     required bool sensitiveTaxaObfuscation,
     required String taxonomicReferenceId,
     required String taxonomicReferenceVersion,
     this.rowid = const Value.absent(),
-  }) : projectId = Value(projectId),
+  }) : id = Value(id),
        name = Value(name),
        validationEnabled = Value(validationEnabled),
        sensitiveTaxaObfuscation = Value(sensitiveTaxaObfuscation),
        taxonomicReferenceId = Value(taxonomicReferenceId),
        taxonomicReferenceVersion = Value(taxonomicReferenceVersion);
-  static Insertable<ProjectConfigRow> custom({
-    Expression<String>? projectId,
+  static Insertable<ProjectRow> custom({
+    Expression<String>? id,
     Expression<String>? name,
     Expression<bool>? validationEnabled,
     Expression<bool>? sensitiveTaxaObfuscation,
@@ -3376,7 +3418,7 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (projectId != null) 'project_id': projectId,
+      if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (validationEnabled != null) 'validation_enabled': validationEnabled,
       if (sensitiveTaxaObfuscation != null)
@@ -3389,8 +3431,8 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
     });
   }
 
-  ProjectConfigsCompanion copyWith({
-    Value<String>? projectId,
+  ProjectsCompanion copyWith({
+    Value<String>? id,
     Value<String>? name,
     Value<bool>? validationEnabled,
     Value<bool>? sensitiveTaxaObfuscation,
@@ -3398,8 +3440,8 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
     Value<String>? taxonomicReferenceVersion,
     Value<int>? rowid,
   }) {
-    return ProjectConfigsCompanion(
-      projectId: projectId ?? this.projectId,
+    return ProjectsCompanion(
+      id: id ?? this.id,
       name: name ?? this.name,
       validationEnabled: validationEnabled ?? this.validationEnabled,
       sensitiveTaxaObfuscation:
@@ -3414,8 +3456,8 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (projectId.present) {
-      map['project_id'] = Variable<String>(projectId.value);
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -3446,8 +3488,8 @@ class ProjectConfigsCompanion extends UpdateCompanion<ProjectConfigRow> {
 
   @override
   String toString() {
-    return (StringBuffer('ProjectConfigsCompanion(')
-          ..write('projectId: $projectId, ')
+    return (StringBuffer('ProjectsCompanion(')
+          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('validationEnabled: $validationEnabled, ')
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
@@ -4227,357 +4269,6 @@ class SurveyPeriodsCompanion extends UpdateCompanion<SurveyPeriodRow> {
           ..write('name: $name, ')
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ConfigSitesTable extends ConfigSites
-    with TableInfo<$ConfigSitesTable, ConfigSiteRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ConfigSitesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _projectIdMeta = const VerificationMeta(
-    'projectId',
-  );
-  @override
-  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
-    'project_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _geomMeta = const VerificationMeta('geom');
-  @override
-  late final GeneratedColumn<String> geom = GeneratedColumn<String>(
-    'geom',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, projectId, name, geom, createdAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'config_sites';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<ConfigSiteRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('project_id')) {
-      context.handle(
-        _projectIdMeta,
-        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_projectIdMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    }
-    if (data.containsKey('geom')) {
-      context.handle(
-        _geomMeta,
-        geom.isAcceptableOrUnknown(data['geom']!, _geomMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  ConfigSiteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ConfigSiteRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      projectId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}project_id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      ),
-      geom: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}geom'],
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      ),
-    );
-  }
-
-  @override
-  $ConfigSitesTable createAlias(String alias) {
-    return $ConfigSitesTable(attachedDatabase, alias);
-  }
-}
-
-class ConfigSiteRow extends DataClass implements Insertable<ConfigSiteRow> {
-  final String id;
-  final String projectId;
-  final String? name;
-  final String? geom;
-  final DateTime? createdAt;
-  const ConfigSiteRow({
-    required this.id,
-    required this.projectId,
-    this.name,
-    this.geom,
-    this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['project_id'] = Variable<String>(projectId);
-    if (!nullToAbsent || name != null) {
-      map['name'] = Variable<String>(name);
-    }
-    if (!nullToAbsent || geom != null) {
-      map['geom'] = Variable<String>(geom);
-    }
-    if (!nullToAbsent || createdAt != null) {
-      map['created_at'] = Variable<DateTime>(createdAt);
-    }
-    return map;
-  }
-
-  ConfigSitesCompanion toCompanion(bool nullToAbsent) {
-    return ConfigSitesCompanion(
-      id: Value(id),
-      projectId: Value(projectId),
-      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
-      geom: geom == null && nullToAbsent ? const Value.absent() : Value(geom),
-      createdAt: createdAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(createdAt),
-    );
-  }
-
-  factory ConfigSiteRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ConfigSiteRow(
-      id: serializer.fromJson<String>(json['id']),
-      projectId: serializer.fromJson<String>(json['projectId']),
-      name: serializer.fromJson<String?>(json['name']),
-      geom: serializer.fromJson<String?>(json['geom']),
-      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'projectId': serializer.toJson<String>(projectId),
-      'name': serializer.toJson<String?>(name),
-      'geom': serializer.toJson<String?>(geom),
-      'createdAt': serializer.toJson<DateTime?>(createdAt),
-    };
-  }
-
-  ConfigSiteRow copyWith({
-    String? id,
-    String? projectId,
-    Value<String?> name = const Value.absent(),
-    Value<String?> geom = const Value.absent(),
-    Value<DateTime?> createdAt = const Value.absent(),
-  }) => ConfigSiteRow(
-    id: id ?? this.id,
-    projectId: projectId ?? this.projectId,
-    name: name.present ? name.value : this.name,
-    geom: geom.present ? geom.value : this.geom,
-    createdAt: createdAt.present ? createdAt.value : this.createdAt,
-  );
-  ConfigSiteRow copyWithCompanion(ConfigSitesCompanion data) {
-    return ConfigSiteRow(
-      id: data.id.present ? data.id.value : this.id,
-      projectId: data.projectId.present ? data.projectId.value : this.projectId,
-      name: data.name.present ? data.name.value : this.name,
-      geom: data.geom.present ? data.geom.value : this.geom,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ConfigSiteRow(')
-          ..write('id: $id, ')
-          ..write('projectId: $projectId, ')
-          ..write('name: $name, ')
-          ..write('geom: $geom, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, projectId, name, geom, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ConfigSiteRow &&
-          other.id == this.id &&
-          other.projectId == this.projectId &&
-          other.name == this.name &&
-          other.geom == this.geom &&
-          other.createdAt == this.createdAt);
-}
-
-class ConfigSitesCompanion extends UpdateCompanion<ConfigSiteRow> {
-  final Value<String> id;
-  final Value<String> projectId;
-  final Value<String?> name;
-  final Value<String?> geom;
-  final Value<DateTime?> createdAt;
-  final Value<int> rowid;
-  const ConfigSitesCompanion({
-    this.id = const Value.absent(),
-    this.projectId = const Value.absent(),
-    this.name = const Value.absent(),
-    this.geom = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ConfigSitesCompanion.insert({
-    required String id,
-    required String projectId,
-    this.name = const Value.absent(),
-    this.geom = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       projectId = Value(projectId);
-  static Insertable<ConfigSiteRow> custom({
-    Expression<String>? id,
-    Expression<String>? projectId,
-    Expression<String>? name,
-    Expression<String>? geom,
-    Expression<DateTime>? createdAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (projectId != null) 'project_id': projectId,
-      if (name != null) 'name': name,
-      if (geom != null) 'geom': geom,
-      if (createdAt != null) 'created_at': createdAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ConfigSitesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? projectId,
-    Value<String?>? name,
-    Value<String?>? geom,
-    Value<DateTime?>? createdAt,
-    Value<int>? rowid,
-  }) {
-    return ConfigSitesCompanion(
-      id: id ?? this.id,
-      projectId: projectId ?? this.projectId,
-      name: name ?? this.name,
-      geom: geom ?? this.geom,
-      createdAt: createdAt ?? this.createdAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (projectId.present) {
-      map['project_id'] = Variable<String>(projectId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (geom.present) {
-      map['geom'] = Variable<String>(geom.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ConfigSitesCompanion(')
-          ..write('id: $id, ')
-          ..write('projectId: $projectId, ')
-          ..write('name: $name, ')
-          ..write('geom: $geom, ')
-          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5444,12 +5135,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EvidencesTable evidences = $EvidencesTable(this);
   late final $DeterminationsTable determinations = $DeterminationsTable(this);
   late final $MeasurementsTable measurements = $MeasurementsTable(this);
-  late final $ProjectConfigsTable projectConfigs = $ProjectConfigsTable(this);
+  late final $ProjectsTable projects = $ProjectsTable(this);
   late final $ProtocolVersionsTable protocolVersions = $ProtocolVersionsTable(
     this,
   );
   late final $SurveyPeriodsTable surveyPeriods = $SurveyPeriodsTable(this);
-  late final $ConfigSitesTable configSites = $ConfigSitesTable(this);
   late final $ConfigStatesTable configStates = $ConfigStatesTable(this);
   late final $AuthSessionsTable authSessions = $AuthSessionsTable(this);
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
@@ -5464,10 +5154,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     evidences,
     determinations,
     measurements,
-    projectConfigs,
+    projects,
     protocolVersions,
     surveyPeriods,
-    configSites,
     configStates,
     authSessions,
     outboxEntries,
@@ -5477,6 +5166,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$SitesTableCreateCompanionBuilder = SitesCompanion Function({
   required String id,
   required String projectId,
+  Value<String?> name,
   required String geometry,
   required SiteOrigin origin,
   required DateTime createdAt,
@@ -5487,6 +5177,7 @@ typedef $$SitesTableCreateCompanionBuilder = SitesCompanion Function({
 typedef $$SitesTableUpdateCompanionBuilder = SitesCompanion Function({
   Value<String> id,
   Value<String> projectId,
+  Value<String?> name,
   Value<String> geometry,
   Value<SiteOrigin> origin,
   Value<DateTime> createdAt,
@@ -5510,6 +5201,11 @@ class $$SitesTableFilterComposer extends Composer<_$AppDatabase, $SitesTable> {
 
   ColumnFilters<String> get projectId => $composableBuilder(
     column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5559,6 +5255,11 @@ class $$SitesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get geometry => $composableBuilder(
     column: $table.geometry,
     builder: (column) => ColumnOrderings(column),
@@ -5599,6 +5300,9 @@ class $$SitesTableAnnotationComposer
 
   GeneratedColumn<String> get projectId =>
       $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<String> get geometry =>
       $composableBuilder(column: $table.geometry, builder: (column) => column);
@@ -5650,6 +5354,7 @@ class $$SitesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<String?> name = const Value.absent(),
                 Value<String> geometry = const Value.absent(),
                 Value<SiteOrigin> origin = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -5659,6 +5364,7 @@ class $$SitesTableTableManager
               }) => SitesCompanion(
                 id: id,
                 projectId: projectId,
+                name: name,
                 geometry: geometry,
                 origin: origin,
                 createdAt: createdAt,
@@ -5670,6 +5376,7 @@ class $$SitesTableTableManager
               ({
                 required String id,
                 required String projectId,
+                Value<String?> name = const Value.absent(),
                 required String geometry,
                 required SiteOrigin origin,
                 required DateTime createdAt,
@@ -5679,6 +5386,7 @@ class $$SitesTableTableManager
               }) => SitesCompanion.insert(
                 id: id,
                 projectId: projectId,
+                name: name,
                 geometry: geometry,
                 origin: origin,
                 createdAt: createdAt,
@@ -7924,38 +7632,36 @@ typedef $$MeasurementsTableProcessedTableManager =
       MeasurementRow,
       PrefetchHooks Function({bool visitId})
     >;
-typedef $$ProjectConfigsTableCreateCompanionBuilder =
-    ProjectConfigsCompanion Function({
-      required String projectId,
-      required String name,
-      required bool validationEnabled,
-      required bool sensitiveTaxaObfuscation,
-      required String taxonomicReferenceId,
-      required String taxonomicReferenceVersion,
-      Value<int> rowid,
-    });
-typedef $$ProjectConfigsTableUpdateCompanionBuilder =
-    ProjectConfigsCompanion Function({
-      Value<String> projectId,
-      Value<String> name,
-      Value<bool> validationEnabled,
-      Value<bool> sensitiveTaxaObfuscation,
-      Value<String> taxonomicReferenceId,
-      Value<String> taxonomicReferenceVersion,
-      Value<int> rowid,
-    });
+typedef $$ProjectsTableCreateCompanionBuilder = ProjectsCompanion Function({
+  required String id,
+  required String name,
+  required bool validationEnabled,
+  required bool sensitiveTaxaObfuscation,
+  required String taxonomicReferenceId,
+  required String taxonomicReferenceVersion,
+  Value<int> rowid,
+});
+typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<bool> validationEnabled,
+  Value<bool> sensitiveTaxaObfuscation,
+  Value<String> taxonomicReferenceId,
+  Value<String> taxonomicReferenceVersion,
+  Value<int> rowid,
+});
 
-class $$ProjectConfigsTableFilterComposer
-    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
-  $$ProjectConfigsTableFilterComposer({
+class $$ProjectsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get projectId => $composableBuilder(
-    column: $table.projectId,
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7985,17 +7691,17 @@ class $$ProjectConfigsTableFilterComposer
   );
 }
 
-class $$ProjectConfigsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
-  $$ProjectConfigsTableOrderingComposer({
+class $$ProjectsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get projectId => $composableBuilder(
-    column: $table.projectId,
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -8025,17 +7731,17 @@ class $$ProjectConfigsTableOrderingComposer
   );
 }
 
-class $$ProjectConfigsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ProjectConfigsTable> {
-  $$ProjectConfigsTableAnnotationComposer({
+class $$ProjectsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get projectId =>
-      $composableBuilder(column: $table.projectId, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -8061,52 +7767,46 @@ class $$ProjectConfigsTableAnnotationComposer
   );
 }
 
-class $$ProjectConfigsTableTableManager
+class $$ProjectsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ProjectConfigsTable,
-          ProjectConfigRow,
-          $$ProjectConfigsTableFilterComposer,
-          $$ProjectConfigsTableOrderingComposer,
-          $$ProjectConfigsTableAnnotationComposer,
-          $$ProjectConfigsTableCreateCompanionBuilder,
-          $$ProjectConfigsTableUpdateCompanionBuilder,
+          $ProjectsTable,
+          ProjectRow,
+          $$ProjectsTableFilterComposer,
+          $$ProjectsTableOrderingComposer,
+          $$ProjectsTableAnnotationComposer,
+          $$ProjectsTableCreateCompanionBuilder,
+          $$ProjectsTableUpdateCompanionBuilder,
           (
-            ProjectConfigRow,
-            BaseReferences<
-              _$AppDatabase,
-              $ProjectConfigsTable,
-              ProjectConfigRow
-            >,
+            ProjectRow,
+            BaseReferences<_$AppDatabase, $ProjectsTable, ProjectRow>,
           ),
-          ProjectConfigRow,
+          ProjectRow,
           PrefetchHooks Function()
         > {
-  $$ProjectConfigsTableTableManager(
-    _$AppDatabase db,
-    $ProjectConfigsTable table,
-  ) : super(
+  $$ProjectsTableTableManager(_$AppDatabase db, $ProjectsTable table)
+    : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ProjectConfigsTableFilterComposer($db: db, $table: table),
+              $$ProjectsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ProjectConfigsTableOrderingComposer($db: db, $table: table),
+              $$ProjectsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ProjectConfigsTableAnnotationComposer($db: db, $table: table),
+              $$ProjectsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<String> projectId = const Value.absent(),
+                Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<bool> validationEnabled = const Value.absent(),
                 Value<bool> sensitiveTaxaObfuscation = const Value.absent(),
                 Value<String> taxonomicReferenceId = const Value.absent(),
                 Value<String> taxonomicReferenceVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ProjectConfigsCompanion(
-                projectId: projectId,
+              }) => ProjectsCompanion(
+                id: id,
                 name: name,
                 validationEnabled: validationEnabled,
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
@@ -8116,15 +7816,15 @@ class $$ProjectConfigsTableTableManager
               ),
           createCompanionCallback:
               ({
-                required String projectId,
+                required String id,
                 required String name,
                 required bool validationEnabled,
                 required bool sensitiveTaxaObfuscation,
                 required String taxonomicReferenceId,
                 required String taxonomicReferenceVersion,
                 Value<int> rowid = const Value.absent(),
-              }) => ProjectConfigsCompanion.insert(
-                projectId: projectId,
+              }) => ProjectsCompanion.insert(
+                id: id,
                 name: name,
                 validationEnabled: validationEnabled,
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
@@ -8135,12 +7835,12 @@ class $$ProjectConfigsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$ProjectConfigsTable, ProjectConfigRow>(table),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $ProjectConfigsTable,
-                    ProjectConfigRow
-                  >(db, table, e),
+                  e.readTable<$ProjectsTable, ProjectRow>(table),
+                  BaseReferences<_$AppDatabase, $ProjectsTable, ProjectRow>(
+                    db,
+                    table,
+                    e,
+                  ),
                 ),
               )
               .toList(),
@@ -8149,21 +7849,18 @@ class $$ProjectConfigsTableTableManager
       );
 }
 
-typedef $$ProjectConfigsTableProcessedTableManager =
+typedef $$ProjectsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ProjectConfigsTable,
-      ProjectConfigRow,
-      $$ProjectConfigsTableFilterComposer,
-      $$ProjectConfigsTableOrderingComposer,
-      $$ProjectConfigsTableAnnotationComposer,
-      $$ProjectConfigsTableCreateCompanionBuilder,
-      $$ProjectConfigsTableUpdateCompanionBuilder,
-      (
-        ProjectConfigRow,
-        BaseReferences<_$AppDatabase, $ProjectConfigsTable, ProjectConfigRow>,
-      ),
-      ProjectConfigRow,
+      $ProjectsTable,
+      ProjectRow,
+      $$ProjectsTableFilterComposer,
+      $$ProjectsTableOrderingComposer,
+      $$ProjectsTableAnnotationComposer,
+      $$ProjectsTableCreateCompanionBuilder,
+      $$ProjectsTableUpdateCompanionBuilder,
+      (ProjectRow, BaseReferences<_$AppDatabase, $ProjectsTable, ProjectRow>),
+      ProjectRow,
       PrefetchHooks Function()
     >;
 typedef $$ProtocolVersionsTableCreateCompanionBuilder =
@@ -8615,215 +8312,6 @@ typedef $$SurveyPeriodsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $SurveyPeriodsTable, SurveyPeriodRow>,
       ),
       SurveyPeriodRow,
-      PrefetchHooks Function()
-    >;
-typedef $$ConfigSitesTableCreateCompanionBuilder =
-    ConfigSitesCompanion Function({
-      required String id,
-      required String projectId,
-      Value<String?> name,
-      Value<String?> geom,
-      Value<DateTime?> createdAt,
-      Value<int> rowid,
-    });
-typedef $$ConfigSitesTableUpdateCompanionBuilder =
-    ConfigSitesCompanion Function({
-      Value<String> id,
-      Value<String> projectId,
-      Value<String?> name,
-      Value<String?> geom,
-      Value<DateTime?> createdAt,
-      Value<int> rowid,
-    });
-
-class $$ConfigSitesTableFilterComposer
-    extends Composer<_$AppDatabase, $ConfigSitesTable> {
-  $$ConfigSitesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get projectId => $composableBuilder(
-    column: $table.projectId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get geom => $composableBuilder(
-    column: $table.geom,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$ConfigSitesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ConfigSitesTable> {
-  $$ConfigSitesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get projectId => $composableBuilder(
-    column: $table.projectId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get geom => $composableBuilder(
-    column: $table.geom,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$ConfigSitesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ConfigSitesTable> {
-  $$ConfigSitesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get projectId =>
-      $composableBuilder(column: $table.projectId, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get geom =>
-      $composableBuilder(column: $table.geom, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$ConfigSitesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ConfigSitesTable,
-          ConfigSiteRow,
-          $$ConfigSitesTableFilterComposer,
-          $$ConfigSitesTableOrderingComposer,
-          $$ConfigSitesTableAnnotationComposer,
-          $$ConfigSitesTableCreateCompanionBuilder,
-          $$ConfigSitesTableUpdateCompanionBuilder,
-          (
-            ConfigSiteRow,
-            BaseReferences<_$AppDatabase, $ConfigSitesTable, ConfigSiteRow>,
-          ),
-          ConfigSiteRow,
-          PrefetchHooks Function()
-        > {
-  $$ConfigSitesTableTableManager(_$AppDatabase db, $ConfigSitesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ConfigSitesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ConfigSitesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ConfigSitesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> projectId = const Value.absent(),
-                Value<String?> name = const Value.absent(),
-                Value<String?> geom = const Value.absent(),
-                Value<DateTime?> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ConfigSitesCompanion(
-                id: id,
-                projectId: projectId,
-                name: name,
-                geom: geom,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String projectId,
-                Value<String?> name = const Value.absent(),
-                Value<String?> geom = const Value.absent(),
-                Value<DateTime?> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ConfigSitesCompanion.insert(
-                id: id,
-                projectId: projectId,
-                name: name,
-                geom: geom,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$ConfigSitesTable, ConfigSiteRow>(table),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $ConfigSitesTable,
-                    ConfigSiteRow
-                  >(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$ConfigSitesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ConfigSitesTable,
-      ConfigSiteRow,
-      $$ConfigSitesTableFilterComposer,
-      $$ConfigSitesTableOrderingComposer,
-      $$ConfigSitesTableAnnotationComposer,
-      $$ConfigSitesTableCreateCompanionBuilder,
-      $$ConfigSitesTableUpdateCompanionBuilder,
-      (
-        ConfigSiteRow,
-        BaseReferences<_$AppDatabase, $ConfigSitesTable, ConfigSiteRow>,
-      ),
-      ConfigSiteRow,
       PrefetchHooks Function()
     >;
 typedef $$ConfigStatesTableCreateCompanionBuilder =
@@ -9487,14 +8975,12 @@ class $AppDatabaseManager {
       $$DeterminationsTableTableManager(_db, _db.determinations);
   $$MeasurementsTableTableManager get measurements =>
       $$MeasurementsTableTableManager(_db, _db.measurements);
-  $$ProjectConfigsTableTableManager get projectConfigs =>
-      $$ProjectConfigsTableTableManager(_db, _db.projectConfigs);
+  $$ProjectsTableTableManager get projects =>
+      $$ProjectsTableTableManager(_db, _db.projects);
   $$ProtocolVersionsTableTableManager get protocolVersions =>
       $$ProtocolVersionsTableTableManager(_db, _db.protocolVersions);
   $$SurveyPeriodsTableTableManager get surveyPeriods =>
       $$SurveyPeriodsTableTableManager(_db, _db.surveyPeriods);
-  $$ConfigSitesTableTableManager get configSites =>
-      $$ConfigSitesTableTableManager(_db, _db.configSites);
   $$ConfigStatesTableTableManager get configStates =>
       $$ConfigStatesTableTableManager(_db, _db.configStates);
   $$AuthSessionsTableTableManager get authSessions =>

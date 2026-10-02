@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -24,6 +25,10 @@ class Sites extends Table {
   TextColumn get id => text()();
 
   TextColumn get projectId => text()();
+
+  /// The name the config pull carries for a Site, or null for a Site created
+  /// on the device or one the server never named.
+  TextColumn get name => text().nullable()();
 
   TextColumn get geometry => text()();
 
@@ -167,11 +172,14 @@ class OutboxEntries extends Table {
   Set<Column<Object>> get primaryKey => {visitId};
 }
 
-/// The cached settings of a pulled Project (`DOMAIN.md` Project aggregate):
-/// validation, sensitive-taxa obfuscation and the pinned Taxonomic reference.
-@DataClassName('ProjectConfigRow')
-class ProjectConfigs extends Table {
-  TextColumn get projectId => text()();
+/// The local Project aggregate's root row (`DOMAIN.md` Project aggregate,
+/// `ARCHITECTURE.md` client local store): a Project's settings and its pinned
+/// Taxonomic reference. Its identity is assigned at creation — a client UUIDv7
+/// for a Project created offline, the server id for one created online — and
+/// never changes (INV-015). Written by local creation and the config pull alike.
+@DataClassName('ProjectRow')
+class Projects extends Table {
+  TextColumn get id => text()();
 
   TextColumn get name => text()();
 
@@ -184,7 +192,7 @@ class ProjectConfigs extends Table {
   TextColumn get taxonomicReferenceVersion => text()();
 
   @override
-  Set<Column<Object>> get primaryKey => {projectId};
+  Set<Column<Object>> get primaryKey => {id};
 }
 
 /// A cached Protocol version (`DOMAIN.md` Protocol version entity, ADR-0009):
@@ -222,29 +230,6 @@ class SurveyPeriods extends Table {
   TextColumn get startDate => text()();
 
   TextColumn get endDate => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-/// A Site as the versioned config pull carries it (`ARCHITECTURE.md` sync
-/// compatibility surface, ADR-0011).
-///
-/// It is the transport row, not the domain `Site`: the config route serves
-/// identity, an optional name and geometry as GeoJSON text, but not the origin
-/// the domain requires (INV-012), so pulled Sites are cached here rather than
-/// in [Sites], which stays for field-created Sites with their origin.
-@DataClassName('ConfigSiteRow')
-class ConfigSites extends Table {
-  TextColumn get id => text()();
-
-  TextColumn get projectId => text()();
-
-  TextColumn get name => text().nullable()();
-
-  TextColumn get geom => text().nullable()();
-
-  DateTimeColumn get createdAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -291,10 +276,9 @@ class AuthSessions /* glossary:allow auth session */ extends Table {
     Evidences,
     Determinations,
     Measurements,
-    ProjectConfigs,
+    Projects,
     ProtocolVersions,
     SurveyPeriods,
-    ConfigSites,
     ConfigStates,
     AuthSessions, // glossary:allow auth session
     OutboxEntries,
@@ -307,7 +291,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -344,10 +328,11 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(measurements);
       }
       if (from < 9) {
-        await migrator.createTable(projectConfigs);
+        // Pre-pull-cache era: create the unified Project aggregate tables
+        // directly, replacing the old `project_configs`/`config_sites` pair.
+        await migrator.createTable(projects);
         await migrator.createTable(protocolVersions);
         await migrator.createTable(surveyPeriods);
-        await migrator.createTable(configSites);
         await migrator.createTable(configStates);
       }
       if (from < 10) {
@@ -361,6 +346,113 @@ class AppDatabase extends _$AppDatabase {
           authSessions, // glossary:allow auth session
         );
       }
+      if (from >= 9 && from < 16) {
+        // The pull-cache era stored the Project root in `project_configs`;
+        // move it into the unified `projects` table (INV-015).
+        await migrator.createTable(projects);
+        if (await _hasTable('project_configs')) {
+          await customStatement(
+            'INSERT OR REPLACE INTO projects (id, name, validation_enabled, '
+            'sensitive_taxa_obfuscation, taxonomic_reference_id, '
+            'taxonomic_reference_version) SELECT project_id, name, '
+            'validation_enabled, sensitive_taxa_obfuscation, '
+            'taxonomic_reference_id, taxonomic_reference_version '
+            'FROM project_configs',
+          );
+        }
+      }
+      if (from < 16) {
+        final hasSites = await _hasTable('sites');
+        if (hasSites) {
+          await migrator.addColumn(sites, sites.name);
+        }
+        if (from >= 9) {
+          if (hasSites && await _hasTable('config_sites')) {
+            // `config_sites` stored `geom` verbatim and allowed a null `geom`
+            // and `created_at`; the unified `sites` holds a parsed domain
+            // geometry and requires one. A row whose geometry the client does
+            // not model — null, an unsupported type, or malformed text — is
+            // not a domain Site and is dropped (ADR-0011); a missing
+            // `created_at` is coalesced to now. On an id the store already
+            // holds, only the fields the pull models are updated, so the Site
+            // keeps its client-owned origin, provenance and covariates
+            // (INV-012).
+            final cached = await customSelect(
+              'SELECT id, project_id, name, geom, created_at FROM config_sites',
+            ).get();
+            for (final row in cached) {
+              final geometry = _parseCachedGeometry(
+                row.data['geom'] as String?,
+              );
+              if (geometry == null) {
+                continue;
+              }
+              final createdAtSeconds = row.data['created_at'] as int?;
+              final createdAt = createdAtSeconds == null
+                  ? DateTime.now()
+                  : DateTime.fromMillisecondsSinceEpoch(
+                      createdAtSeconds * 1000,
+                      isUtc: true,
+                    );
+              final name = row.data['name'] as String?;
+              final geometryJson = jsonEncode(geometry.toJson());
+              await into(sites).insert(
+                SitesCompanion.insert(
+                  id: row.data['id'] as String,
+                  projectId: row.data['project_id'] as String,
+                  name: name == null ? const Value.absent() : Value(name),
+                  geometry: geometryJson,
+                  origin: SiteOrigin.planned,
+                  createdAt: createdAt,
+                ),
+                onConflict: DoUpdate(
+                  (_) => SitesCompanion(
+                    name: name == null ? const Value.absent() : Value(name),
+                    geometry: Value(geometryJson),
+                    createdAt: Value(createdAt),
+                  ),
+                ),
+              );
+            }
+            await customStatement('DROP TABLE IF EXISTS config_sites');
+          }
+          await customStatement('DROP TABLE IF EXISTS project_configs');
+        }
+      }
     },
   );
+
+  /// Whether [name] is a table in the connected SQLite database, used to keep
+  /// the v16 migration forward-only over databases that predate a table.
+  Future<bool> _hasTable(String name) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(name)], // glossary:allow drift API type
+    ).get();
+    return rows.isNotEmpty;
+  }
+
+  /// Parses a legacy cached Site `geom`, returning null when the client does
+  /// not model it — an unsupported type, malformed coordinates, or text that is
+  /// not a GeoJSON object. Mirrors the pull-time rejection in `ConfigDao`
+  /// (ADR-0011), so a version-15 cache row cannot leave the unified `sites`
+  /// table holding a geometry that makes reads throw.
+  SiteGeometry? _parseCachedGeometry(String? geom) {
+    if (geom == null) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(geom);
+      if (decoded is! Map) {
+        return null;
+      }
+      return SiteGeometry.fromJson(decoded.cast<String, Object?>());
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    } on StateError {
+      return null;
+    }
+  }
 }

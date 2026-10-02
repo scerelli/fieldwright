@@ -737,7 +737,7 @@ CREATE TABLE evidences (
         final version = await legacy
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 15);
+        expect(version.data['user_version'], 16);
 
         final columns = await legacy
             .customSelect('PRAGMA table_info(evidences)')
