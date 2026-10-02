@@ -17,12 +17,16 @@ can fail, numbered so criteria can cite them.
 
 Trained researchers and students. Domain-skilled (they know their taxa and
 protocol) but not necessarily phone-skilled, and often interrupted mid-task.
-They work either alone or as a collector following someone else's protocol.
+They work either alone or as a collector following someone else's protocol. A
+creator may start with no account at all and adopt one later, so nothing may
+assume a person is signed in.
 
 ## Critical tasks
 
 | Task | Frequency | Budget | Rules |
 |---|---|---|---|
+| Create a Project and start a Visit with no account | once per project | ≤ 5 taps to start, no sign-in wall | UX-015 |
+| Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
 | Start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011 |
 | Mark a target taxon detected / not detected | dozens–hundreds/session | ≤ 2 taps, no typing, one-handed | UX-003, UX-004, UX-012 |
 | Add an opportunistic taxon by abbreviation search | 0–20/session | ≤ 5 taps, ≤ 15 s, one-handed | UX-005 |
@@ -51,12 +55,18 @@ than writing it on paper.
 | UX-012 | All primary field controls sit within the lower two-thirds of the screen. | One-handed reach with the other hand occupied. | render |
 | UX-013 | No data loss on crash or kill: every change persists to the local store immediately, and a relaunch restores the in-progress Visit. | Top quality attribute: offline reliability and data integrity. | test |
 | UX-014 | When sensitive-taxa coordinates are hidden, the UI states that they are hidden. | Obfuscation must not look like a bug. | render |
+| UX-015 | Creating a Project and capturing a Visit require no sign-in; the sign-in/up surface is offered, never enforced before field work. | A creator must be able to start a survey immediately; signing in is never a precondition (INV-016). | test |
+| UX-016 | An unlinked Project and its Visits persist indefinitely; signing in, signing out, or a failed link never deletes, hides, or blocks them. | Local-only work is real work and must never be held hostage to an account. | test |
+| UX-017 | Linking local data shows progress and, on failure, keeps all local data and offers a retry; a completed link is resumable without duplicating a Project or a Membership. | Linking may span a dead network; it must be idempotent and recoverable (INV-014). | test |
 
 ## System states
 
 | State | Trigger | The user sees | The user can still | Rules |
 |---|---|---|---|---|
 | Offline | no connection | a persistent offline indicator | capture everything; submission queued | UX-007, UX-008 |
+| Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
+| Linking | a link/upload in flight | a progress indicator | keep working; nothing is blocked | UX-017 |
+| Link failed | link rejected or network error | a retryable notice; local data intact | retry; keep working offline | UX-016, UX-017 |
 | Syncing | a submission in flight | a progress indicator on the visit screen | continue other work | UX-008 |
 | Sync failed | upload rejected or network error | a retryable failure notice with the reason | keep editing (submitted data unchanged); retry | UX-006, UX-013 |
 | Effort timer in background | app backgrounded | a notification/ongoing-timer indicator | return and continue | UX-009 |
@@ -65,7 +75,7 @@ than writing it on paper.
 | GPS accuracy poor | low accuracy fix | an accuracy warning on the coordinate | record anyway (accuracy stored), or adjust | UX-011 |
 | Low battery | battery threshold | a low-battery notice | everything, with evidence capture warned | UX-013 |
 | Storage full | local store full | a blocking notice naming Evidence as the cause | end and submit; delete Evidence | UX-006 |
-| Empty | no project/sites yet | an empty state pointing to setup or a join code | create/join a project | — |
+| Empty | no project/sites yet | an empty state pointing to setup or a join code | create a project with no account, or join | UX-015 |
 | Error | unexpected failure | a non-destructive error with a next step | retry; no data lost | UX-013 |
 
 ## Data safety
@@ -73,7 +83,9 @@ than writing it on paper.
 Continuous autosave: every change is written to the local SQLite store
 immediately. A crash, kill or battery death restores the in-progress Visit on
 relaunch. Data is "safe" only once the server has accepted the submission;
-retries are idempotent, so a re-submission never duplicates a Visit.
+retries are idempotent, so a re-submission never duplicates a Visit. Local data
+created with no account is never deleted by signing in, signing out, or a
+failed link; linking is idempotent and resumable.
 
 ## Accessibility & localization
 
@@ -88,3 +100,4 @@ retries are idempotent, so a re-submission never duplicates a Visit.
 - Italian translation source and reviewer.
 - Copy for the sensor-fallback and low-confidence states.
 - Camera/microphone permission timing (pre-grant vs on first use).
+- Copy for the unlinked and link-failed affordances, and whether linking is offered from the project list as well as the account screen.
