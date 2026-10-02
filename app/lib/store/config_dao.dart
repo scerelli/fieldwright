@@ -132,7 +132,7 @@ class ConfigDao {
     if (geometry == null) {
       return false;
     }
-    await _projects.saveSite(
+    await _projects.savePulledSite(
       Site(
         id: site.id,
         projectId: site.projectId,

@@ -21,6 +21,27 @@ class SiteDao {
         .insertOnConflictUpdate(_toCompanion(site, name: name));
   }
 
+  /// Writes a Site carried by the config pull, which models only its geometry,
+  /// transport [name] and creation time. On conflict with a Site the device
+  /// already holds, those are updated while the client-owned [Site.origin],
+  /// [Site.locationProvenance] and [Site.covariates] are left untouched — the
+  /// pull carries none of them, so it cannot speak for them (INV-012). A Site
+  /// with no stored row is inserted as planned.
+  Future<void> savePulled(Site site, {String? name}) async {
+    await _database
+        .into(_database.sites)
+        .insert(
+          _toCompanion(site, name: name),
+          onConflict: DoUpdate(
+            (_) => SitesCompanion(
+              name: name == null ? const Value.absent() : Value(name),
+              geometry: Value(jsonEncode(site.geometry.toJson())),
+              createdAt: Value(site.createdAt),
+            ),
+          ),
+        );
+  }
+
   Future<Site?> findById(String id) async {
     final row = await (_database.select(
       _database.sites,

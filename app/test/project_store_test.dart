@@ -240,6 +240,61 @@ void main() {
     },
   );
 
+  test('C5: a config pull preserves a locally-created field Site\'s origin, '
+      'provenance and covariates', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final projects = ProjectDao(database);
+
+    await projects.saveSite(
+      Site(
+        id: 's1',
+        projectId: 'p1',
+        geometry: const PointGeometry(LatLng(45.46, 9.19)),
+        origin: SiteOrigin.field,
+        createdAt: DateTime.utc(2026, 9, 30),
+        locationProvenance: const SiteLocationProvenance(
+          method: LocationFixMethod.phoneSensor,
+          accuracyMeters: 4.2,
+        ),
+        covariates: const [
+          SiteCovariate(
+            name: 'canopy_cover',
+            value: '40',
+            provenance: CovariateProvenance(
+              method: CovariateMethod.visualEstimate,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await ConfigDao(database).apply(
+      ConfigPull(
+        versionToken: 'token-1',
+        sites: [
+          ConfigSite(
+            id: 's1',
+            projectId: 'p1',
+            name: 'Linked site',
+            geom: '{"type":"Point","coordinates":[9.2,45.5]}',
+            createdAt: DateTime.utc(2026, 10, 1),
+          ),
+        ],
+      ),
+      projectId: 'p1',
+    );
+
+    final stored = (await projects.sites('p1')).single;
+    expect(stored.origin, SiteOrigin.field);
+    expect(stored.locationProvenance!.accuracyMeters, 4.2);
+    expect(stored.covariates.single.name, 'canopy_cover');
+    expect(stored.geometry, isA<PointGeometry>());
+
+    final transport = (await ConfigDao(database).sites('p1')).single;
+    expect(transport.name, 'Linked site');
+  });
+
   test('migration: a version 15 store migrates forward to 16, moving the pull '
       'cache into the Project aggregate', () async {
     final migrated = AppDatabase(

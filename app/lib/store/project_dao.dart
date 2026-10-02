@@ -110,6 +110,12 @@ class ProjectDao {
   Future<void> saveSite(Site site, {String? name}) =>
       _sites.save(site, name: name);
 
+  /// Writes a Site carried by the config pull into the Project aggregate,
+  /// preserving any client-owned Site fields the device already holds
+  /// (`SiteDao.savePulled`, INV-012).
+  Future<void> savePulledSite(Site site, {String? name}) =>
+      _sites.savePulled(site, name: name);
+
   /// The Sites of a Project.
   Future<List<Site>> sites(String projectId) => _sites.findByProject(projectId);
 
