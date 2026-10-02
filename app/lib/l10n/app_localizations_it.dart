@@ -143,6 +143,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get visitStateEnded => 'Conclusa';
 
   @override
+  String get visitStateSubmitted => 'Inviata';
+
+  @override
   String get visitDetailTitle => 'Dettagli visita';
 
   @override

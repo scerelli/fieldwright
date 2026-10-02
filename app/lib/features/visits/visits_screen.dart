@@ -139,30 +139,35 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
             for (final visit in _visits)
               ListTile(
                 key: Key('visit_${visit.id}'),
-                leading: Icon(
-                  visit.isEnded
-                      ? Icons.check_circle_outline
-                      : Icons.timelapse_outlined,
-                ),
-                title: Text(
-                  visit.isEnded
-                      ? l10n.visitStateEnded
-                      : l10n.visitStateInProgress,
-                ),
+                leading: Icon(_stateIcon(visit.state)),
+                title: Text(_stateLabel(l10n, visit.state)),
                 subtitle: Text(visit.effort.startedAt.toIso8601String()),
                 onTap: () => context.go('/visits/${visit.id}'),
-                trailing: visit.isEnded
-                    ? null
-                    : TextButton(
+                trailing: visit.isInProgress
+                    ? TextButton(
                         key: Key('end_visit_${visit.id}'),
                         onPressed: () => _confirmEndVisit(visit),
                         child: Text(l10n.visitsEndVisit),
-                      ),
+                      )
+                    : null,
               ),
         ],
       ),
     );
   }
+
+  IconData _stateIcon(VisitState state) => switch (state) {
+    VisitState.inProgress => Icons.timelapse_outlined,
+    VisitState.ended => Icons.check_circle_outline,
+    VisitState.submitted => Icons.assignment_turned_in_outlined,
+  };
+
+  String _stateLabel(AppLocalizations l10n, VisitState state) =>
+      switch (state) {
+        VisitState.inProgress => l10n.visitStateInProgress,
+        VisitState.ended => l10n.visitStateEnded,
+        VisitState.submitted => l10n.visitStateSubmitted,
+      };
 
   Widget _heading(String title) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Ended'**
   String get visitStateEnded;
 
+  /// Visit lifecycle state label once the submitted Visit has been delivered to the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get visitStateSubmitted;
+
   /// Title of the Visit detail screen.
   ///
   /// In en, this message translates to:

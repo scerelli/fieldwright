@@ -50,9 +50,11 @@ class _CaptureView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final stateLabel = visit.isEnded
-        ? l10n.visitStateEnded
-        : l10n.visitStateInProgress;
+    final stateLabel = switch (visit.state) {
+      VisitState.inProgress => l10n.visitStateInProgress,
+      VisitState.ended => l10n.visitStateEnded,
+      VisitState.submitted => l10n.visitStateSubmitted,
+    };
     final visitCovariates =
         protocol?.visitCovariates ?? const <CovariateDefinition>[];
 
