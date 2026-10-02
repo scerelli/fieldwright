@@ -183,6 +183,11 @@ class Projects extends Table {
 
   TextColumn get name => text()();
 
+  /// Short authored text describing the Project (`DOMAIN.md` Project
+  /// aggregate, ADR-0016), or null when none was set. The config pull carries
+  /// the server's `project.description` into this column.
+  TextColumn get description => text().nullable()();
+
   BoolColumn get validationEnabled => boolean()();
 
   BoolColumn get sensitiveTaxaObfuscation => boolean()();
@@ -291,7 +296,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -419,17 +424,34 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('DROP TABLE IF EXISTS project_configs');
         }
       }
+      if (from < 17) {
+        // `projects` created fresh by an earlier branch already carries
+        // `description`; only a store whose `projects` predates the column
+        // (v9–16) needs it added, so guard on the column's absence.
+        if (await _hasTable('projects') &&
+            !await _hasColumn('projects', 'description')) {
+          await migrator.addColumn(projects, projects.description);
+        }
+      }
     },
   );
 
   /// Whether [name] is a table in the connected SQLite database, used to keep
-  /// the v16 migration forward-only over databases that predate a table.
+  /// the migration forward-only over databases that predate a table.
   Future<bool> _hasTable(String name) async {
     final rows = await customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
       variables: [Variable.withString(name)], // glossary:allow drift API type
     ).get();
     return rows.isNotEmpty;
+  }
+
+  /// Whether [column] is a column of [table], used to keep the v17 migration
+  /// forward-only over a `projects` table an earlier branch may have created
+  /// with the column already present.
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((row) => row.data['name'] == column);
   }
 
   /// Parses a legacy cached Site `geom`, returning null when the client does
