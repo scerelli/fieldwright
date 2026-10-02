@@ -159,6 +159,37 @@ describe('Project creation', () => {
     });
   });
 
+  it('accepts and returns an optional description', async () => {
+    const description = 'A shared description for the members';
+    const response = await createProject(
+      { ...validBody, description },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      description: string | null;
+    };
+
+    expect(body.description).toBe(description);
+
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const rows = await db.select().from(project).where(eq(project.id, body.id));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.description).toBe(description);
+  });
+
+  it('returns a null description when none is supplied', async () => {
+    const response = await createProject(validBody, { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as { description: string | null };
+
+    expect(body.description).toBeNull();
+  });
+
   it('adds the creator as a Membership with role creator', async () => {
     const response = await createProject(validBody, { cookie });
     const body = (await response.json()) as { id: string };

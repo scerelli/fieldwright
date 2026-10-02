@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   PostgreSqlContainer,
@@ -15,6 +15,30 @@ const drizzleKitBin = fileURLToPath(
 const migrationCount = readdirSync(
   fileURLToPath(new URL('../drizzle', import.meta.url)),
 ).filter((entry) => entry.endsWith('.sql')).length;
+
+interface JournalEntry {
+  tag: string;
+  when: number;
+}
+
+const journal = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL('../drizzle/meta/_journal.json', import.meta.url)),
+    'utf8',
+  ),
+) as { entries: JournalEntry[] };
+
+// The `created_at` drizzle-kit writes for a migration is its journal `when`;
+// matching on it lets a test un-record exactly the Project description
+// migration so `migrate` re-applies it on a populated database, rather than the
+// newest migration, which a later Sub-task appends.
+function migrationTimestamp(tag: string): number {
+  const entry = journal.entries.find((candidate) => candidate.tag === tag);
+  if (entry === undefined) {
+    throw new Error(`migration ${tag} is not in the drizzle journal`);
+  }
+  return entry.when;
+}
 
 function runDrizzleKitMigrate(databaseUrl: string) {
   return spawnSync(process.execPath, [drizzleKitBin, 'migrate'], {
@@ -76,5 +100,47 @@ describe('baseline migration', () => {
     expect(rerun.status, rerun.stderr).toBe(0);
 
     expect(await applied()).toEqual(before);
+  });
+
+  it('adds the nullable Project description on a populated database', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    await query(
+      databaseUrl,
+      `insert into "project" (name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('Populated project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": false}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+
+    await query(
+      databaseUrl,
+      'alter table "project" drop column if exists "description"',
+    );
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0015_condemned_the_twelve')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const columns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'project' and column_name = 'description'`,
+    );
+    expect(columns).toEqual([
+      { column_name: 'description', is_nullable: 'YES' },
+    ]);
+
+    const rows = await query(
+      databaseUrl,
+      `select id, description from "project" where name = 'Populated project'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.description).toBeNull();
   });
 });
