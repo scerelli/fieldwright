@@ -55,6 +55,11 @@ class Visits extends Table {
 
   DateTimeColumn get effortEndedAt => dateTime().nullable()();
 
+  /// The Visit's recorded observers, the `observers` Sampling-effort field the
+  /// Protocol version may require, as a JSON-encoded list of names (INV-005).
+  /// Null for a Visit captured before the client schema recorded them.
+  TextColumn get effortObservers => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -280,7 +285,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -294,6 +299,8 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await migrator.createTable(visits);
+      } else if (from < 14) {
+        await migrator.addColumn(visits, visits.effortObservers);
       }
       if (from < 5) {
         await migrator.createTable(detections);
