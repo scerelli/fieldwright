@@ -173,9 +173,91 @@ void main() {
     expect(await dao.versionToken('p1'), 'token-1');
   });
 
+  test('a pulled Site with no geometry is not persisted and holds the version token back so it is fetched again', () async {
+    final dao = ConfigDao(openDatabase());
+
+    await dao.apply(
+      ConfigPull(
+        versionToken: 'token-no-geometry',
+        project: _project,
+        sites: const [ConfigSite(id: 's1', projectId: 'p1')],
+      ),
+      projectId: 'p1',
+    );
+
+    expect((await dao.project('p1'))!.name, 'River survey');
+    expect(await dao.sites('p1'), isEmpty);
+    expect(await dao.versionToken('p1'), isNull);
+  });
+
+  test('a pulled Site whose geometry type the client does not model is skipped, not fatal', () async {
+    final dao = ConfigDao(openDatabase());
+
+    await dao.apply(
+      ConfigPull(
+        versionToken: 'token-unsupported',
+        project: _project,
+        sites: const [
+          ConfigSite(
+            id: 's1',
+            projectId: 'p1',
+            geom: '{"type":"MultiPoint","coordinates":[[9.19,45.46]]}',
+          ),
+        ],
+      ),
+      projectId: 'p1',
+    );
+
+    expect((await dao.project('p1'))!.name, 'River survey');
+    expect(await dao.sites('p1'), isEmpty);
+    expect(await dao.versionToken('p1'), isNull);
+  });
+
+  test('a pulled Site with malformed geometry is skipped, not fatal', () async {
+    final dao = ConfigDao(openDatabase());
+
+    await dao.apply(
+      ConfigPull(
+        versionToken: 'token-malformed',
+        project: _project,
+        sites: const [
+          ConfigSite(
+            id: 's1',
+            projectId: 'p1',
+            geom: '{"type":"Point","coordinates":[9.19]}',
+          ),
+        ],
+      ),
+      projectId: 'p1',
+    );
+
+    expect((await dao.project('p1'))!.name, 'River survey');
+    expect(await dao.sites('p1'), isEmpty);
+    expect(await dao.versionToken('p1'), isNull);
+  });
+
+  test('a pull persists the Sites it can represent while holding the token when a Site is dropped', () async {
+    final dao = ConfigDao(openDatabase());
+
+    await dao.apply(
+      ConfigPull(
+        versionToken: 'token-partial',
+        project: _project,
+        sites: [
+          _configSite,
+          const ConfigSite(id: 's2', projectId: 'p1'),
+        ],
+      ),
+      projectId: 'p1',
+    );
+
+    expect((await dao.sites('p1')).map((site) => site.id), ['s1']);
+    expect(await dao.versionToken('p1'), isNull);
+  });
+
   group('migration', () {
     test(
-      'migrates a version 8 client schema to version 10 forward-only',
+      'migrates a version 8 client schema to version 16 forward-only',
       () async {
         final migrated = AppDatabase(
           NativeDatabase.memory(
@@ -245,16 +327,24 @@ CREATE TABLE measurements (
         final version = await migrated
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 15);
+        expect(version.data['user_version'], 16);
 
         final tables = await migrated
             .customSelect(
               "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN "
-              "('project_configs', 'protocol_versions', 'survey_periods', "
-              "'config_sites', 'config_states')",
+              "('projects', 'protocol_versions', 'survey_periods', "
+              "'config_states')",
             )
             .get();
-        expect(tables, hasLength(5));
+        expect(tables, hasLength(4));
+
+        final pullCache = await migrated
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN "
+              "('project_configs', 'config_sites')",
+            )
+            .get();
+        expect(pullCache, isEmpty);
 
         await ConfigDao(migrated).apply(fullPull(), projectId: 'p1');
         expect((await ConfigDao(migrated).project('p1'))!.name, 'River survey');
