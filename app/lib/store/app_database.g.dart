@@ -4807,6 +4807,357 @@ class ConfigStatesCompanion extends UpdateCompanion<ConfigStateRow> {
   }
 }
 
+class $AuthSessionsTable extends AuthSessions
+    with TableInfo<$AuthSessionsTable, AuthSessionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AuthSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _personIdMeta = const VerificationMeta(
+    'personId',
+  );
+  @override
+  late final GeneratedColumn<String> personId = GeneratedColumn<String>(
+    'person_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cookieMeta = const VerificationMeta('cookie');
+  @override
+  late final GeneratedColumn<String> cookie = GeneratedColumn<String>(
+    'cookie',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, personId, email, name, cookie];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'auth_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AuthSessionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('person_id')) {
+      context.handle(
+        _personIdMeta,
+        personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personIdMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('cookie')) {
+      context.handle(
+        _cookieMeta,
+        cookie.isAcceptableOrUnknown(data['cookie']!, _cookieMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cookieMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AuthSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AuthSessionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      personId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}person_id'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      cookie: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cookie'],
+      )!,
+    );
+  }
+
+  @override
+  $AuthSessionsTable createAlias(String alias) {
+    return $AuthSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class AuthSessionRow extends DataClass implements Insertable<AuthSessionRow> {
+  /// The fixed key of the single persisted sign-in.
+  final String id;
+  final String personId;
+  final String email;
+  final String name;
+  final String cookie;
+  const AuthSessionRow({
+    required this.id,
+    required this.personId,
+    required this.email,
+    required this.name,
+    required this.cookie,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['person_id'] = Variable<String>(personId);
+    map['email'] = Variable<String>(email);
+    map['name'] = Variable<String>(name);
+    map['cookie'] = Variable<String>(cookie);
+    return map;
+  }
+
+  AuthSessionsCompanion toCompanion(bool nullToAbsent) {
+    return AuthSessionsCompanion(
+      id: Value(id),
+      personId: Value(personId),
+      email: Value(email),
+      name: Value(name),
+      cookie: Value(cookie),
+    );
+  }
+
+  factory AuthSessionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AuthSessionRow(
+      id: serializer.fromJson<String>(json['id']),
+      personId: serializer.fromJson<String>(json['personId']),
+      email: serializer.fromJson<String>(json['email']),
+      name: serializer.fromJson<String>(json['name']),
+      cookie: serializer.fromJson<String>(json['cookie']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'personId': serializer.toJson<String>(personId),
+      'email': serializer.toJson<String>(email),
+      'name': serializer.toJson<String>(name),
+      'cookie': serializer.toJson<String>(cookie),
+    };
+  }
+
+  AuthSessionRow copyWith({
+    String? id,
+    String? personId,
+    String? email,
+    String? name,
+    String? cookie,
+  }) => AuthSessionRow(
+    id: id ?? this.id,
+    personId: personId ?? this.personId,
+    email: email ?? this.email,
+    name: name ?? this.name,
+    cookie: cookie ?? this.cookie,
+  );
+  AuthSessionRow copyWithCompanion(AuthSessionsCompanion data) {
+    return AuthSessionRow(
+      id: data.id.present ? data.id.value : this.id,
+      personId: data.personId.present ? data.personId.value : this.personId,
+      email: data.email.present ? data.email.value : this.email,
+      name: data.name.present ? data.name.value : this.name,
+      cookie: data.cookie.present ? data.cookie.value : this.cookie,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuthSessionRow(')
+          ..write('id: $id, ')
+          ..write('personId: $personId, ')
+          ..write('email: $email, ')
+          ..write('name: $name, ')
+          ..write('cookie: $cookie')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, personId, email, name, cookie);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AuthSessionRow &&
+          other.id == this.id &&
+          other.personId == this.personId &&
+          other.email == this.email &&
+          other.name == this.name &&
+          other.cookie == this.cookie);
+}
+
+class AuthSessionsCompanion extends UpdateCompanion<AuthSessionRow> {
+  final Value<String> id;
+  final Value<String> personId;
+  final Value<String> email;
+  final Value<String> name;
+  final Value<String> cookie;
+  final Value<int> rowid;
+  const AuthSessionsCompanion({
+    this.id = const Value.absent(),
+    this.personId = const Value.absent(),
+    this.email = const Value.absent(),
+    this.name = const Value.absent(),
+    this.cookie = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AuthSessionsCompanion.insert({
+    required String id,
+    required String personId,
+    required String email,
+    required String name,
+    required String cookie,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       personId = Value(personId),
+       email = Value(email),
+       name = Value(name),
+       cookie = Value(cookie);
+  static Insertable<AuthSessionRow> custom({
+    Expression<String>? id,
+    Expression<String>? personId,
+    Expression<String>? email,
+    Expression<String>? name,
+    Expression<String>? cookie,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (personId != null) 'person_id': personId,
+      if (email != null) 'email': email,
+      if (name != null) 'name': name,
+      if (cookie != null) 'cookie': cookie,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AuthSessionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? personId,
+    Value<String>? email,
+    Value<String>? name,
+    Value<String>? cookie,
+    Value<int>? rowid,
+  }) {
+    return AuthSessionsCompanion(
+      id: id ?? this.id,
+      personId: personId ?? this.personId,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      cookie: cookie ?? this.cookie,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (personId.present) {
+      map['person_id'] = Variable<String>(personId.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (cookie.present) {
+      map['cookie'] = Variable<String>(cookie.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuthSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('personId: $personId, ')
+          ..write('email: $email, ')
+          ..write('name: $name, ')
+          ..write('cookie: $cookie, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxEntriesTable extends OutboxEntries
     with TableInfo<$OutboxEntriesTable, OutboxRow> {
   @override
@@ -5100,6 +5451,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SurveyPeriodsTable surveyPeriods = $SurveyPeriodsTable(this);
   late final $ConfigSitesTable configSites = $ConfigSitesTable(this);
   late final $ConfigStatesTable configStates = $ConfigStatesTable(this);
+  late final $AuthSessionsTable authSessions = $AuthSessionsTable(this);
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -5117,6 +5469,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     surveyPeriods,
     configSites,
     configStates,
+    authSessions,
     outboxEntries,
   ];
 }
@@ -8627,6 +8980,215 @@ typedef $$ConfigStatesTableProcessedTableManager =
       ConfigStateRow,
       PrefetchHooks Function()
     >;
+typedef $$AuthSessionsTableCreateCompanionBuilder =
+    AuthSessionsCompanion Function({
+      required String id,
+      required String personId,
+      required String email,
+      required String name,
+      required String cookie,
+      Value<int> rowid,
+    });
+typedef $$AuthSessionsTableUpdateCompanionBuilder =
+    AuthSessionsCompanion Function({
+      Value<String> id,
+      Value<String> personId,
+      Value<String> email,
+      Value<String> name,
+      Value<String> cookie,
+      Value<int> rowid,
+    });
+
+class $$AuthSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $AuthSessionsTable> {
+  $$AuthSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get personId => $composableBuilder(
+    column: $table.personId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cookie => $composableBuilder(
+    column: $table.cookie,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AuthSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AuthSessionsTable> {
+  $$AuthSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get personId => $composableBuilder(
+    column: $table.personId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cookie => $composableBuilder(
+    column: $table.cookie,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AuthSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AuthSessionsTable> {
+  $$AuthSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get personId =>
+      $composableBuilder(column: $table.personId, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get cookie =>
+      $composableBuilder(column: $table.cookie, builder: (column) => column);
+}
+
+class $$AuthSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AuthSessionsTable,
+          AuthSessionRow,
+          $$AuthSessionsTableFilterComposer,
+          $$AuthSessionsTableOrderingComposer,
+          $$AuthSessionsTableAnnotationComposer,
+          $$AuthSessionsTableCreateCompanionBuilder,
+          $$AuthSessionsTableUpdateCompanionBuilder,
+          (
+            AuthSessionRow,
+            BaseReferences<_$AppDatabase, $AuthSessionsTable, AuthSessionRow>,
+          ),
+          AuthSessionRow,
+          PrefetchHooks Function()
+        > {
+  $$AuthSessionsTableTableManager(_$AppDatabase db, $AuthSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AuthSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AuthSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AuthSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> personId = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> cookie = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AuthSessionsCompanion(
+                id: id,
+                personId: personId,
+                email: email,
+                name: name,
+                cookie: cookie,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String personId,
+                required String email,
+                required String name,
+                required String cookie,
+                Value<int> rowid = const Value.absent(),
+              }) => AuthSessionsCompanion.insert(
+                id: id,
+                personId: personId,
+                email: email,
+                name: name,
+                cookie: cookie,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AuthSessionsTable, AuthSessionRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $AuthSessionsTable,
+                    AuthSessionRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AuthSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AuthSessionsTable,
+      AuthSessionRow,
+      $$AuthSessionsTableFilterComposer,
+      $$AuthSessionsTableOrderingComposer,
+      $$AuthSessionsTableAnnotationComposer,
+      $$AuthSessionsTableCreateCompanionBuilder,
+      $$AuthSessionsTableUpdateCompanionBuilder,
+      (
+        AuthSessionRow,
+        BaseReferences<_$AppDatabase, $AuthSessionsTable, AuthSessionRow>,
+      ),
+      AuthSessionRow,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxEntriesTableCreateCompanionBuilder =
     OutboxEntriesCompanion Function({
       required String visitId,
@@ -8935,6 +9497,8 @@ class $AppDatabaseManager {
       $$ConfigSitesTableTableManager(_db, _db.configSites);
   $$ConfigStatesTableTableManager get configStates =>
       $$ConfigStatesTableTableManager(_db, _db.configStates);
+  $$AuthSessionsTableTableManager get authSessions =>
+      $$AuthSessionsTableTableManager(_db, _db.authSessions);
   $$OutboxEntriesTableTableManager get outboxEntries =>
       $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
 }
