@@ -154,7 +154,7 @@ void main() {
       );
 
       final payload = buildSubmitPayload(
-        visit,
+        SubmissionAggregate(visit: visit),
         projectId: 'project-1',
         requiredEffortFields: SamplingEffortField.values,
         detectionMethods: const <String>['visual', 'acoustic'],
@@ -185,7 +185,7 @@ void main() {
       );
 
       final payload = buildSubmitPayload(
-        visit,
+        SubmissionAggregate(visit: visit),
         projectId: 'project-1',
         requiredEffortFields: const <SamplingEffortField>[
           SamplingEffortField.duration,

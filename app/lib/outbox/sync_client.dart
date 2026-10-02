@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_client.dart';
 import '../auth/auth_provider.dart';
+import '../features/visits/detection.dart';
+import '../features/visits/determination.dart';
+import '../features/visits/evidence.dart';
+import '../features/visits/measurement.dart';
 import '../features/visits/visit.dart';
 import '../protocol/protocol.dart';
 
@@ -37,15 +41,39 @@ class NotAuthenticated extends SubmissionUnavailable {
   const NotAuthenticated(super.message);
 }
 
-/// The client side of the versioned sync API's Visit submission
-/// (`ARCHITECTURE.md`, ADR-0011): `POST /api/v1/visits` over the pinned dio
-/// client (`TECH_STACK.md`).
-///
-/// The client-generated UUIDv7 `id` is the idempotency key, so a retry or a
-/// re-upload of the same Visit never creates a second Visit on the server. A
-/// response in the 4xx range is a rejection; a 5xx response, a timeout, or a
-/// lost connection is retryable and raises [SubmissionUnavailable].
-/// The `POST /api/v1/visits` body for [visit] (`ARCHITECTURE.md`, ADR-0011).
+/// One Detection of a [SubmissionAggregate] together with the Determinations
+/// recorded against it, so the submission nests them under the Detection the
+/// server's `SubmitVisitDto` expects.
+class SubmittedDetection {
+  const SubmittedDetection({
+    required this.detection,
+    this.determinations = const <Determination>[],
+  });
+
+  final Detection detection;
+  final List<Determination> determinations;
+}
+
+/// The whole Visit aggregate a submission carries (`DOMAIN.md` › Visit): the
+/// Visit, its Detections with their Determinations, its Measurements with their
+/// Provenance, and its Evidence. The outbox loads it from the local store and
+/// [buildSubmitPayload] serializes it to the server's submit contract.
+class SubmissionAggregate {
+  const SubmissionAggregate({
+    required this.visit,
+    this.detections = const <SubmittedDetection>[],
+    this.measurements = const <Measurement>[],
+    this.evidence = const <Evidence>[],
+  });
+
+  final Visit visit;
+  final List<SubmittedDetection> detections;
+  final List<Measurement> measurements;
+  final List<Evidence> evidence;
+}
+
+/// Builds the `POST /api/v1/visits` body for [aggregate], matching the server's
+/// `SubmitVisitDto` (`ARCHITECTURE.md`'s sync compatibility surface).
 ///
 /// `effort` carries a value under each Sampling-effort wire name the Visit's
 /// Protocol version requires (INV-005): `start` is the recorded start,
@@ -53,14 +81,21 @@ class NotAuthenticated extends SubmissionUnavailable {
 /// observers, and `detectionMethods` the methods the Visit's Detections record.
 /// The server only checks presence, never type; a field the version does not
 /// require is omitted, so it can never be null where the server expects it.
+///
+/// Every Detection is serialized with its Determinations nested; every
+/// Measurement carries its Provenance; the Evidence manifest carries only
+/// Evidence that has been uploaded (a non-null [Evidence.storageKey]) and
+/// references the Detection it belongs to by `detectionIndex`. The server
+/// ignores unknown fields, so the shape stays additive-only (ADR-0011).
 Map<String, dynamic> buildSubmitPayload(
-  Visit visit, {
+  SubmissionAggregate aggregate, {
   required String projectId,
   List<SamplingEffortField> requiredEffortFields =
       const <SamplingEffortField>[],
   List<String> detectionMethods = const <String>[],
   DateTime? submittedAt,
 }) {
+  final visit = aggregate.visit;
   final startedAt = visit.effort.startedAt.toUtc();
   final endedAt = visit.effort.endedAt?.toUtc();
   final required = requiredEffortFields.toSet();
@@ -74,6 +109,10 @@ Map<String, dynamic> buildSubmitPayload(
     if (required.contains(SamplingEffortField.detectionMethods))
       'detectionMethods': detectionMethods,
   };
+  final detectionIndexByTaxon = <String, int>{
+    for (var index = 0; index < aggregate.detections.length; index++)
+      aggregate.detections[index].detection.taxonRef: index,
+  };
   return <String, dynamic>{
     'id': visit.id,
     'projectId': projectId,
@@ -84,9 +123,113 @@ Map<String, dynamic> buildSubmitPayload(
     'startedAt': startedAt.toIso8601String(),
     'endedAt': endedAt?.toIso8601String(),
     'submittedAt': (submittedAt ?? DateTime.now()).toUtc().toIso8601String(),
+    'detections': <Map<String, dynamic>>[
+      for (final entry in aggregate.detections)
+        <String, dynamic>{
+          'taxon': entry.detection.taxonRef,
+          'detected': entry.detection.detected,
+          'method': entry.detection.method,
+          if (entry.detection.count != null) 'count': entry.detection.count,
+          if (entry.detection.opportunistic) 'opportunistic': true,
+          if (entry.determinations.isNotEmpty)
+            'determinations': _serializeDeterminations(entry.determinations),
+        },
+    ],
+    'measurements': <Map<String, dynamic>>[
+      for (final measurement in aggregate.measurements)
+        <String, dynamic>{
+          'value': measurement.value,
+          // The server requires `unit` to be a string; a unitless covariate
+          // submits an empty unit rather than a null the server would reject.
+          'unit': measurement.unit ?? '',
+          'provenance': measurement.provenance.toJson(),
+        },
+    ],
+    'evidence': <Map<String, dynamic>>[
+      for (final evidence in aggregate.evidence)
+        if (evidence.storageKey != null)
+          <String, dynamic>{
+            if (detectionIndexByTaxon[evidence.taxonRef] != null)
+              'detectionIndex': detectionIndexByTaxon[evidence.taxonRef]!,
+            'kind': evidence.kind.name,
+            'storageKey': evidence.storageKey!,
+            'sha256': evidence.contentHash,
+          },
+    ],
   };
 }
 
+/// Serializes [determinations] for one Detection in the order the server needs:
+/// a replaced Determination before its revision. Each revision then carries
+/// `replacesIndex`, its position in this array, so the server resolves it to the
+/// stored Determination's id and the append-only chain survives the submission
+/// (INV-009). A `replacesId` naming no Determination in the array emits no
+/// index rather than a dangling one the server would reject.
+List<Map<String, dynamic>> _serializeDeterminations(
+  List<Determination> determinations,
+) {
+  final ordered = _inRevisionOrder(determinations);
+  final indexById = <String, int>{
+    for (var index = 0; index < ordered.length; index++)
+      ordered[index].id: index,
+  };
+  return <Map<String, dynamic>>[
+    for (final determination in ordered)
+      <String, dynamic>{
+        'taxon': determination.taxon,
+        if (determination.qualifier != null)
+          'qualifier': determination.qualifier!.wireValue,
+        if (determination.specimenCode != null)
+          'specimenCode': determination.specimenCode,
+        'determiner': determination.determiner,
+        'date': determination.date.toUtc().toIso8601String(),
+        if (determination.replacesId != null &&
+            indexById.containsKey(determination.replacesId))
+          'replacesIndex': indexById[determination.replacesId],
+      },
+  ];
+}
+
+/// Orders [determinations] so each one that replaces another follows it,
+/// preserving the input order otherwise. Append-only storage already appends a
+/// revision after its predecessor; this makes the invariant hold for any input
+/// order, so [buildSubmitPayload] never emits a forward or dangling index. A
+/// cycle — which append-only storage cannot produce — is broken by input order
+/// so serialization always terminates.
+List<Determination> _inRevisionOrder(List<Determination> determinations) {
+  final byId = <String, Determination>{
+    for (final determination in determinations) determination.id: determination,
+  };
+  final ordered = <Determination>[];
+  final placed = <String>{};
+  final visiting = <String>{};
+  void place(Determination determination) {
+    if (placed.contains(determination.id) ||
+        visiting.contains(determination.id)) {
+      return;
+    }
+    visiting.add(determination.id);
+    final replacedId = determination.replacesId;
+    final replaced = replacedId == null ? null : byId[replacedId];
+    if (replaced != null) place(replaced);
+    visiting.remove(determination.id);
+    if (placed.add(determination.id)) ordered.add(determination);
+  }
+
+  for (final determination in determinations) {
+    place(determination);
+  }
+  return ordered;
+}
+
+/// The client side of the versioned sync API's Visit submission
+/// (`ARCHITECTURE.md`, ADR-0011): `POST /api/v1/visits` over the pinned dio
+/// client (`TECH_STACK.md`).
+///
+/// The client-generated UUIDv7 `id` is the idempotency key, so a retry or a
+/// re-upload of the same Visit never creates a second Visit on the server. A
+/// response in the 4xx range is a rejection; a 5xx response, a timeout, or a
+/// lost connection is retryable and raises [SubmissionUnavailable].
 class SyncClient {
   SyncClient({required String baseUrl, required this._auth, Dio? dio})
     : _dio = dio ?? Dio(BaseOptions(baseUrl: baseUrl));
@@ -96,13 +239,13 @@ class SyncClient {
 
   static const String submitPath = '/api/v1/visits';
 
-  /// Submits [visit] to the sync API under [projectId]. [requiredEffortFields]
-  /// and [detectionMethods] are the Visit's Protocol-version requirements and
-  /// its recorded Detection methods, carried into the payload's `effort`.
-  /// `submittedAt` defaults to now; it is a parameter so a test can pin the
-  /// timestamp.
+  /// Submits the full [aggregate] to the sync API under [projectId].
+  /// [requiredEffortFields] and [detectionMethods] are the Visit's
+  /// Protocol-version requirements and its recorded Detection methods, carried
+  /// into the payload's `effort`. `submittedAt` defaults to now; it is a
+  /// parameter so a test can pin the timestamp.
   Future<SubmitResult> submit(
-    Visit visit, {
+    SubmissionAggregate aggregate, {
     required String projectId,
     List<SamplingEffortField> requiredEffortFields =
         const <SamplingEffortField>[],
@@ -110,7 +253,7 @@ class SyncClient {
     DateTime? submittedAt,
   }) async {
     final payload = buildSubmitPayload(
-      visit,
+      aggregate,
       projectId: projectId,
       requiredEffortFields: requiredEffortFields,
       detectionMethods: detectionMethods,

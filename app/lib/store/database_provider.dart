@@ -7,6 +7,10 @@ import '../outbox/outbox.dart';
 import '../outbox/sync_client.dart';
 import 'app_database.dart';
 import 'config_dao.dart';
+import 'detection_dao.dart';
+import 'determination_dao.dart';
+import 'evidence_dao.dart';
+import 'measurement_dao.dart';
 import 'outbox_dao.dart';
 import 'site_dao.dart';
 import 'visit_dao.dart';
@@ -41,6 +45,11 @@ final outboxProvider = Provider<Outbox>(
     client: ref.watch(syncClientProvider),
     visits: ref.watch(visitDaoProvider),
     sites: ref.watch(siteDaoProvider),
+    config: ref.watch(configDaoProvider),
+    detections: ref.watch(detectionDaoProvider),
+    determinations: ref.watch(determinationDaoProvider),
+    evidence: ref.watch(evidenceDaoProvider),
+    measurements: ref.watch(measurementDaoProvider),
   ),
 );
 
