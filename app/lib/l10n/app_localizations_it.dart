@@ -533,4 +533,31 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get syncIndicatorRetry => 'Riprova';
+
+  @override
+  String get helpTitle => 'Manuale';
+
+  @override
+  String get helpOpen => 'Apri il manuale';
+
+  @override
+  String get helpCreateProjectTitle => 'Crea un Progetto';
+
+  @override
+  String get helpCreateProjectBody =>
+      'Dall\'elenco Progetti, tocca + per creare un Progetto — nessun account richiesto. Assegna un nome e fissa un riferimento tassonomico; potrai aggiungere una versione del Protocollo, i Periodi di indagine e i Siti in seguito.';
+
+  @override
+  String get helpCaptureVisitTitle => 'Registra una Visita';
+
+  @override
+  String get helpCaptureVisitBody =>
+      'Apri un Progetto e avvia una Visita in un Sito; parte il timer dello sforzo di campionamento. Registra ogni taxon obiettivo come rilevato o non rilevato, aggiungi taxa opportunistici ed Evidenze, poi termina la Visita.';
+
+  @override
+  String get helpSubmitVisitTitle => 'Invia la Visita';
+
+  @override
+  String get helpSubmitVisitBody =>
+      'Invia una Visita terminata quando hai connessione. L\'invio può essere ritentato senza rischi, la Visita diventa immutabile e un validatore può convalidarla quando il Progetto attiva la convalida.';
 }

@@ -35,7 +35,17 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navProjects)),
+      appBar: AppBar(
+        title: Text(l10n.navProjects),
+        actions: [
+          IconButton(
+            key: const Key('open_help'),
+            icon: const Icon(Icons.help_outline),
+            tooltip: l10n.helpOpen,
+            onPressed: () => context.push('/help'),
+          ),
+        ],
+      ),
       body: _projects.isEmpty
           ? EmptyState(
               title: l10n.projectsEmptyTitle,

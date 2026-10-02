@@ -160,5 +160,13 @@
   "syncIndicatorSyncing": "Sincronizzazione in corso",
   "syncIndicatorSynced": "Sincronizzata",
   "syncIndicatorFailed": "Sincronizzazione non riuscita",
-  "syncIndicatorRetry": "Riprova"
+  "syncIndicatorRetry": "Riprova",
+  "helpTitle": "Manuale",
+  "helpOpen": "Apri il manuale",
+  "helpCreateProjectTitle": "Crea un Progetto",
+  "helpCreateProjectBody": "Dall'elenco Progetti, tocca + per creare un Progetto — nessun account richiesto. Assegna un nome e fissa un riferimento tassonomico; potrai aggiungere una versione del Protocollo, i Periodi di indagine e i Siti in seguito.",
+  "helpCaptureVisitTitle": "Registra una Visita",
+  "helpCaptureVisitBody": "Apri un Progetto e avvia una Visita in un Sito; parte il timer dello sforzo di campionamento. Registra ogni taxon obiettivo come rilevato o non rilevato, aggiungi taxa opportunistici ed Evidenze, poi termina la Visita.",
+  "helpSubmitVisitTitle": "Invia la Visita",
+  "helpSubmitVisitBody": "Invia una Visita terminata quando hai connessione. L'invio può essere ritentato senza rischi, la Visita diventa immutabile e un validatore può convalidarla quando il Progetto attiva la convalida."
 }
