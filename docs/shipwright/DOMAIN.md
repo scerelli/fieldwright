@@ -30,14 +30,20 @@ or future method.
 
 ### Project (aggregate)
 
-- identity: server-assigned on creation by the creator.
+- identity: assigned at creation and never changes — by the client (a UUIDv7)
+  when the Project is created offline, or by the server when it is created
+  online. Linking a locally-created Project to an account preserves that
+  identity.
 - holds: Memberships (role: creator, collector, or validator); Protocol
   versions; Survey periods; the Target list or complete-list scope; and
   settings — validation on/off, sensitive-taxa coordinate obfuscation, and the
   pinned Taxonomic reference version.
 - lifecycle: `active` → `archived`. Archived projects keep their data readable
   and exports reproducible but accept no new visits.
-- invariants: INV-007, INV-011.
+- A Project may be created and populated with Visits with no account. Whether
+  it has been linked to a person is a **sync/link state**, not a lifecycle
+  state: the lifecycle is the same before and after linking.
+- invariants: INV-007, INV-011, INV-015, INV-016.
 
 ### Protocol version (entity inside Project)
 
@@ -158,6 +164,8 @@ stateDiagram-v2
 | INV-012 | A Site belongs to exactly one Project and records whether it was planned or field-created. | Site | both |
 | INV-013 | Validation, when enabled, applies only to a submitted Visit; a rejected Visit keeps its submitted data and gets a Correction, never deletion. | Visit | server |
 | INV-014 | A person has at most one Membership in a project, holding exactly one role. | Project | server |
+| INV-015 | A Project's identity is assigned at creation — by the client when created offline — and never changes; linking preserves it. | Project | both |
+| INV-016 | Creating a Project and capturing Visits require no account; linking them to a person creates exactly one creator Membership (INV-014). | Project | both |
 
 ## Events
 
@@ -170,6 +178,7 @@ stateDiagram-v2
 | Visit validated | a validator approves a submitted visit | visit ref, validator, time | project consumers |
 | Visit rejected | a validator rejects a submitted visit | visit ref, validator, time, reason | collector (Correction) |
 | Protocol version frozen | the first Visit references a version | protocol id, version | server |
+| Project linked | a person links a locally-created Project to their account | project identity, person | server (Membership), client (outbox) |
 
 ## Policies
 
@@ -181,6 +190,8 @@ stateDiagram-v2
   replaces and record author, time, and reason.
 - When a **Protocol version is first referenced by a Visit**, freeze it.
 - When **validation is disabled** in a Project, a submitted Visit is terminal.
+- When a **Project is linked** to a person, store it under its existing
+  identity, create exactly one creator Membership, and upload its Visits.
 
 ## Provenance & audit
 
@@ -188,7 +199,8 @@ Who, when, and how is traceable for every visit, detection, and measurement.
 Determinations carry their determiner and date and link to the ones they
 replace. Corrections carry author, time, and reason. Submitted Visits and
 Protocol versions are immutable, and their history is retained; nothing is
-deleted to fix a mistake.
+deleted to fix a mistake. Linking a locally-created Project records who linked
+it and when; the Project's identity is unchanged by the link.
 
 ## External vocabularies
 
