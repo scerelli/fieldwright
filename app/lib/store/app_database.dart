@@ -262,6 +262,27 @@ class ConfigStates extends Table {
   Set<Column<Object>> get primaryKey => {projectId};
 }
 
+/// The signed-in person and their auth cookie, kept so a relaunch does not
+/// sign them out (`ARCHITECTURE.md` store module). A single row keyed by a
+/// fixed id holds the current sign-in; saving replaces it and clearing deletes
+/// it.
+@DataClassName('AuthSessionRow') /* glossary:allow auth session */
+class AuthSessions /* glossary:allow auth session */ extends Table {
+  /// The fixed key of the single persisted sign-in.
+  TextColumn get id => text()();
+
+  TextColumn get personId => text()();
+
+  TextColumn get email => text()();
+
+  TextColumn get name => text()();
+
+  TextColumn get cookie => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Sites,
@@ -275,6 +296,7 @@ class ConfigStates extends Table {
     SurveyPeriods,
     ConfigSites,
     ConfigStates,
+    AuthSessions, // glossary:allow auth session
     OutboxEntries,
   ],
 )
@@ -285,7 +307,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -333,6 +355,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 11) {
         await migrator.createTable(outboxEntries);
+      }
+      if (from < 15) {
+        await migrator.createTable(
+          authSessions, // glossary:allow auth session
+        );
       }
     },
   );
