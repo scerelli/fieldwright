@@ -6,9 +6,11 @@ IBIS turns a project's protocol into the default field workflow: a creator
 defines a Project, its Protocol versions, Survey periods, Sites and Target
 list; collectors capture Visits offline and submit them; submitted Visits are
 immutable and change only through Corrections; validators may validate them;
-researchers export occupancy- and GBIF-ready data. Recurring vocabulary is
-defined in `GLOSSARY.md` and the model in `DOMAIN.md` — this document maps
-them onto modules and persistence, and never restates them.
+researchers export occupancy- and GBIF-ready data. A creator may work with no
+account — creating a Project and capturing Visits locally — and sign up later,
+linking that local data to the new account. Recurring vocabulary is defined in
+`GLOSSARY.md` and the model in `DOMAIN.md` — this document maps them onto
+modules and persistence, and never restates them.
 
 ## Quality attributes
 
@@ -55,9 +57,9 @@ flowchart LR
 ## Module map (container view)
 
 Each module names the `DOMAIN.md` aggregates it owns; an aggregate has exactly
-one owner. Client modules own no authoritative aggregate — the in-progress
-Visit and a field-created Site exist transiently on the device until
-submitted.
+one owner. Client modules own no **server-authoritative** aggregate; a
+locally-created Project (until linked), an in-progress Visit, and a
+field-created Site exist on the device until linked or submitted.
 
 ### Client — `app/` (Flutter)
 
@@ -65,19 +67,19 @@ submitted.
 |---|---|---|---|
 | `shell` | App shell, routing, design tokens, Riverpod wiring (the foundational Epic) | navigation + theme providers | — |
 | `identity` | Better Auth client; current person and their project roles | sign-in/out, session | — |
-| `projects` | Pull and cache Project config, Protocol version, Survey periods, Target list, Sites | config providers | — |
+| `projects` | Own the local Project aggregate: create and edit Project config offline with no account, and pull/join existing Projects — Protocol version, Survey periods, Target list, Sites | config + creation providers | local Project (until linked) |
 | `capture` | Offline Visit capture loop: effort timer, per-target Detection entry, opportunistic taxa, covariates, end Visit | Visit state notifiers | in-progress Visit (local) |
 | `sites` | Site list/map display and field Site creation | site editor | field-created Site (local) |
 | `store` | drift database, schema, forward-only migrations | DAOs | local SQLite schema |
 | `sensors` | sensors_plus / geolocator / record / image_picker wrappers + Provenance | measurement/evidence services | — |
-| `outbox` | Submission upload, retry/backoff, config pull | sync orchestration | — |
+| `outbox` | Submission upload, retry/backoff, config pull, and the link/upload of locally-created Projects and their Visits on sign-up | sync orchestration | — |
 
 ### Server — `server/` (NestJS, REST)
 
 | Module | Responsibility | Public interface | Owns |
 |---|---|---|---|
 | `identity` | Better Auth integration; resolves person and Memberships | auth guard, `@CurrentPerson()` | — |
-| `projects` | Project setup and config for sync | `/projects`, `/protocol-versions`, `/survey-periods` | Project (with Membership, ProtocolVersion, SurveyPeriod, Target list, settings, pinned TaxonomicReference) |
+| `projects` | Project setup and config for sync; `POST /projects` takes an optional client-supplied id (idempotent) so a locally-created Project links under its own identity | `/projects`, `/protocol-versions`, `/survey-periods` | Project (with Membership, ProtocolVersion, SurveyPeriod, Target list, settings, pinned TaxonomicReference) |
 | `sites` | Site lifecycle | `/sites` | Site |
 | `visits` | Idempotent ingest, immutability, corrections, validation | `/visits`, `/visits/:id/corrections` | Visit (with Detection, Determination, Measurement, Evidence metadata, Correction) |
 | `media` | Evidence storage abstraction and upload/download | `/media` | — |
@@ -110,13 +112,14 @@ erDiagram
   VISIT ||--o{ CORRECTION : corrected_by
 ```
 
-- **Project** → `project` (settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`.
+- **Project** → `project` (settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`. The `project.id` is the client-assigned UUIDv7 for a locally-created Project, or the server-generated id for one created online (ADR-0014).
 - **Site** → `site` with `geom geometry(Geometry, 4326)` and `origin` enum; `site_measurement` for site covariates.
 - **Visit** → `visit` (project/site/survey_period/protocol_version FKs, `state` enum, effort jsonb, timestamps, validation fields); `detection` (unique per target taxon per Visit, `opportunistic` flag); `determination` (`replaces_id` self-reference for append-only revisions); `measurement` (value, unit, `provenance` jsonb, owner = visit or detection); `evidence` (storage key + `sha256`, immutable); `correction` (author, reason, payload jsonb, append-only).
 - **Constraints**: FKs, `state` enums, `CHECK` on non-negative counts, `ST_IsValid`/SRID checks, partial unique index `(visit_id, taxon_ref) WHERE NOT opportunistic`.
 - **Immutability & append-only** (INV-001, INV-009): no UPDATE path for a submitted Visit, Determination or Correction in application code.
 - **Provenance** (INV-010): `provenance.method` NOT NULL whenever a `measurement` row exists.
 - **Sensitive coordinates** (INV-011): true geometry is stored; obfuscation happens in the read/export layer, never in storage.
+- **Client local store** (drift, ADR-0002): owns one local **Project** aggregate — `projects` with its `protocol_versions`, `survey_periods`, and `sites` — populated by offline creation and the config pull alike; there is no separate pull-cache copy. A locally-created Project keeps its client-assigned identity when linked (INV-015).
 - **Auth tables** are owned by Better Auth, co-located in Postgres via Drizzle.
 
 ## Compatibility surfaces
@@ -124,6 +127,7 @@ erDiagram
 | Surface | Paths | Other side & skew tolerated | Rule | Proof owed |
 |---|---|---|---|---|
 | Sync REST API | `server/src/sync/**`, `app/lib/outbox/**` | app ↔ server; server may be one release behind | `/api/v1`, additive only, unknown fields ignored | contract tests both sides (OpenAPI + client) |
+| Projects API | `server/src/projects/**`, `app/lib/projects/**` | app ↔ server | additive; `POST /projects` accepts an optional client-supplied id (idempotent create-or-return) | contract tests both sides |
 | Protocol format | `packages/protocol/**` | app ↔ server | versioned; additive changes extend; Project pins a version | golden fixtures validated in Dart and TS |
 | Client schema | `app/lib/store/**` | device upgrades | forward-only migrations | migration test from each prior version |
 | Server schema | `server/drizzle/**` | operator upgrades | forward-only migrations | migration test on a populated DB |
@@ -134,9 +138,33 @@ erDiagram
 
 **Authentication.** The client signs in against Better Auth; the API resolves
 the person and their Memberships on every request via the auth guard. Roles
-are project-scoped, never global.
+are project-scoped, never global. Signing in is never required to create a
+Project or capture a Visit (INV-016).
 
-**Primary journey.**
+**Accountless journey.** A creator with no account creates a Project locally
+(client-assigned UUIDv7 identity, INV-015) and captures Visits offline; its
+Protocol version, Survey periods and Sites are local. Nothing reaches the
+server.
+
+**Link journey.** On sign-up, the client outbox links the local data:
+`POST /projects` with the client id creates the Project server-side and a
+single creator Membership (INV-014, INV-016), the config uploads, then the
+Visits submit idempotently on their UUIDv7 ids.
+
+```mermaid
+sequenceDiagram
+  participant C as App
+  participant S as Server
+  C->>C: create Project + config offline (client id)
+  C->>C: capture Visits offline
+  C->>C: person signs up
+  C->>S: POST /projects (client id, idempotent) → creator Membership
+  C->>S: upload Protocol version / Survey periods / Sites
+  C->>S: submit Visits (idempotent, UUIDv7)
+  S-->>C: linked
+```
+
+**Primary journey (linked project).**
 
 ```mermaid
 sequenceDiagram
@@ -157,7 +185,7 @@ sequenceDiagram
 
 ## Cross-cutting concerns
 
-- **Error handling**: one error shape on the API; the client outbox retries with backoff and is idempotent on UUIDv7 ids (ADR-0011).
+- **Error handling**: one error shape on the API; the client outbox retries with backoff and is idempotent on UUIDv7 ids (ADR-0011), including the link upload.
 - **Logging/observability**: structured logs; `GET /healthz` (liveness) and `/readyz` (DB + Redis); queue depth visible to the operator.
 - **Config/environments**: environment variables via Compose — DB/Redis URLs, Better Auth secret, optional S3 keys, tile URL.
 - **Security boundaries**: internet → API (TLS terminated by the operator's reverse proxy), API → Postgres/Redis internal only; authn via Better Auth, authz via project Membership; sensitive coordinates obfuscated before leaving the server (INV-011).
@@ -196,6 +224,7 @@ flowchart TB
 - Versioned additive `/api/v1`, idempotent UUIDv7 submission, append-only corrections (ADR-0011).
 - Evidence uploaded through the API, presigned S3 when configured (ADR-0012).
 - Hosting via Docker Compose + GHCR (ADR-0006); storage volume by default with optional S3 (ADR-0007).
+- Local-first Projects: client-assigned identity, linked on sign-up (ADR-0014).
 
 ## Open questions
 
