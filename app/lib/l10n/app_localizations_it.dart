@@ -28,8 +28,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get projectsEmptyTitle => 'Nessun progetto';
 
   @override
-  String get projectsEmptyMessage =>
-      'Crea o unisciti a un progetto per iniziare.';
+  String get projectsEmptyMessage => 'Crea un progetto per iniziare.';
 
   @override
   String get sitesEmptyTitle => 'Nessun sito';
