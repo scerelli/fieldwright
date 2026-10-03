@@ -23,6 +23,16 @@ const Project _project = Project(
   taxonomicReferenceVersion: '2024.1',
 );
 
+const Project _exampleProject = Project(
+  id: 'example-1',
+  name: 'Example survey',
+  example: true,
+  validationEnabled: false,
+  sensitiveTaxaObfuscation: false,
+  taxonomicReferenceId: 'it-flora',
+  taxonomicReferenceVersion: '2024.1',
+);
+
 const ProtocolDocument _document = ProtocolDocument(
   protocolId: 'alpine-birds-2026',
   version: 1,
@@ -177,7 +187,7 @@ CREATE TABLE projects (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     final projects = ProjectDao(migrated);
     final project = await projects.findById('p1');
@@ -417,7 +427,7 @@ CREATE TABLE projects (
     expect(transport.name, 'Linked site');
   });
 
-  test('migration: a version 15 store migrates forward to 17, moving the pull '
+  test('migration: a version 15 store migrates forward to 18, moving the pull '
       'cache into the Project aggregate', () async {
     final migrated = AppDatabase(
       NativeDatabase.memory(
@@ -473,7 +483,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     final project = await ProjectDao(migrated).findById('p1');
     expect(project, isNotNull);
@@ -493,7 +503,7 @@ CREATE TABLE config_sites (
   });
 
   test('migration: a version 15 store with geometry-less and undated '
-      'config_sites rows migrates to 17 without aborting', () async {
+      'config_sites rows migrates to 18 without aborting', () async {
     final migrated = AppDatabase(
       NativeDatabase.memory(
         setup: (raw) {
@@ -557,7 +567,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     // The geometry-less row cannot become a domain Site and is dropped; the
     // undated row is kept with a safe created_at; the valid row survives.
@@ -678,4 +688,112 @@ CREATE TABLE config_sites (
       expect(sites.map((site) => site.id), ['s-modeled']);
     },
   );
+
+  test('C1: the store persists the example flag and reads it back after the '
+      'database is reopened (INV-017)', () async {
+    final path = '${_tempDirectory().path}/ibis.sqlite';
+
+    var database = AppDatabase.open(path);
+    final dao = ProjectDao(database);
+    await dao.save(_exampleProject);
+    await dao.save(_project);
+    await database.close();
+
+    database = AppDatabase.open(path);
+    addTearDown(database.close);
+    final reopened = ProjectDao(database);
+
+    expect((await reopened.findById('example-1'))!.example, isTrue);
+    expect((await reopened.findById('p1'))!.example, isFalse);
+  });
+
+  test('C2: the Project model carries whether it is an Example Project', () {
+    const real = Project(
+      id: 'p1',
+      name: 'River survey',
+      validationEnabled: true,
+      sensitiveTaxaObfuscation: false,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+    );
+
+    expect(_exampleProject.example, isTrue);
+    expect(real.example, isFalse);
+  });
+
+  test(
+    'C3: an Example Project is excluded from linking and export (INV-017)',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final dao = ProjectDao(database);
+      await dao.save(_exampleProject);
+      await dao.save(_project);
+
+      // Linking and export enumerate non-example Projects only.
+      final linkable = await dao.nonExampleProjects();
+      expect(linkable.map((project) => project.id), ['p1']);
+
+      // The flag is client-only: it never travels over the server wire, so a
+      // Project the server returns can never be an Example Project and a
+      // linking payload never carries the flag.
+      final fromServer = Project.fromJson(<String, dynamic>{
+        'id': 'p9',
+        'name': 'Joined survey',
+        'example': true,
+        'settings': <String, dynamic>{},
+        'taxonomicReferenceId': 'it-flora',
+        'taxonomicReferenceVersion': '2024.1',
+      });
+      expect(fromServer.example, isFalse);
+      expect(
+        const CreateProjectInput(
+          name: 'New survey',
+          validationEnabled: false,
+          sensitiveTaxaObfuscation: false,
+          taxonomicReferenceId: 'it-flora',
+          taxonomicReferenceVersion: '2024.1',
+        ).toJson().containsKey('example'),
+        isFalse,
+      );
+    },
+  );
+
+  test('migration: a version 17 store gains the Project example column, '
+      'preserving an existing Project', () async {
+    final migrated = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute('''
+CREATE TABLE projects (
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  validation_enabled INTEGER NOT NULL,
+  sensitive_taxa_obfuscation INTEGER NOT NULL,
+  taxonomic_reference_id TEXT NOT NULL,
+  taxonomic_reference_version TEXT NOT NULL,
+  PRIMARY KEY (id)
+);
+''');
+          raw.execute(
+            "INSERT INTO projects VALUES "
+            "('p1', 'River survey', NULL, 1, 0, 'it-flora', '2024.1')",
+          );
+          raw.execute('PRAGMA user_version = 17');
+        },
+      ),
+    );
+    addTearDown(migrated.close);
+
+    final version = await migrated
+        .customSelect('PRAGMA user_version')
+        .getSingle();
+    expect(version.data['user_version'], 18);
+
+    final project = await ProjectDao(migrated).findById('p1');
+    expect(project, isNotNull);
+    expect(project!.name, 'River survey');
+    expect(project.example, isFalse);
+  });
 }
