@@ -3119,6 +3119,21 @@ class $ProjectsTable extends Projects
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _exampleMeta = const VerificationMeta(
+    'example',
+  );
+  @override
+  late final GeneratedColumn<bool> example = GeneratedColumn<bool>(
+    'example',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("example" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3128,6 +3143,7 @@ class $ProjectsTable extends Projects
     sensitiveTaxaObfuscation,
     taxonomicReferenceId,
     taxonomicReferenceVersion,
+    example,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3207,6 +3223,12 @@ class $ProjectsTable extends Projects
     } else if (isInserting) {
       context.missing(_taxonomicReferenceVersionMeta);
     }
+    if (data.containsKey('example')) {
+      context.handle(
+        _exampleMeta,
+        example.isAcceptableOrUnknown(data['example']!, _exampleMeta),
+      );
+    }
     return context;
   }
 
@@ -3244,6 +3266,10 @@ class $ProjectsTable extends Projects
         DriftSqlType.string,
         data['${effectivePrefix}taxonomic_reference_version'],
       )!,
+      example: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}example'],
+      )!,
     );
   }
 
@@ -3265,6 +3291,11 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final bool sensitiveTaxaObfuscation;
   final String taxonomicReferenceId;
   final String taxonomicReferenceVersion;
+
+  /// Whether this is the Example Project the app seeds for onboarding
+  /// (`DOMAIN.md` Project aggregate, INV-017). Client-only: an Example Project
+  /// is never synced, so no server column exists for it (ADR-0016).
+  final bool example;
   const ProjectRow({
     required this.id,
     required this.name,
@@ -3273,6 +3304,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     required this.sensitiveTaxaObfuscation,
     required this.taxonomicReferenceId,
     required this.taxonomicReferenceVersion,
+    required this.example,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3290,6 +3322,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     map['taxonomic_reference_version'] = Variable<String>(
       taxonomicReferenceVersion,
     );
+    map['example'] = Variable<bool>(example);
     return map;
   }
 
@@ -3304,6 +3337,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       sensitiveTaxaObfuscation: Value(sensitiveTaxaObfuscation),
       taxonomicReferenceId: Value(taxonomicReferenceId),
       taxonomicReferenceVersion: Value(taxonomicReferenceVersion),
+      example: Value(example),
     );
   }
 
@@ -3326,6 +3360,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       taxonomicReferenceVersion: serializer.fromJson<String>(
         json['taxonomicReferenceVersion'],
       ),
+      example: serializer.fromJson<bool>(json['example']),
     );
   }
   @override
@@ -3343,6 +3378,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       'taxonomicReferenceVersion': serializer.toJson<String>(
         taxonomicReferenceVersion,
       ),
+      'example': serializer.toJson<bool>(example),
     };
   }
 
@@ -3354,6 +3390,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     bool? sensitiveTaxaObfuscation,
     String? taxonomicReferenceId,
     String? taxonomicReferenceVersion,
+    bool? example,
   }) => ProjectRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -3364,6 +3401,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     taxonomicReferenceId: taxonomicReferenceId ?? this.taxonomicReferenceId,
     taxonomicReferenceVersion:
         taxonomicReferenceVersion ?? this.taxonomicReferenceVersion,
+    example: example ?? this.example,
   );
   ProjectRow copyWithCompanion(ProjectsCompanion data) {
     return ProjectRow(
@@ -3384,6 +3422,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       taxonomicReferenceVersion: data.taxonomicReferenceVersion.present
           ? data.taxonomicReferenceVersion.value
           : this.taxonomicReferenceVersion,
+      example: data.example.present ? data.example.value : this.example,
     );
   }
 
@@ -3396,7 +3435,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ..write('validationEnabled: $validationEnabled, ')
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
           ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
-          ..write('taxonomicReferenceVersion: $taxonomicReferenceVersion')
+          ..write('taxonomicReferenceVersion: $taxonomicReferenceVersion, ')
+          ..write('example: $example')
           ..write(')'))
         .toString();
   }
@@ -3410,6 +3450,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     sensitiveTaxaObfuscation,
     taxonomicReferenceId,
     taxonomicReferenceVersion,
+    example,
   );
   @override
   bool operator ==(Object other) =>
@@ -3421,7 +3462,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           other.validationEnabled == this.validationEnabled &&
           other.sensitiveTaxaObfuscation == this.sensitiveTaxaObfuscation &&
           other.taxonomicReferenceId == this.taxonomicReferenceId &&
-          other.taxonomicReferenceVersion == this.taxonomicReferenceVersion);
+          other.taxonomicReferenceVersion == this.taxonomicReferenceVersion &&
+          other.example == this.example);
 }
 
 class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
@@ -3432,6 +3474,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<bool> sensitiveTaxaObfuscation;
   final Value<String> taxonomicReferenceId;
   final Value<String> taxonomicReferenceVersion;
+  final Value<bool> example;
   final Value<int> rowid;
   const ProjectsCompanion({
     this.id = const Value.absent(),
@@ -3441,6 +3484,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.sensitiveTaxaObfuscation = const Value.absent(),
     this.taxonomicReferenceId = const Value.absent(),
     this.taxonomicReferenceVersion = const Value.absent(),
+    this.example = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProjectsCompanion.insert({
@@ -3451,6 +3495,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     required bool sensitiveTaxaObfuscation,
     required String taxonomicReferenceId,
     required String taxonomicReferenceVersion,
+    this.example = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -3466,6 +3511,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Expression<bool>? sensitiveTaxaObfuscation,
     Expression<String>? taxonomicReferenceId,
     Expression<String>? taxonomicReferenceVersion,
+    Expression<bool>? example,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3479,6 +3525,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
         'taxonomic_reference_id': taxonomicReferenceId,
       if (taxonomicReferenceVersion != null)
         'taxonomic_reference_version': taxonomicReferenceVersion,
+      if (example != null) 'example': example,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3491,6 +3538,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Value<bool>? sensitiveTaxaObfuscation,
     Value<String>? taxonomicReferenceId,
     Value<String>? taxonomicReferenceVersion,
+    Value<bool>? example,
     Value<int>? rowid,
   }) {
     return ProjectsCompanion(
@@ -3503,6 +3551,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       taxonomicReferenceId: taxonomicReferenceId ?? this.taxonomicReferenceId,
       taxonomicReferenceVersion:
           taxonomicReferenceVersion ?? this.taxonomicReferenceVersion,
+      example: example ?? this.example,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3537,6 +3586,9 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
         taxonomicReferenceVersion.value,
       );
     }
+    if (example.present) {
+      map['example'] = Variable<bool>(example.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3553,6 +3605,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
           ..write('sensitiveTaxaObfuscation: $sensitiveTaxaObfuscation, ')
           ..write('taxonomicReferenceId: $taxonomicReferenceId, ')
           ..write('taxonomicReferenceVersion: $taxonomicReferenceVersion, ')
+          ..write('example: $example, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7698,6 +7751,7 @@ typedef $$ProjectsTableCreateCompanionBuilder = ProjectsCompanion Function({
   required bool sensitiveTaxaObfuscation,
   required String taxonomicReferenceId,
   required String taxonomicReferenceVersion,
+  Value<bool> example,
   Value<int> rowid,
 });
 typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
@@ -7708,6 +7762,7 @@ typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
   Value<bool> sensitiveTaxaObfuscation,
   Value<String> taxonomicReferenceId,
   Value<String> taxonomicReferenceVersion,
+  Value<bool> example,
   Value<int> rowid,
 });
 
@@ -7752,6 +7807,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get taxonomicReferenceVersion => $composableBuilder(
     column: $table.taxonomicReferenceVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get example => $composableBuilder(
+    column: $table.example,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7799,6 +7859,11 @@ class $$ProjectsTableOrderingComposer
     column: $table.taxonomicReferenceVersion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get example => $composableBuilder(
+    column: $table.example,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProjectsTableAnnotationComposer
@@ -7840,6 +7905,9 @@ class $$ProjectsTableAnnotationComposer
     column: $table.taxonomicReferenceVersion,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get example =>
+      $composableBuilder(column: $table.example, builder: (column) => column);
 }
 
 class $$ProjectsTableTableManager
@@ -7880,6 +7948,7 @@ class $$ProjectsTableTableManager
                 Value<bool> sensitiveTaxaObfuscation = const Value.absent(),
                 Value<String> taxonomicReferenceId = const Value.absent(),
                 Value<String> taxonomicReferenceVersion = const Value.absent(),
+                Value<bool> example = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion(
                 id: id,
@@ -7889,6 +7958,7 @@ class $$ProjectsTableTableManager
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
                 taxonomicReferenceId: taxonomicReferenceId,
                 taxonomicReferenceVersion: taxonomicReferenceVersion,
+                example: example,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7900,6 +7970,7 @@ class $$ProjectsTableTableManager
                 required bool sensitiveTaxaObfuscation,
                 required String taxonomicReferenceId,
                 required String taxonomicReferenceVersion,
+                Value<bool> example = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion.insert(
                 id: id,
@@ -7909,6 +7980,7 @@ class $$ProjectsTableTableManager
                 sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
                 taxonomicReferenceId: taxonomicReferenceId,
                 taxonomicReferenceVersion: taxonomicReferenceVersion,
+                example: example,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

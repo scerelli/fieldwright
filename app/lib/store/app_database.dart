@@ -196,6 +196,11 @@ class Projects extends Table {
 
   TextColumn get taxonomicReferenceVersion => text()();
 
+  /// Whether this is the Example Project the app seeds for onboarding
+  /// (`DOMAIN.md` Project aggregate, INV-017). Client-only: an Example Project
+  /// is never synced, so no server column exists for it (ADR-0016).
+  BoolColumn get example => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -296,7 +301,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -431,6 +436,15 @@ class AppDatabase extends _$AppDatabase {
         if (await _hasTable('projects') &&
             !await _hasColumn('projects', 'description')) {
           await migrator.addColumn(projects, projects.description);
+        }
+      }
+      if (from < 18) {
+        // `projects` created fresh by an earlier branch already carries
+        // `example`; only a store whose `projects` predates the column
+        // (v9–17) needs it added, so guard on the column being missing.
+        if (await _hasTable('projects') &&
+            !await _hasColumn('projects', 'example')) {
+          await migrator.addColumn(projects, projects.example);
         }
       }
     },

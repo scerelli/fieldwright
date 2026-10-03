@@ -16,6 +16,7 @@ class Project {
     required this.taxonomicReferenceId,
     required this.taxonomicReferenceVersion,
     this.description,
+    this.example = false,
   });
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -47,6 +48,12 @@ class Project {
   final bool sensitiveTaxaObfuscation;
   final String taxonomicReferenceId;
   final String taxonomicReferenceVersion;
+
+  /// Whether this is the Example Project the app seeds for onboarding
+  /// (`GLOSSARY.md` Example Project, `DOMAIN.md` Project aggregate, INV-017).
+  /// It is client-only: [fromJson] never reads it and no server payload
+  /// carries it, so an Example Project is never linked or exported.
+  final bool example;
 }
 
 /// The settings a creator sets when defining a Project (`DOMAIN.md`): its

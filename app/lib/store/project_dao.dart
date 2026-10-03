@@ -38,8 +38,19 @@ class ProjectDao {
             sensitiveTaxaObfuscation: project.sensitiveTaxaObfuscation,
             taxonomicReferenceId: project.taxonomicReferenceId,
             taxonomicReferenceVersion: project.taxonomicReferenceVersion,
+            example: Value(project.example),
           ),
         );
+  }
+
+  /// The stored Projects a person may link or export — every Project except
+  /// the Example Project, which is never linked or exported (`DOMAIN.md`
+  /// Project aggregate, INV-017).
+  Future<List<Project>> nonExampleProjects() async {
+    final rows = await (_database.select(
+      _database.projects,
+    )..where((table) => table.example.equals(false))).get();
+    return rows.map(_toProject).toList(growable: false);
   }
 
   /// The Project with [id], or null when none is stored.
@@ -128,6 +139,7 @@ class ProjectDao {
     sensitiveTaxaObfuscation: row.sensitiveTaxaObfuscation,
     taxonomicReferenceId: row.taxonomicReferenceId,
     taxonomicReferenceVersion: row.taxonomicReferenceVersion,
+    example: row.example,
   );
 
   ProtocolVersion _toProtocolVersion(ProtocolVersionRow row) => ProtocolVersion(
