@@ -23,9 +23,6 @@ void main() {
 
     expect(find.widgetWithText(AppBar, 'Progetti'), findsOneWidget);
     expect(find.text('Nessun progetto'), findsOneWidget);
-    expect(
-      find.text('Crea o unisciti a un progetto per iniziare.'),
-      findsOneWidget,
-    );
+    expect(find.text('Crea un progetto per iniziare.'), findsOneWidget);
   });
 }

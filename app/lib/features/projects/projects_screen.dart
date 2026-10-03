@@ -50,16 +50,19 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
           ? EmptyState(
               title: l10n.projectsEmptyTitle,
               message: l10n.projectsEmptyMessage,
+              action: FilledButton(
+                key: const Key('create_project_empty'),
+                onPressed: _openEditor,
+                child: Text(l10n.projectsCreateProject),
+              ),
             )
           : ListView.builder(
               itemCount: _projects.length,
               itemBuilder: (context, index) {
                 final project = _projects[index];
-                return ListTile(
+                return ProjectCard(
                   key: Key('project_${project.id}'),
-                  leading: const Icon(Icons.folder_outlined),
-                  title: Text(project.name),
-                  subtitle: Text(project.taxonomicReferenceVersion),
+                  project: project,
                   onTap: () =>
                       context.go('/projects/${project.id}', extra: project),
                 );
@@ -70,6 +73,38 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
         onPressed: _openEditor,
         tooltip: l10n.projectsCreateProject,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+/// A Project in the Projects list (`UX.md` UX-022): its name and pinned
+/// Taxonomic reference version as basic info, plus the authored description
+/// when one is set.
+class ProjectCard extends StatelessWidget {
+  const ProjectCard({super.key, required this.project, this.onTap});
+
+  final Project project;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = project.description?.trim();
+    final bodyStyle = Theme.of(context).textTheme.bodyLarge;
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.folder_outlined),
+        title: Text(project.name),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(project.taxonomicReferenceVersion, style: bodyStyle),
+            if (description != null && description.isNotEmpty)
+              Text(description, style: bodyStyle),
+          ],
+        ),
+        onTap: onTap,
       ),
     );
   }
