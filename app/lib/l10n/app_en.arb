@@ -24,7 +24,7 @@
   "@projectsEmptyTitle": {
     "description": "Title of the Projects screen empty state shown when no project is configured."
   },
-  "projectsEmptyMessage": "Create or join a project to get started.",
+  "projectsEmptyMessage": "Create a project to get started.",
   "@projectsEmptyMessage": {
     "description": "Message of the Projects screen empty state shown when no project is configured."
   },

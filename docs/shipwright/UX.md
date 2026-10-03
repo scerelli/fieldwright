@@ -27,7 +27,7 @@ onboards them with an Example Project and an in-app manual.
 | Task | Frequency | Budget | Rules |
 |---|---|---|---|
 | Learn the app from the Example Project and the manual | once | example browsable from the Projects list; manual ≤ 2 taps | UX-018, UX-023 |
-| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-018 |
+| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-018, UX-024 |
 | Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
 | Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019 |
 | Resume an in-progress Visit from home | 1–5/day | ≤ 1 tap | UX-021 |
@@ -65,15 +65,17 @@ than writing it on paper.
 | UX-019 | Every Site and Visit is reached only inside its Project; no screen lists Sites or Visits across Projects. | The domain scopes both to one Project (INV-006, INV-012); a cross-project list hides that. | test |
 | UX-020 | While working inside a Project, its name is always visible. | The collector must never be unsure which Project a Visit belongs to. | render |
 | UX-021 | An in-progress Visit is resumable in ≤ 1 tap from the Projects list after a relaunch. | A field day is interrupted; the running Visit must be one tap away (UX-013). | test |
-| UX-022 | A Project card shows its name and a description — authored when set, otherwise derived from its data; an empty Project's card and hub show a first-run prompt to add a Site or define a Protocol. | The list must tell each Project's story and show what to do next, not just a name. | render |
+| UX-022 | A Project card shows its basic info — its name and its pinned Taxonomic reference version — plus its authored description when one is set; an empty Project's hub shows a first-run prompt to add a Site or define a Protocol. | The list must let each Project be told apart; an empty Project needs a next step. | test |
 | UX-023 | A streamlined in-app manual is reachable from the Projects list and explains the core journey. | Users learn IBIS in the field, without external documentation. | inspect |
+| UX-024 | With no Project, the Projects list shows an empty state with a create action. | A newcomer must be able to start a survey with no Project yet. | test |
 
 ## System states
 
 | State | Trigger | The user sees | The user can still | Rules |
 |---|---|---|---|---|
+| No Project | the Projects list has no Project | an empty state with a create action | create a Project | UX-024 |
 | First run | the person has no non-example Project | an Example Project card, clearly marked | browse the example; create their own Project | UX-018 |
-| Empty Project | a Project with no Sites or Visits | a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
+| Empty Project | a Project with no Sites or Visits | on the hub, a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
 | Offline | no connection | a persistent offline indicator in the shell | capture everything; submission queued | UX-007, UX-008 |
 | Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
 | Linking | a link/upload in flight | a progress indicator | keep working; nothing is blocked | UX-017 |
@@ -112,3 +114,4 @@ failed link; linking is idempotent and resumable.
 - Camera/microphone permission timing (pre-grant vs on first use).
 - Copy for the unlinked and link-failed affordances, and whether linking is offered from the Projects list as well as the Account screen.
 - The Example Project's seed content and the in-app manual's copy and source.
+- How a person joins an existing Project: invitations surfaced in a notification centre (explored later).

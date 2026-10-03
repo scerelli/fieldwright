@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// Message of the Projects screen empty state shown when no project is configured.
   ///
   /// In en, this message translates to:
-  /// **'Create or join a project to get started.'**
+  /// **'Create a project to get started.'**
   String get projectsEmptyMessage;
 
   /// Title of the Sites screen empty state shown before any site exists.

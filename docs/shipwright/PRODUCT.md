@@ -62,7 +62,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 7. Methods paragraph generated from the protocol.
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
 9. Foundational Epic: app shell, navigation, and the design tokens `/design` will settle, wired into the component registry `/discover` pins — so `/decompose` mints it once instead of each feature Epic re-deriving the theme.
-10. First-run onboarding and help: on first launch the app seeds a clearly-marked example Project that demonstrates the journey, shown as a card with a description (authored when set, derived from its data otherwise); and a streamlined in-app manual reachable from the Projects list.
+10. First-run onboarding and help: on first launch the app seeds a clearly-marked example Project that demonstrates the journey, shown as a card with its basic info and an authored description when one is set; and a streamlined in-app manual reachable from the Projects list.
 
 ### Next
 
@@ -75,6 +75,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - Camera-trap deployments and acoustic recorders.
 - Automatic species identification (licences of available models to be checked).
 - AR measurements; systematic phone-sensor vs instrument calibration.
+- Joining an existing Project by invitation, surfaced in a notification centre.
 
 ## Non-functional requirements
 
