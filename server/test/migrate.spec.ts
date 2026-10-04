@@ -142,5 +142,55 @@ describe('baseline migration', () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]!.description).toBeNull();
-  });
+  }, 30_000);
+
+  it('makes the pinned Taxonomic reference nullable on a populated database', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    await query(
+      databaseUrl,
+      `insert into "project" (name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('Pinned project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": true}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_id" set not null',
+    );
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_version" set not null',
+    );
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0016_bored_loki')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const columns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'project'
+         and column_name in ('taxonomic_reference_id', 'taxonomic_reference_version')
+       order by column_name`,
+    );
+    expect(columns).toEqual([
+      { column_name: 'taxonomic_reference_id', is_nullable: 'YES' },
+      { column_name: 'taxonomic_reference_version', is_nullable: 'YES' },
+    ]);
+
+    const rows = await query(
+      databaseUrl,
+      `select id, taxonomic_reference_id, taxonomic_reference_version from "project" where name = 'Pinned project'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.taxonomic_reference_id).toBe('italy-vascular-flora');
+    expect(rows[0]!.taxonomic_reference_version).toBe('2024.1');
+  }, 30_000);
 });

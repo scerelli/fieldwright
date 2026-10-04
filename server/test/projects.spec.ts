@@ -159,6 +159,54 @@ describe('Project creation', () => {
     });
   });
 
+  it('creates a Project from only a name, with no pinned Taxonomic reference', async () => {
+    const response = await createProject({ name: 'Only a name' }, { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      name: string;
+      taxonomicReferenceId: string | null;
+      taxonomicReferenceVersion: string | null;
+    };
+
+    expect(body.name).toBe('Only a name');
+    expect(body.taxonomicReferenceId).toBeNull();
+    expect(body.taxonomicReferenceVersion).toBeNull();
+  });
+
+  it('stores the default validation and sensitive-taxa obfuscation settings when none are supplied', async () => {
+    const response = await createProject(
+      { name: 'Defaulted settings' },
+      {
+        cookie,
+      },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      settings: {
+        validationEnabled: boolean;
+        sensitiveTaxaObfuscation: boolean;
+      };
+    };
+
+    expect(body.settings).toEqual({
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: true,
+    });
+
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const rows = await db.select().from(project).where(eq(project.id, body.id));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.settings).toEqual({
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: true,
+    });
+  });
+
   it('accepts and returns an optional description', async () => {
     const description = 'A shared description for the members';
     const response = await createProject(
@@ -223,17 +271,74 @@ describe('Project creation', () => {
     );
   });
 
-  it('rejects a missing pinned Taxonomic reference version', async () => {
-    const withoutVersion = {
-      name: validBody.name,
-      validationEnabled: validBody.validationEnabled,
-      sensitiveTaxaObfuscation: validBody.sensitiveTaxaObfuscation,
-      taxonomicReferenceId: validBody.taxonomicReferenceId,
+  it('rejects a half-pinned reference with only an id or only a version and stores nothing', async () => {
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const projectsBefore = await db.select().from(project);
+    const membershipsBefore = await db.select().from(membership);
+
+    const idOnly = await createProject(
+      { name: 'Half pin', taxonomicReferenceId: 'italy-vascular-flora' },
+      { cookie },
+    );
+    expect(idOnly.status, await idOnly.clone().text()).toBe(400);
+
+    const versionOnly = await createProject(
+      { name: 'Half pin', taxonomicReferenceVersion: '2024.1' },
+      { cookie },
+    );
+    expect(versionOnly.status, await versionOnly.clone().text()).toBe(400);
+
+    expect(await db.select().from(project)).toHaveLength(projectsBefore.length);
+    expect(await db.select().from(membership)).toHaveLength(
+      membershipsBefore.length,
+    );
+  });
+
+  it('rejects an explicit-null half-pin and treats both-null as no pin', async () => {
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const projectsBefore = await db.select().from(project);
+    const membershipsBefore = await db.select().from(membership);
+
+    const idNull = await createProject(
+      {
+        name: 'Half pin',
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: '2024.1',
+      },
+      { cookie },
+    );
+    expect(idNull.status, await idNull.clone().text()).toBe(400);
+
+    const versionNull = await createProject(
+      {
+        name: 'Half pin',
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: null,
+      },
+      { cookie },
+    );
+    expect(versionNull.status, await versionNull.clone().text()).toBe(400);
+
+    expect(await db.select().from(project)).toHaveLength(projectsBefore.length);
+    expect(await db.select().from(membership)).toHaveLength(
+      membershipsBefore.length,
+    );
+
+    const bothNull = await createProject(
+      {
+        name: 'No pin',
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: null,
+      },
+      { cookie },
+    );
+    expect(bothNull.status, await bothNull.clone().text()).toBe(201);
+    const body = (await bothNull.json()) as {
+      taxonomicReferenceId: string | null;
+      taxonomicReferenceVersion: string | null;
     };
-
-    const response = await createProject(withoutVersion, { cookie });
-
-    expect(response.status).toBe(400);
+    expect(body.taxonomicReferenceId).toBeNull();
+    expect(body.taxonomicReferenceVersion).toBeNull();
   });
 
   it('rejects an unauthenticated request', async () => {
