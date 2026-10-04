@@ -36,15 +36,16 @@ or future method.
   identity.
 - holds: Memberships (role: creator, collector, or validator); Protocol
   versions; Survey periods; the Target list or complete-list scope; an optional
-  description (short authored text for the Project); and settings — validation
-  on/off, sensitive-taxa coordinate obfuscation, and the pinned Taxonomic
-  reference version.
+  description (short authored text for the Project); an optional objective (the
+  research question) and the Analysis spec(s) the Project intends to run; and
+  settings — validation on/off, sensitive-taxa coordinate obfuscation, and the
+  pinned Taxonomic reference version.
 - lifecycle: `active` → `archived`. Archived projects keep their data readable
   and exports reproducible but accept no new visits.
 - A Project may be created and populated with Visits with no account. Whether
   it has been linked to a person is a **sync/link state**, not a lifecycle
   state: the lifecycle is the same before and after linking.
-- invariants: INV-007, INV-011, INV-015, INV-016.
+- invariants: INV-007, INV-011, INV-015, INV-016, INV-018.
 
 ### Protocol version (entity inside Project)
 
@@ -67,6 +68,9 @@ or future method.
 - identity: an identity assigned when the creator defines it.
 - holds: a name and a date range.
 - Visits to the same site within the same survey period are its repeat visits.
+- The Survey period is the **closure window** for a closed occupancy analysis:
+  its repeat Visits are assumed to sample the same occupancy state. An analysis
+  that assumes closure must warn when repeats exceed a taxon-plausible window.
 
 ### Site (aggregate)
 
@@ -147,6 +151,17 @@ stateDiagram-v2
   changes in effect.
 - invariants: INV-001, INV-013.
 
+### Analysis spec (value)
+
+- A declarative, versioned definition of an analysis a Project may run: the
+  question it answers; the data shape it requires (repeat Visits, closure,
+  required effort and covariates, completeness); the target tool; and the
+  bundle it emits.
+- Selected by a Project; never owned by one. Declarative data, not code: an
+  Analysis spec is never executed by IBIS and never alters captured data.
+- source: occupancy/detection modelling (`unmarked`; MacKenzie et al.).
+- invariants: INV-018.
+
 ## Invariants
 
 | ID | Rule (falsifiable) | Aggregate | Enforced at |
@@ -167,6 +182,7 @@ stateDiagram-v2
 | INV-014 | A person has at most one Membership in a project, holding exactly one role. | Project | server |
 | INV-015 | A Project's identity is assigned at creation — by the client when created offline — and never changes; linking preserves it. | Project | both |
 | INV-016 | Creating a Project and capturing Visits require no account; linking them to a person creates exactly one creator Membership (INV-014). | Project | both |
+| INV-018 | An Analysis spec is declarative: selecting or applying one never modifies captured Project data and never runs author-supplied code; analysis output is derived and never authoritative. | Project | client |
 
 ## Events
 
@@ -193,6 +209,9 @@ stateDiagram-v2
 - When **validation is disabled** in a Project, a submitted Visit is terminal.
 - When a **Project is linked** to a person, store it under its existing
   identity, create exactly one creator Membership, and upload its Visits.
+- When a **Project selects an Analysis spec**, surface the spec's data
+  requirements as design-time guidance and an export readiness check; warn or
+  gate on identifiability, but never block capture.
 
 ## Provenance & audit
 
@@ -209,6 +228,9 @@ it and when; the Project's identity is unchanged by the link.
 - **Humboldt extension** — effort and scope terms.
 - **Taxonomic references** — per group, versioned and pinned per project; the
   Italy vascular-flora checklist is named, fauna lists are open.
+- **Occupancy/detection modelling** — `unmarked` (Fiske & Chandler 2011) and
+  the MacKenzie et al. occupancy literature: the analysis framework the
+  occupancy Analysis spec rests on; the analysis itself runs externally.
 - Deliberate departure: a non-detection is a Detection with
   `detected = false`; "absence" is an inference an analysis makes, not a fact
   the field records, and is not a term here.
