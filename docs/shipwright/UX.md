@@ -20,14 +20,15 @@ protocol) but not necessarily phone-skilled, and often interrupted mid-task.
 They work either alone or as a collector following someone else's protocol. A
 creator may start with no account at all and adopt one later, so nothing may
 assume a person is signed in. A newcomer may have no Project yet: the app
-onboards them with an Example Project and an in-app manual.
+onboards them with an empty state, a guided Project creation form, and an
+in-app manual.
 
 ## Critical tasks
 
 | Task | Frequency | Budget | Rules |
 |---|---|---|---|
-| Learn the app from the Example Project and the manual | once | example browsable from the Projects list; manual ≤ 2 taps | UX-018, UX-023 |
-| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-018, UX-024 |
+| Learn the app from the in-app manual | once | manual ≤ 2 taps from the Projects list | UX-023 |
+| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-024, UX-025, UX-026 |
 | Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
 | Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019 |
 | Resume an in-progress Visit from home | 1–5/day | ≤ 1 tap | UX-021 |
@@ -49,7 +50,7 @@ than writing it on paper.
 | UX-003 | Detection marking is a two-state control (detected / not detected); "not yet recorded" is a visibly distinct third state; submission is disabled while any target is unrecorded. | Non-detection is only data if the search is recorded; the domain makes "not recorded" and "not detected" different. | test |
 | UX-004 | The next unrecorded target is reachable in ≤ 1 tap from the visit screen, without scrolling to find it. | The core loop must beat the paper sheet. | test |
 | UX-005 | Taxa are entered by picking from a list or by abbreviation search; free text is never the only path. | Typing outdoors in gloves is slow and error-prone. | test |
-| UX-006 | Every destructive action (end Visit, discard an in-progress Visit, delete Evidence, delete the Example Project) requires confirmation and offers undo where feasible. | A mis-tap must not lose field work. | test |
+| UX-006 | Every destructive action (end Visit, discard an in-progress Visit, delete Evidence) requires confirmation and offers undo where feasible. | A mis-tap must not lose field work. | test |
 | UX-007 | Offline never blocks capture: recording detections, capturing Evidence and ending a Visit all work with no network; only submission waits. | Connectivity is absent for whole days. | test |
 | UX-008 | Sync and save state are always visible on every screen through one persistent, non-modal shell indicator. | The user must always know whether work is safe, whichever screen they are on. | render |
 | UX-009 | The effort timer keeps running across app backgrounding and device sleep, and is resumable after a kill. | Effort is data; a screen-off pause must not corrupt it. | test |
@@ -61,20 +62,20 @@ than writing it on paper.
 | UX-015 | Creating a Project and capturing a Visit require no sign-in; the sign-in/up surface is offered, never enforced before field work. | A creator must be able to start a survey immediately; signing in is never a precondition (INV-016). | test |
 | UX-016 | An unlinked Project and its Visits persist indefinitely; signing in, signing out, or a failed link never deletes, hides, or blocks them. | Local-only work is real work and must never be held hostage to an account. | test |
 | UX-017 | Linking local data shows progress and, on failure, keeps all local data and offers a retry; a completed link is resumable without duplicating a Project or a Membership. | Linking may span a dead network; it must be idempotent and recoverable (INV-014). | test |
-| UX-018 | On first launch the app seeds an Example Project: clearly marked, browsable, never linked or exported (INV-017); it can be deleted, and is re-seeded while the person has no non-example Project. | A newcomer needs a working example, and only a real Project should replace it. | test |
 | UX-019 | Every Site and Visit is reached only inside its Project; no screen lists Sites or Visits across Projects. | The domain scopes both to one Project (INV-006, INV-012); a cross-project list hides that. | test |
 | UX-020 | While working inside a Project, its name is always visible. | The collector must never be unsure which Project a Visit belongs to. | render |
 | UX-021 | An in-progress Visit is resumable in ≤ 1 tap from the Projects list after a relaunch. | A field day is interrupted; the running Visit must be one tap away (UX-013). | test |
 | UX-022 | A Project card shows its basic info — its name and its pinned Taxonomic reference version — plus its authored description when one is set; an empty Project's hub shows a first-run prompt to add a Site or define a Protocol. | The list must let each Project be told apart; an empty Project needs a next step. | test |
 | UX-023 | A streamlined in-app manual is reachable from the Projects list and explains the core journey. | Users learn IBIS in the field, without external documentation. | inspect |
-| UX-024 | With no Project, the Projects list shows an empty state with a create action. | A newcomer must be able to start a survey with no Project yet. | test |
+| UX-024 | With no Project, the Projects list shows an empty state: a one-line explanation of what a Project is, a primary action to create one, and a secondary link to the in-app manual. | A newcomer must be able to start a survey with no Project yet. | test |
+| UX-025 | The Project creation form validates each field inline, under that field, and reports invalid input before any request leaves the device. | On-device errors read faster and avoid a wasted round-trip from the field. | test |
+| UX-026 | Only non-obvious Project creation fields (the pinned Taxonomic reference id and version) carry helper text stating what the field is and why the Project needs it; self-explanatory fields (the Project name) carry none. | Helper text on every field is noise; on a domain field it is the difference between guessing and knowing. | test |
 
 ## System states
 
 | State | Trigger | The user sees | The user can still | Rules |
 |---|---|---|---|---|
-| No Project | the Projects list has no Project | an empty state with a create action | create a Project | UX-024 |
-| First run | the person has no non-example Project | an Example Project card, clearly marked | browse the example; create their own Project | UX-018 |
+| No Project | the Projects list has no Project | an empty state: a one-line explanation, a create action, and a link to the manual | create a Project; open the manual | UX-024 |
 | Empty Project | a Project with no Sites or Visits | on the hub, a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
 | Offline | no connection | a persistent offline indicator in the shell | capture everything; submission queued | UX-007, UX-008 |
 | Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
@@ -113,5 +114,5 @@ failed link; linking is idempotent and resumable.
 - Copy for the sensor-fallback and low-confidence states.
 - Camera/microphone permission timing (pre-grant vs on first use).
 - Copy for the unlinked and link-failed affordances, and whether linking is offered from the Projects list as well as the Account screen.
-- The Example Project's seed content and the in-app manual's copy and source.
+- The in-app manual's copy and source.
 - How a person joins an existing Project: invitations surfaced in a notification centre (explored later).
