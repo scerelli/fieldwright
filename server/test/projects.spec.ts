@@ -271,6 +271,29 @@ describe('Project creation', () => {
     );
   });
 
+  it('rejects a half-pinned reference with only an id or only a version and stores nothing', async () => {
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const projectsBefore = await db.select().from(project);
+    const membershipsBefore = await db.select().from(membership);
+
+    const idOnly = await createProject(
+      { name: 'Half pin', taxonomicReferenceId: 'italy-vascular-flora' },
+      { cookie },
+    );
+    expect(idOnly.status, await idOnly.clone().text()).toBe(400);
+
+    const versionOnly = await createProject(
+      { name: 'Half pin', taxonomicReferenceVersion: '2024.1' },
+      { cookie },
+    );
+    expect(versionOnly.status, await versionOnly.clone().text()).toBe(400);
+
+    expect(await db.select().from(project)).toHaveLength(projectsBefore.length);
+    expect(await db.select().from(membership)).toHaveLength(
+      membershipsBefore.length,
+    );
+  });
+
   it('rejects an unauthenticated request', async () => {
     const response = await createProject(validBody);
 

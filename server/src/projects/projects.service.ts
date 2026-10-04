@@ -4,6 +4,7 @@
  * Membership so a Project never exists without its creator.
  */
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -56,6 +57,14 @@ export class ProjectsService {
   constructor(@Inject(DATABASE) private readonly db: NodePgDatabase) {}
 
   async create(personId: string, input: CreateProjectInput): Promise<Project> {
+    const hasReferenceId = input.taxonomicReferenceId !== undefined;
+    const hasReferenceVersion = input.taxonomicReferenceVersion !== undefined;
+    if (hasReferenceId !== hasReferenceVersion) {
+      throw new BadRequestException(
+        'taxonomicReferenceId and taxonomicReferenceVersion must be provided together',
+      );
+    }
+
     return this.db.transaction(async (tx) => {
       const [created] = await tx
         .insert(project)
