@@ -19,25 +19,28 @@ Trained researchers and students. Domain-skilled (they know their taxa and
 protocol) but not necessarily phone-skilled, and often interrupted mid-task.
 They work either alone or as a collector following someone else's protocol. A
 creator may start with no account at all and adopt one later, so nothing may
-assume a person is signed in. A newcomer may have no Project yet: the app
-onboards them with an empty state, a guided Project creation form, and an
-in-app manual.
+assume a person is signed in. A newcomer may have no Project yet — and a
+student may not know which Taxonomic reference a Project should pin — so the
+app onboards them with an empty state, a guided name-only Project creation
+form, and an in-app manual, and never blocks capture while a reference is
+still being chosen.
 
 ## Critical tasks
 
 | Task | Frequency | Budget | Rules |
 |---|---|---|---|
 | Learn the app from the in-app manual | once | manual ≤ 2 taps from the Projects list | UX-023 |
-| Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-024, UX-025, UX-026 |
+| Create a Project and configure it offline, with no account | once per project | ≤ 3 taps to create (name only), no sign-in wall; reference and settings configured afterward | UX-015, UX-024, UX-025, UX-026 |
 | State the objective and choose an Analysis spec | once per project | ≤ 3 taps to select; requirements shown inline | UX-027, UX-030 |
 | Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
-| Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019 |
+| Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019, UX-032 |
 | Resume an in-progress Visit from home | 1–5/day | ≤ 1 tap | UX-021 |
 | Mark a target taxon detected / not detected | dozens–hundreds/session | ≤ 2 taps, no typing, one-handed | UX-003, UX-004, UX-012 |
 | Add an opportunistic taxon by abbreviation search | 0–20/session | ≤ 5 taps, ≤ 15 s, one-handed | UX-005 |
+| Pin a Taxonomic reference and resolve provisional taxa | once per project, then whenever the list changes | pin ≤ 3 taps; the unresolved list is ≤ 1 tap away | UX-032, UX-033, UX-034, UX-035 |
 | Attach Evidence (photo/audio) to a Detection | 0–20/session | ≤ 3 taps | UX-010 |
 | Record visit covariates | 1/visit | ≤ 1 tap each with defaults, ≤ 30 s total | UX-011 |
-| End and submit a Visit | 1–5/day | ≤ 3 taps; blocked while any target is unrecorded | UX-003, UX-006 |
+| End and submit a Visit | 1–5/day | ≤ 3 taps; ending is never blocked and submission waits on the readiness gate | UX-003, UX-006, UX-035 |
 
 Budgets reference the paper field sheet this replaces: no task may be slower
 than writing it on paper.
@@ -50,7 +53,7 @@ than writing it on paper.
 | UX-002 | Body text is ≥ 16 sp/pt; critical field text (effort, detection state, target names) has contrast ≥ 7:1, other text ≥ 4.5:1, non-text and large text ≥ 3:1. | Direct sun destroys low contrast; WCAG 2.2 AA baseline, critical text to AAA. | inspect |
 | UX-003 | Detection marking is a two-state control (detected / not detected); "not yet recorded" is a visibly distinct third state; submission is disabled while any target is unrecorded. | Non-detection is only data if the search is recorded; the domain makes "not recorded" and "not detected" different. | test |
 | UX-004 | The next unrecorded target is reachable in ≤ 1 tap from the visit screen, without scrolling to find it. | The core loop must beat the paper sheet. | test |
-| UX-005 | Taxa are entered by picking from a list or by abbreviation search; free text is never the only path. | Typing outdoors in gloves is slow and error-prone. | test |
+| UX-005 | Taxa are entered by picking from a list or by abbreviation search once the Project's reference is available; before one is pinned, or for a name that does not resolve, entry is allowed only as an explicitly provisional taxon. Free text is never silently accepted as a resolved taxon (INV-008). | Typing outdoors in gloves is slow and error-prone, and unresolved free text pollutes the data; provisional entry keeps capture open without accepting it as final. | test |
 | UX-006 | Every destructive action (end Visit, discard an in-progress Visit, delete Evidence) requires confirmation and offers undo where feasible. | A mis-tap must not lose field work. | test |
 | UX-007 | Offline never blocks capture: recording detections, capturing Evidence and ending a Visit all work with no network; only submission waits. | Connectivity is absent for whole days. | test |
 | UX-008 | Sync and save state are always visible on every screen through one persistent, non-modal shell indicator. | The user must always know whether work is safe, whichever screen they are on. | render |
@@ -66,16 +69,20 @@ than writing it on paper.
 | UX-019 | Every Site and Visit is reached only inside its Project; no screen lists Sites or Visits across Projects. | The domain scopes both to one Project (INV-006, INV-012); a cross-project list hides that. | test |
 | UX-020 | While working inside a Project, its name is always visible. | The collector must never be unsure which Project a Visit belongs to. | render |
 | UX-021 | An in-progress Visit is resumable in ≤ 1 tap from the Projects list after a relaunch. | A field day is interrupted; the running Visit must be one tap away (UX-013). | test |
-| UX-022 | A Project card shows its basic info — its name and its pinned Taxonomic reference version — plus its authored description when one is set; an empty Project's hub shows a first-run prompt to add a Site or define a Protocol. | The list must let each Project be told apart; an empty Project needs a next step. | test |
+| UX-022 | A Project card shows its basic info — its name, its authored description and its pinned Taxonomic reference version when one is set — and states plainly when no reference is pinned yet; an empty Project's hub shows a first-run prompt to add a Site or define a Protocol. | The list must let each Project be told apart, and must never imply a reference the Project does not have. | test |
 | UX-023 | A streamlined in-app manual is reachable from the Projects list and explains the core journey. | Users learn IBIS in the field, without external documentation. | inspect |
 | UX-024 | With no Project, the Projects list shows an empty state: a one-line explanation of what a Project is, a primary action to create one, and a secondary link to the in-app manual. | A newcomer must be able to start a survey with no Project yet. | test |
-| UX-025 | The Project creation form validates each field inline, under that field, and reports invalid input before any request leaves the device. | On-device errors read faster and avoid a wasted round-trip from the field. | test |
-| UX-026 | Only non-obvious Project creation fields (the pinned Taxonomic reference id and version) carry helper text stating what the field is and why the Project needs it; self-explanatory fields (the Project name) carry none. | Helper text on every field is noise; on a domain field it is the difference between guessing and knowing. | test |
+| UX-025 | The Project creation form and the Project settings surface validate each field inline, under that field, and report invalid input before any request leaves the device. | On-device errors read faster and avoid a wasted round-trip from the field. | test |
+| UX-026 | The create form's only field, the Project name, carries no helper text; the non-obvious settings fields (the pinned Taxonomic reference id and version) carry helper text stating what the field is and why the Project needs it. | Helper text on every field is noise; on a domain field it is the difference between guessing and knowing. | test |
 | UX-027 | While a Project selects an Analysis spec, the Protocol-design surface shows that spec's hard structural requirements and its context-dependent warnings; a warning is dismissed only with a recorded reason that reaches the export methods paragraph. | The design decisions that decide analysability are made before fieldwork, when they can still change. | test |
 | UX-028 | Before generating an analysis bundle, a readiness check reports whether the Project's data satisfies the selected spec; a failed hard gate blocks only the bundle, never capture, and names the unmet requirement. | A design that cannot support the model must not pass silently, and field data collection must never be blocked. | test |
 | UX-029 | The analysis bundle states, in the bundle and in the UI, that the readiness check confirms the data can support the model — not that the resulting estimate is valid. | Asymmetric confidence: a polished bundle must not read as a warrant of validity. | test |
 | UX-030 | The selected Analysis spec is always visible on the Project hub. | The analysis intent must never be hidden behind a distant setting. | render |
 | UX-031 | A single-period analysis is labelled "occupancy" only when an explicit closure claim is recorded; otherwise its output is labelled "use". | When closure fails and change is assumed random, the estimand becomes use, and calling it occupancy is misleading. | test |
+| UX-032 | Capture and ending a Visit are never blocked by a missing pinned Taxonomic reference or Protocol version: a Visit starts with only a Site and its Detections may hold provisional taxa (INV-006, INV-008). | A student may not yet know the reference; blocking capture strands real field work (UX-007). | test |
+| UX-033 | A provisional taxon carries a visible "unresolved" marker everywhere it appears and is never styled like a resolved taxon. | An unresolved name must not be mistaken for a resolved one, or it pollutes the record silently (UX-014). | render |
+| UX-034 | When a Project has no pinned reference or a taxon does not resolve, a non-blocking banner (visit and hub) and a Project-card badge state it and offer the pin/download action; capture is never interrupted by a blocking modal. | The user must be prompted to fix the gap without losing the field moment. | test |
+| UX-035 | A Visit that cannot be submitted ends and queues normally; a readiness surface names each unmet requirement (no Protocol version, no pinned reference, unresolved taxa) with an action, and submission waits until it clears. | Submission is where rigor is enforced; it must never block capture, and the fix must be actionable (UX-028). | test |
 
 ## System states
 
@@ -83,6 +90,7 @@ than writing it on paper.
 |---|---|---|---|---|
 | No Project | the Projects list has no Project | an empty state: a one-line explanation, a create action, and a link to the manual | create a Project; open the manual | UX-024 |
 | Empty Project | a Project with no Sites or Visits | on the hub, a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
+| Taxa unresolved | the Project has no pinned reference, or its pinned reference's artifact is not on the device | a non-blocking banner naming the gap, the pin/download action, and provisional taxa marked as unresolved | capture and end Visits; pin/download the reference; edit config; submission waits | UX-032, UX-033, UX-034, UX-035 |
 | Analysis not ready | the selected spec's readiness check fails | a notice naming the unmet requirement; the analysis bundle is unavailable | keep capturing and exporting data; adjust the Protocol next time | UX-028 |
 | Offline | no connection | a persistent offline indicator in the shell | capture everything; submission queued | UX-007, UX-008 |
 | Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
@@ -105,7 +113,8 @@ immediately. A crash, kill or battery death restores the in-progress Visit on
 relaunch. Data is "safe" only once the server has accepted the submission;
 retries are idempotent, so a re-submission never duplicates a Visit. Local data
 created with no account is never deleted by signing in, signing out, or a
-failed link; linking is idempotent and resumable.
+failed link; linking is idempotent and resumable. A provisional taxon is local
+until it is resolved; nothing provisional is ever submitted.
 
 ## Accessibility & localization
 
@@ -124,3 +133,4 @@ failed link; linking is idempotent and resumable.
 - The in-app manual's copy and source.
 - The built-in Analysis spec's warning thresholds (closure window, minimum repeats).
 - How a person joins an existing Project: invitations surfaced in a notification centre (explored later).
+- Copy for the provisional-taxon marker, the "no reference pinned" banner, and the submission-readiness panel.
