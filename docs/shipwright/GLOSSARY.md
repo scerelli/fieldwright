@@ -24,7 +24,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Detection
 - code: `Detection`
-- definition: The record that one taxon was detected, or searched for and not detected, in one Visit. A non-detection is a Detection with `detected = false`.
+- definition: The record that one taxon was detected, or searched for and not detected, in one Visit. Its taxon is resolved against the pinned Taxonomic reference, or held as a provisional taxon until it can be. A non-detection is a Detection with `detected = false`.
 - concept: DOMAIN.md › Detection (entity)
 - source: Darwin Core Occurrence
 - avoid: sighting, observation
@@ -65,13 +65,14 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - definition: A Detection with `detected = false`: the taxon was searched for, under recorded effort, and not found. It has no separate identifier — it is a Detection.
 - concept: DOMAIN.md › Detection (entity)
 - avoid: absence
-- note: absence is an inference an occupancy model draws from non-detections, never a field fact.
+- note: absence is an inference an occupancy model draws from non-detections, never a field fact. A non-detection also requires a resolved target list, so a Visit whose taxa are provisional records opportunistic presence only.
 
 ## Project
 - code: `Project`
 - definition: The container a creator sets up: its protocol, members, survey periods, sites, settings, optional objective, and the Analysis spec it runs. Sites, visits, and exports are scoped to one Project.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: study
+- note: its pinned Taxonomic reference may be chosen after the Project is created; until then Detections hold provisional taxa and submission is blocked.
 
 ## Protocol
 - code: `Protocol`
@@ -90,6 +91,13 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - definition: How a Measurement was obtained: method (phone sensor, field instrument, or visual estimate), device or instrument model, calibration state, uncertainty, observer, and time. Every Measurement carries it.
 - concept: DOMAIN.md › Provenance (value)
 - avoid: metadata
+
+## Provisional taxon
+- code: `ProvisionalTaxon`
+- definition: A taxon recorded on a Detection before the Project's pinned Taxonomic reference is available — a name or abbreviation not yet resolved to a reference taxon. It is presence-only and is resolved before the Visit is submitted.
+- concept: DOMAIN.md › Provisional taxon (value)
+- source: Darwin Core Occurrence (`scientificName` with no resolved `taxonID`)
+- avoid: draft species, free text
 
 ## Sampling effort
 - code: `SamplingEffort`
@@ -118,7 +126,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Taxonomic reference
 - code: `TaxonomicReference`
-- definition: The versioned external checklist taxon names resolve against. A Project pins one version, recorded with the data.
+- definition: The versioned external checklist taxon names resolve against. A Project pins one version, recorded with the data; until one is pinned, Detections hold provisional taxa and the Visit cannot be submitted.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: species list, taxonomy
 
