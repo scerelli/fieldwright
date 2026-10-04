@@ -23,7 +23,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - A solo student plans, collects, submits and exports a real thesis survey end-to-end on one device, without help.
 - A real multi-collector project runs with at least two collectors, three sites, and three repeat visits per site.
 - Exports load cleanly into an occupancy model (e.g. `unmarked` in R) and are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms).
-- A new user reaches a first recorded Visit in their own Project within the first session, guided by the example project and the manual.
+- A new user reaches a first recorded Visit in their own Project within the first session, guided by a clear first-run prompt, a self-explanatory Project creation form, and the in-app manual.
 
 **Beyond v1**
 
@@ -47,7 +47,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - As a collector, I want to submit and sync a completed visit when connectivity returns, without editing it afterwards.
 - As a validator, I want to review submitted records and issue corrections so that errors are fixed without erasing history.
 - As a researcher, I want exports ready for occupancy analysis and publication, with sensitive taxa obfuscated.
-- As a new user, I want an example project and an in-app manual so that I can learn IBIS's workflow before running my own survey.
+- As a new user, I want a clear first step to create my own Project, and an in-app manual, so that I can start a survey without prior knowledge of the app.
 
 ## Scope & roadmap
 
@@ -62,7 +62,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 7. Methods paragraph generated from the protocol.
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
 9. Foundational Epic: app shell, navigation, and the design tokens `/design` will settle, wired into the component registry `/discover` pins — so `/decompose` mints it once instead of each feature Epic re-deriving the theme.
-10. First-run onboarding and help: on first launch the app seeds a clearly-marked example Project that demonstrates the journey, shown as a card with its basic info and an authored description when one is set; and a streamlined in-app manual reachable from the Projects list.
+10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a guided form with inline validation and explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
 
 ### Next
 
@@ -125,7 +125,6 @@ Multi-month, solo, ongoing. Effort drivers: the offline visit/test loop on real 
 - **ORM**: owner prefers Drizzle (or whatever works best with PostGIS and the chosen database) — ratify at `/discover`. Prisma with isolated raw spatial queries was the earlier alternative.
 - **Fauna taxonomic references**: which lists, their licences and update cadence — decide before fauna projects ship (`/discover`, `/model`).
 - **Taxonomic-reference granularity and versioning per group**: e.g. the Italy vascular-flora checklist vs fauna lists (`/model`).
-- **Example Project representation**: how the seeded first-run example Project is flagged — read-only, excluded from exports and linking — to ratify at `/model`.
 
 ## Appendix
 
