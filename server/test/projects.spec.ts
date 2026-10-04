@@ -159,6 +159,54 @@ describe('Project creation', () => {
     });
   });
 
+  it('creates a Project from only a name, with no pinned Taxonomic reference', async () => {
+    const response = await createProject({ name: 'Only a name' }, { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      name: string;
+      taxonomicReferenceId: string | null;
+      taxonomicReferenceVersion: string | null;
+    };
+
+    expect(body.name).toBe('Only a name');
+    expect(body.taxonomicReferenceId).toBeNull();
+    expect(body.taxonomicReferenceVersion).toBeNull();
+  });
+
+  it('stores the default validation and sensitive-taxa obfuscation settings when none are supplied', async () => {
+    const response = await createProject(
+      { name: 'Defaulted settings' },
+      {
+        cookie,
+      },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      settings: {
+        validationEnabled: boolean;
+        sensitiveTaxaObfuscation: boolean;
+      };
+    };
+
+    expect(body.settings).toEqual({
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: true,
+    });
+
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const rows = await db.select().from(project).where(eq(project.id, body.id));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.settings).toEqual({
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: true,
+    });
+  });
+
   it('accepts and returns an optional description', async () => {
     const description = 'A shared description for the members';
     const response = await createProject(
@@ -221,19 +269,6 @@ describe('Project creation', () => {
     expect(await db.select().from(membership)).toHaveLength(
       membershipsBefore.length,
     );
-  });
-
-  it('rejects a missing pinned Taxonomic reference version', async () => {
-    const withoutVersion = {
-      name: validBody.name,
-      validationEnabled: validBody.validationEnabled,
-      sensitiveTaxaObfuscation: validBody.sensitiveTaxaObfuscation,
-      taxonomicReferenceId: validBody.taxonomicReferenceId,
-    };
-
-    const response = await createProject(withoutVersion, { cookie });
-
-    expect(response.status).toBe(400);
   });
 
   it('rejects an unauthenticated request', async () => {

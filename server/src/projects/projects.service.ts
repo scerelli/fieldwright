@@ -24,10 +24,10 @@ import {
 export interface CreateProjectInput {
   name: string;
   description?: string;
-  validationEnabled: boolean;
-  sensitiveTaxaObfuscation: boolean;
-  taxonomicReferenceId: string;
-  taxonomicReferenceVersion: string;
+  validationEnabled?: boolean;
+  sensitiveTaxaObfuscation?: boolean;
+  taxonomicReferenceId?: string;
+  taxonomicReferenceVersion?: string;
 }
 
 /**
@@ -63,11 +63,11 @@ export class ProjectsService {
           name: input.name,
           description: input.description ?? null,
           settings: {
-            validationEnabled: input.validationEnabled,
-            sensitiveTaxaObfuscation: input.sensitiveTaxaObfuscation,
+            validationEnabled: input.validationEnabled ?? false,
+            sensitiveTaxaObfuscation: input.sensitiveTaxaObfuscation ?? true,
           },
-          taxonomicReferenceId: input.taxonomicReferenceId,
-          taxonomicReferenceVersion: input.taxonomicReferenceVersion,
+          taxonomicReferenceId: input.taxonomicReferenceId ?? null,
+          taxonomicReferenceVersion: input.taxonomicReferenceVersion ?? null,
         })
         .returning();
 

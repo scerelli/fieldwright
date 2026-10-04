@@ -70,8 +70,8 @@ interface SeedReferences {
   siteId: string;
   surveyPeriodId: string;
   protocolVersionId: string;
-  taxonomicReferenceId: string;
-  taxonomicReferenceVersion: string;
+  taxonomicReferenceId: string | null;
+  taxonomicReferenceVersion: string | null;
 }
 
 describe('POST /api/v1/visits', () => {
@@ -152,22 +152,22 @@ describe('POST /api/v1/visits', () => {
   async function seedReferences(
     requiredEffortFields?: string[],
     targetList?: Array<{ taxonRef: string }>,
-    taxonomicReference: { id: string; version: string } = {
+    taxonomicReference: { id: string; version: string } | null = {
       id: 'italy-vascular-flora',
       version: '2024.1',
     },
     settings: ProjectSettings = {
       validationEnabled: true,
       sensitiveTaxaObfuscation: false,
-    }
+    },
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit API project',
         settings,
-        taxonomicReferenceId: taxonomicReference.id,
-        taxonomicReferenceVersion: taxonomicReference.version,
+        taxonomicReferenceId: taxonomicReference?.id ?? null,
+        taxonomicReferenceVersion: taxonomicReference?.version ?? null,
       })
       .returning();
 
@@ -313,8 +313,8 @@ describe('POST /api/v1/visits', () => {
       siteId: refs.siteId,
       surveyPeriodId: refs.surveyPeriodId,
       protocolVersionId: refs.protocolVersionId,
-      taxonomicReferenceId: refs.taxonomicReferenceId,
-      taxonomicReferenceVersion: refs.taxonomicReferenceVersion,
+      taxonomicReferenceId: refs.taxonomicReferenceId!,
+      taxonomicReferenceVersion: refs.taxonomicReferenceVersion!,
       state,
       effort: {},
       startedAt: new Date('2026-04-01T08:00:00Z'),
@@ -353,6 +353,18 @@ describe('POST /api/v1/visits', () => {
     const [stored] = await db.select().from(visit).where(eq(visit.id, id));
     expect(stored!.taxonomicReferenceId).toBe(reference.id);
     expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
+  });
+
+  it('rejects a Visit for a Project with no pinned Taxonomic reference with 400 and stores no Visit (INV-008)', async () => {
+    const refs = await seedReferences(undefined, undefined, null);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
   });
 
   it('rejects a Visit row with no recorded Taxonomic reference id or version at the database', async () => {
@@ -517,9 +529,7 @@ describe('POST /api/v1/visits', () => {
       .select()
       .from(detection)
       .where(eq(detection.visitId, id));
-    const nonDetection = detections.find(
-      (row) => row.taxon === 'Sylvia borin',
-    );
+    const nonDetection = detections.find((row) => row.taxon === 'Sylvia borin');
     expect(nonDetection?.detected).toBe(false);
   });
 
@@ -703,7 +713,9 @@ describe('POST /api/v1/visits', () => {
       },
     };
 
-    const response = await postCorrection(id, body, { cookie: collector.cookie });
+    const response = await postCorrection(id, body, {
+      cookie: collector.cookie,
+    });
 
     expect(response.status, await response.clone().text()).toBe(201);
     const rows = await db
@@ -758,7 +770,9 @@ describe('POST /api/v1/visits', () => {
   it('refuses a Correction against an in_progress or ended Visit with 409 and stores no row', async () => {
     for (const state of ['in_progress', 'ended'] as const) {
       const refs = await seedReferences();
-      const collector = await signUpAndSignIn(`correction-${state}@example.com`);
+      const collector = await signUpAndSignIn(
+        `correction-${state}@example.com`,
+      );
       await addMembership(collector.id, refs.projectId, 'collector');
       const id = await seedVisit(refs, state);
 

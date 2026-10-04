@@ -184,15 +184,20 @@ export class VisitsService {
           `Project ${input.projectId} does not exist`,
         );
       }
+      if (
+        owner.taxonomicReferenceId === null ||
+        owner.taxonomicReferenceVersion === null
+      ) {
+        throw new BadRequestException(
+          `Project ${input.projectId} has no pinned Taxonomic reference`,
+        );
+      }
 
       assertRequiredEffortFields(
         input.effort,
         requiredEffortFieldsOf(version.document),
       );
-      assertTargetTaxonCompleteness(
-        detections,
-        targetTaxaOf(version.document),
-      );
+      assertTargetTaxonCompleteness(detections, targetTaxaOf(version.document));
 
       const [created] = await tx
         .insert(visit)
