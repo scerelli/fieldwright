@@ -29,6 +29,7 @@ in-app manual.
 |---|---|---|---|
 | Learn the app from the in-app manual | once | manual ≤ 2 taps from the Projects list | UX-023 |
 | Create a Project and configure it offline, with no account | once per project | ≤ 5 taps to create, no sign-in wall | UX-015, UX-024, UX-025, UX-026 |
+| State the objective and choose an Analysis spec | once per project | ≤ 3 taps to select; requirements shown inline | UX-027, UX-030 |
 | Sign up and link local data to the account | once | ≤ 5 taps, resumable | UX-016, UX-017 |
 | Open a Project and start a Visit at a Site (starts the effort timer) | 1–5/day | ≤ 4 taps, ≤ 20 s, one-handed | UX-009, UX-011, UX-019 |
 | Resume an in-progress Visit from home | 1–5/day | ≤ 1 tap | UX-021 |
@@ -70,6 +71,11 @@ than writing it on paper.
 | UX-024 | With no Project, the Projects list shows an empty state: a one-line explanation of what a Project is, a primary action to create one, and a secondary link to the in-app manual. | A newcomer must be able to start a survey with no Project yet. | test |
 | UX-025 | The Project creation form validates each field inline, under that field, and reports invalid input before any request leaves the device. | On-device errors read faster and avoid a wasted round-trip from the field. | test |
 | UX-026 | Only non-obvious Project creation fields (the pinned Taxonomic reference id and version) carry helper text stating what the field is and why the Project needs it; self-explanatory fields (the Project name) carry none. | Helper text on every field is noise; on a domain field it is the difference between guessing and knowing. | test |
+| UX-027 | While a Project selects an Analysis spec, the Protocol-design surface shows that spec's hard structural requirements and its context-dependent warnings; a warning is dismissed only with a recorded reason that reaches the export methods paragraph. | The design decisions that decide analysability are made before fieldwork, when they can still change. | test |
+| UX-028 | Before generating an analysis bundle, a readiness check reports whether the Project's data satisfies the selected spec; a failed hard gate blocks only the bundle, never capture, and names the unmet requirement. | A design that cannot support the model must not pass silently, and field data collection must never be blocked. | test |
+| UX-029 | The analysis bundle states, in the bundle and in the UI, that the readiness check confirms the data can support the model — not that the resulting estimate is valid. | Asymmetric confidence: a polished bundle must not read as a warrant of validity. | test |
+| UX-030 | The selected Analysis spec is always visible on the Project hub. | The analysis intent must never be hidden behind a distant setting. | render |
+| UX-031 | A single-period analysis is labelled "occupancy" only when an explicit closure claim is recorded; otherwise its output is labelled "use". | When closure fails and change is assumed random, the estimand becomes use, and calling it occupancy is misleading. | test |
 
 ## System states
 
@@ -77,6 +83,7 @@ than writing it on paper.
 |---|---|---|---|---|
 | No Project | the Projects list has no Project | an empty state: a one-line explanation, a create action, and a link to the manual | create a Project; open the manual | UX-024 |
 | Empty Project | a Project with no Sites or Visits | on the hub, a first-run prompt to add a Site or define a Protocol | add Sites and config; start a Visit | UX-022 |
+| Analysis not ready | the selected spec's readiness check fails | a notice naming the unmet requirement; the analysis bundle is unavailable | keep capturing and exporting data; adjust the Protocol next time | UX-028 |
 | Offline | no connection | a persistent offline indicator in the shell | capture everything; submission queued | UX-007, UX-008 |
 | Unlinked | a Project/Visit created with no account | a persistent "local only — sign up to sync" indicator | create, capture and edit everything offline | UX-008, UX-015, UX-016 |
 | Linking | a link/upload in flight | a progress indicator | keep working; nothing is blocked | UX-017 |
@@ -115,4 +122,5 @@ failed link; linking is idempotent and resumable.
 - Camera/microphone permission timing (pre-grant vs on first use).
 - Copy for the unlinked and link-failed affordances, and whether linking is offered from the Projects list as well as the Account screen.
 - The in-app manual's copy and source.
+- The built-in Analysis spec's warning thresholds (closure window, minimum repeats).
 - How a person joins an existing Project: invitations surfaced in a notification centre (explored later).
