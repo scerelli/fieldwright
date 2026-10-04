@@ -1,6 +1,6 @@
 # ADR-0016: First-run Example Project
 
-Status: Accepted
+Status: Superseded by ADR-0017
 Date: 2026-10-02
 Doc: ARCHITECTURE.md
 
