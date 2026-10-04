@@ -167,7 +167,6 @@ stateDiagram-v2
 | INV-014 | A person has at most one Membership in a project, holding exactly one role. | Project | server |
 | INV-015 | A Project's identity is assigned at creation — by the client when created offline — and never changes; linking preserves it. | Project | both |
 | INV-016 | Creating a Project and capturing Visits require no account; linking them to a person creates exactly one creator Membership (INV-014). | Project | both |
-| INV-017 | **(retired)** An example Project is never linked to a person and never exported; it is the only Project that may be hard-deleted, with its seeded data. | Project | client |
 
 ## Events
 
