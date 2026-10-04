@@ -27,8 +27,8 @@ export interface CreateProjectInput {
   description?: string;
   validationEnabled?: boolean;
   sensitiveTaxaObfuscation?: boolean;
-  taxonomicReferenceId?: string;
-  taxonomicReferenceVersion?: string;
+  taxonomicReferenceId?: string | null;
+  taxonomicReferenceVersion?: string | null;
 }
 
 /**
@@ -57,8 +57,12 @@ export class ProjectsService {
   constructor(@Inject(DATABASE) private readonly db: NodePgDatabase) {}
 
   async create(personId: string, input: CreateProjectInput): Promise<Project> {
-    const hasReferenceId = input.taxonomicReferenceId !== undefined;
-    const hasReferenceVersion = input.taxonomicReferenceVersion !== undefined;
+    const hasReferenceId =
+      input.taxonomicReferenceId !== undefined &&
+      input.taxonomicReferenceId !== null;
+    const hasReferenceVersion =
+      input.taxonomicReferenceVersion !== undefined &&
+      input.taxonomicReferenceVersion !== null;
     if (hasReferenceId !== hasReferenceVersion) {
       throw new BadRequestException(
         'taxonomicReferenceId and taxonomicReferenceVersion must be provided together',

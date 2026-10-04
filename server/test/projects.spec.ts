@@ -294,6 +294,53 @@ describe('Project creation', () => {
     );
   });
 
+  it('rejects an explicit-null half-pin and treats both-null as no pin', async () => {
+    const db = app.get<NodePgDatabase>(DATABASE);
+    const projectsBefore = await db.select().from(project);
+    const membershipsBefore = await db.select().from(membership);
+
+    const idNull = await createProject(
+      {
+        name: 'Half pin',
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: '2024.1',
+      },
+      { cookie },
+    );
+    expect(idNull.status, await idNull.clone().text()).toBe(400);
+
+    const versionNull = await createProject(
+      {
+        name: 'Half pin',
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: null,
+      },
+      { cookie },
+    );
+    expect(versionNull.status, await versionNull.clone().text()).toBe(400);
+
+    expect(await db.select().from(project)).toHaveLength(projectsBefore.length);
+    expect(await db.select().from(membership)).toHaveLength(
+      membershipsBefore.length,
+    );
+
+    const bothNull = await createProject(
+      {
+        name: 'No pin',
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: null,
+      },
+      { cookie },
+    );
+    expect(bothNull.status, await bothNull.clone().text()).toBe(201);
+    const body = (await bothNull.json()) as {
+      taxonomicReferenceId: string | null;
+      taxonomicReferenceVersion: string | null;
+    };
+    expect(body.taxonomicReferenceId).toBeNull();
+    expect(body.taxonomicReferenceVersion).toBeNull();
+  });
+
   it('rejects an unauthenticated request', async () => {
     const response = await createProject(validBody);
 
