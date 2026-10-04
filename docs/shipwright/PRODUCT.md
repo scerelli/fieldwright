@@ -21,8 +21,8 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 **v1**
 
 - A solo student plans, collects, submits and exports a real thesis survey end-to-end on one device, without help.
-- A real multi-collector project runs with at least two collectors, three sites, and three repeat visits per site.
-- Exports load cleanly into an occupancy model (e.g. `unmarked` in R) and are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms).
+- A real multi-collector project runs with at least two collectors, three sites, and three repeat visits per site — a design floor, not a power guarantee.
+- The protocol is gated on the design a single-season occupancy model needs, and exports carry a data dictionary, a generated methods paragraph and a runnable recipe, so they are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms) and ready to load into `unmarked` in R.
 - A new user reaches a first recorded Visit in their own Project within the first session, guided by a clear first-run prompt, a self-explanatory Project creation form, and the in-app manual.
 
 **Beyond v1**
@@ -46,7 +46,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - As a collector, I want to add opportunistic taxa, evidence (photo, audio), uncertain determinations with a specimen code, and covariate values with their provenance.
 - As a collector, I want to submit and sync a completed visit when connectivity returns, without editing it afterwards.
 - As a validator, I want to review submitted records and issue corrections so that errors are fixed without erasing history.
-- As a researcher, I want exports ready for occupancy analysis and publication, with sensitive taxa obfuscated.
+- As a researcher, I want to state my objective and pick an analysis, so that IBIS shapes my protocol and export to what that analysis requires and documents the assumptions, with sensitive taxa obfuscated.
 - As a new user, I want a clear first step to create my own Project, and an in-app manual, so that I can start a survey without prior knowledge of the app.
 
 ## Scope & roadmap
@@ -63,12 +63,14 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
 9. Foundational Epic: app shell, navigation, and the design tokens `/design` will settle, wired into the component registry `/discover` pins — so `/decompose` mints it once instead of each feature Epic re-deriving the theme.
 10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a guided form with inline validation and explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
+11. Analyses: a declarative `AnalysisSpec` catalogue — a Project records an objective and selects one spec (MVP ships single-season, single-species occupancy/detection). The spec's required data shape gates and warns on the protocol design, and its export bundle adds an occasion-covariate table, a data dictionary, a generated methods paragraph and a runnable R (`unmarked`) recipe. Specs are data, not code; analysis runs externally.
 
 ### Next
 
 - Braun-Blanquet vegetation relevé as a second method on the same core (plots, layers, cover-abundance).
 - Counts with distance bands (point counts, distance sampling).
 - Transect GPS tracks as effort.
+- Researcher-authored analysis specs (declarative; no executable code).
 
 ### Later
 
@@ -91,6 +93,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - Abundance estimation beyond optional counts.
 - Soil-chemistry logic (manual covariate entry only).
 - Species identification by image (automatic photo-based ID).
+- In-app execution of analyses, and running any researcher-supplied code.
 
 ## Risks & mitigations
 
@@ -99,6 +102,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - **Phone-sensor accuracy varies by model** — mitigated by provenance and uncertainty on every value.
 - **Taxonomic references for fauna: which lists, their licences and update cadence** — decide before fauna projects ship; monitor until then.
 - **GDPR and sensitive-species leakage** — mitigated by coordinate obfuscation and role-based access.
+- **Asymmetric confidence** — a ready-to-run analysis bundle can read as a warrant of validity over a design that cannot support it — mitigated by hard structural gates, warnings with logged overrides, an explicit honesty clause, and reporting occupancy and detection with uncertainty; monitor.
 
 ## Assumptions, dependencies & constraints
 
