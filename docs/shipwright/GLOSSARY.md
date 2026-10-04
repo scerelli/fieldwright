@@ -41,12 +41,6 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - concept: DOMAIN.md › Evidence (entity)
 - avoid: attachment
 
-## Example Project
-- code: `-`
-- definition: A Project the app seeds for onboarding and marks as an example. It is browsable but never linked or exported, and is the only Project that may be hard-deleted with its seeded data; the app ensures one exists while the person has no non-example Project.
-- concept: DOMAIN.md › Project (aggregate)
-- avoid: demo project, sample project
-
 ## Measurement
 - code: `Measurement`
 - definition: A value with a unit and its Provenance. A value without a method is invalid.
