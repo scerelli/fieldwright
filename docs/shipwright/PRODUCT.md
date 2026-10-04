@@ -22,7 +22,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 
 - A solo student plans, collects, submits and exports a real thesis survey end-to-end on one device, without help.
 - A real multi-collector project runs with at least two collectors, three sites, and three repeat visits per site — a design floor, not a power guarantee.
-- The protocol is gated on the design a single-season occupancy model needs, and exports carry a data dictionary, a generated methods paragraph and a runnable recipe, so they are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms) and ready to load into `unmarked` in R.
+- The protocol is gated on the design a closed occupancy model needs, and exports carry a data dictionary, a generated methods paragraph and a runnable recipe, so they are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms) and ready to load into `unmarked` in R.
 - A new user reaches a first recorded Visit in their own Project within the first session, guided by a clear first-run prompt, a self-explanatory Project creation form, and the in-app manual.
 
 **Beyond v1**
@@ -63,7 +63,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
 9. Foundational Epic: app shell, navigation, and the design tokens `/design` will settle, wired into the component registry `/discover` pins — so `/decompose` mints it once instead of each feature Epic re-deriving the theme.
 10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a guided form with inline validation and explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
-11. Analyses: a declarative `AnalysisSpec` catalogue — a Project records an objective and selects one spec (MVP ships single-season, single-species occupancy/detection). The spec's required data shape gates and warns on the protocol design, and its export bundle adds an occasion-covariate table, a data dictionary, a generated methods paragraph and a runnable R (`unmarked`) recipe. Specs are data, not code; analysis runs externally.
+11. Analyses: a declarative `AnalysisSpec` catalogue — a Project records an objective and selects one spec (MVP ships a closed, single-species occupancy/detection spec). The spec's required data shape gates and warns on the protocol design, and its export bundle adds an occasion-covariate table, a data dictionary, a generated methods paragraph and a runnable R (`unmarked`) recipe. Specs are data, not code; analysis runs externally.
 
 ### Next
 
