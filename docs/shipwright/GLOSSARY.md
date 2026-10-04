@@ -3,6 +3,13 @@
 The ubiquitous language for IBIS. Every field is read by `glossary.sh`; entries
 are ordered alphabetically and each identifier belongs to exactly one term.
 
+## Analysis spec
+- code: `AnalysisSpec`
+- definition: A declarative, versioned definition of an analysis a Project may run: the question it answers, the data shape it requires, the target tool, and the bundle it emits. It is data, not code; selecting one never modifies captured data and never runs author-supplied code.
+- concept: DOMAIN.md › Analysis spec (value)
+- source: unmarked (Fiske & Chandler 2011); MacKenzie et al. occupancy modelling
+- avoid: analysis type, analysis kind
+
 ## Correction
 - code: `Correction`
 - definition: An append-only change to a submitted Visit, carrying its author, time, and reason. A Correction never mutates the submitted record; it is the only way a submitted Visit changes in effect.
@@ -62,7 +69,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Project
 - code: `Project`
-- definition: The container a creator sets up: its protocol, members, survey periods, sites, and settings. Sites, visits, and exports are scoped to one Project.
+- definition: The container a creator sets up: its protocol, members, survey periods, sites, settings, optional objective, and the Analysis spec it runs. Sites, visits, and exports are scoped to one Project.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: study
 
@@ -99,7 +106,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Survey period
 - code: `SurveyPeriod`
-- definition: A named date range in which Visits are expected. Visits to the same Site within one Survey period are its repeat visits.
+- definition: A named date range in which Visits are expected. Visits to the same Site within one Survey period are its repeat visits, and the period is the closure window for a closed occupancy analysis.
 - concept: DOMAIN.md › Survey period (entity)
 - avoid: season, campaign
 
