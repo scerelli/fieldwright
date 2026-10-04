@@ -62,8 +62,10 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 7. Methods paragraph generated from the protocol.
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
 9. Foundational Epic: app shell, navigation, and the design tokens `/design` will settle, wired into the component registry `/discover` pins — so `/decompose` mints it once instead of each feature Epic re-deriving the theme.
-10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a guided form with inline validation and explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
+10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a name-only guided form with inline validation, and the pinned reference and settings are configured afterward on a Project settings surface carrying explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
 11. Analyses: a declarative `AnalysisSpec` catalogue — a Project records an objective and selects one spec (MVP ships a closed, single-species occupancy/detection spec). The spec's required data shape gates and warns on the protocol design, and its export bundle adds an occasion-covariate table, a data dictionary, a generated methods paragraph and a runnable R (`unmarked`) recipe. Specs are data, not code; analysis runs externally.
+
+> **Scope note (2026-10-04):** Taxonomic-reference provisioning is explicit v1 scope (Epic #381, ADR-0020): the operator supplies versioned reference artifacts, the API serves them, and the client caches and resolves names offline against the Project's pinned version. This elaborates item 1's "taxonomic reference and its version". Capture is decoupled from resolution: a Project may be created and Visits captured before a reference is pinned, and resolution is enforced at submission (ADR-0019).
 
 ### Next
 
