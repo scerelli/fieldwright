@@ -11,6 +11,11 @@ project and its protocol, recording where and when surveys happen, capturing a
 visit and its detections offline, submitting it immutably, correcting and
 validating it, and exporting analysis-ready data.
 
+Capture is decoupled from taxonomic resolution: a Visit may be captured and its
+Detections recorded as provisional taxa before the Project pins a Taxonomic
+reference. Resolution is a precondition of submission, not of capture, so no
+field work is blocked; rigor is enforced at submission and export.
+
 It **references but does not own**:
 
 - **Taxonomic references** — external, versioned species checklists. A project
@@ -39,7 +44,9 @@ or future method.
   description (short authored text for the Project); an optional objective (the
   research question) and the Analysis spec(s) the Project intends to run; and
   settings — validation on/off, sensitive-taxa coordinate obfuscation, and the
-  pinned Taxonomic reference version.
+  pinned Taxonomic reference version, which may be unset until the creator
+  chooses one. Creation offers a suggested per-group default (plants; fauna
+  lists are open) that the creator accepts or defers.
 - lifecycle: `active` → `archived`. Archived projects keep their data readable
   and exports reproducible but accept no new visits.
 - A Project may be created and populated with Visits with no account. Whether
@@ -90,10 +97,15 @@ The unit of offline capture, submission, and immutability.
   one Detection per target taxon (or, in complete-list mode, per in-scope
   taxon); opportunistic detections; Evidence; Determinations; Measurements;
   and, once submitted, Corrections.
-- references: exactly one Site, one Survey period, and one Protocol version.
+- references: exactly one Site at capture; exactly one Survey period and one
+  Protocol version are required before submission (INV-006).
 - lifecycle: `in progress` (on the device, effort timer running) → `ended` →
   `submitted` (immutable) → `validated` or `rejected` when the project has
-  validation enabled. When validation is disabled, `submitted` is terminal.
+  validation enabled. When validation is disabled, `submitted` is terminal. A
+  Visit may be captured and ended with only a Site, but cannot be submitted
+  until it has exactly one Survey period and one Protocol version, its required
+  effort is recorded (INV-005), its Project has a pinned Taxonomic reference,
+  and every Detection's taxon is resolved (INV-008).
 - invariants: INV-001 – INV-006, INV-008 – INV-010, INV-013.
 
 ```mermaid
@@ -111,11 +123,12 @@ stateDiagram-v2
 ### Detection (entity inside Visit)
 
 - identity: within its Visit.
-- holds: the taxon (resolved against the pinned reference); `detected` true or
-  false; the detection method; an optional count; references to Evidence; any
-  Determinations.
+- holds: a taxon resolved against the pinned reference, or a provisional taxon
+  pending resolution; `detected` true or false; the detection method; an
+  optional count; references to Evidence; any Determinations.
 - A non-detection is a Detection with `detected = false` — never a missing
-  record.
+  record. A non-detection requires a resolved target list, so a Visit whose
+  taxa are still provisional records opportunistic presence only.
 
 ### Determination (entity inside Visit)
 
@@ -162,6 +175,17 @@ stateDiagram-v2
 - source: occupancy/detection modelling (`unmarked`; MacKenzie et al.).
 - invariants: INV-018.
 
+### Provisional taxon (value)
+
+- A taxon recorded on a Detection before the Project's pinned Taxonomic
+  reference is available: a name or abbreviation not yet resolved to a
+  reference taxon. It is presence-only, and is resolved against the pinned
+  reference before the Visit is submitted (INV-008).
+- It is not a Determination qualifier (`cf.` / `aff.` / `sp.`), which revises
+  an already-resolved assignment.
+- source: Darwin Core Occurrence, which permits a `scientificName` with no
+  resolved `taxonID`.
+
 ## Invariants
 
 | ID | Rule (falsifiable) | Aggregate | Enforced at |
@@ -171,9 +195,9 @@ stateDiagram-v2
 | INV-003 | An opportunistic Detection outside the target list is presence-only and never implies a non-detection anywhere. | Visit | both |
 | INV-004 | A complete-list Visit declares its taxonomic scope; only in-scope, unrecorded taxa count as non-detections. | Visit | both |
 | INV-005 | A Visit records the sampling-effort fields its Protocol version requires: start, duration, observers, detection methods. | Visit | both |
-| INV-006 | A Visit belongs to exactly one Site, one Survey period, and one Protocol version. | Visit | both |
+| INV-006 | A **submitted** Visit belongs to exactly one Site, one Survey period, and one Protocol version; capture requires only the Site. | Visit | both |
 | INV-007 | A Protocol version referenced by any Visit is immutable; changes create a new version. | Project | server |
-| INV-008 | Taxon names resolve against the pinned Taxonomic reference version; that version is stored with the data. | Visit / Project | both |
+| INV-008 | Taxon names resolve against the pinned Taxonomic reference version **before submission**; that version is stored with the submitted data. A Detection still holding a provisional taxon, or a Visit whose Project has no pinned reference, cannot be submitted. | Visit / Project | both |
 | INV-009 | A Determination is never overwritten; a revised one links to the one it replaces. | Visit | both |
 | INV-010 | Every Measurement carries its Provenance; a value without a method is invalid. | Visit / Site | both |
 | INV-011 | Sensitive-taxa coordinates never leave the server unobfuscated, except to roles the Project allows. | Project | server |
@@ -199,8 +223,16 @@ stateDiagram-v2
 
 ## Policies
 
-- When a **Visit is submitted**, lock it immutable and, if validation is
-  enabled, expose it to validators.
+- When a **Visit is submitted**, require it to carry exactly one Survey period
+  and one Protocol version, its required effort, a pinned reference on the
+  Project, and a resolved taxon on every Detection; locking it immutable and,
+  if validation is enabled, exposing it to validators happens only then.
+- When a **Project has no pinned Taxonomic reference**, capture proceeds and
+  Detections hold provisional taxa; submission is blocked until a reference is
+  pinned and every taxon resolves.
+- When a **Project pins or changes its Taxonomic reference**, re-resolve its
+  provisional taxa; already-submitted data keeps the version stored with it
+  (INV-008) and is never retroactively changed.
 - When a **Correction is recorded**, re-derive every affected export and view;
   never mutate the submitted record.
 - When a **Determination is revised**, link the replacement to the one it
@@ -220,11 +252,16 @@ Determinations carry their determiner and date and link to the ones they
 replace. Corrections carry author, time, and reason. Submitted Visits and
 Protocol versions are immutable, and their history is retained; nothing is
 deleted to fix a mistake. Linking a locally-created Project records who linked
-it and when; the Project's identity is unchanged by the link.
+it and when; the Project's identity is unchanged by the link. A provisional
+taxon is replaced by its resolved taxon before submission, and the reference
+version it resolved against is stored with the submitted data.
 
 ## External vocabularies
 
 - **Darwin Core** — Event, Occurrence, `occurrenceStatus` (present/absent).
+  An Occurrence may carry a `scientificName` with no resolved `taxonID`; a
+  provisional taxon is that state made explicit and resolved before submission,
+  never exported unresolved.
 - **Humboldt extension** — effort and scope terms.
 - **Taxonomic references** — per group, versioned and pinned per project; the
   Italy vascular-flora checklist is named, fauna lists are open.
@@ -242,3 +279,5 @@ it and when; the Project's identity is unchanged by the link.
 - Fauna taxonomic references: which lists, their licences, and their update
   cadence.
 - Taxonomic-reference granularity and versioning per group.
+- Which per-group default reference is suggested at Project creation (plants
+  named; fauna lists are open).
