@@ -68,6 +68,7 @@ field-created Site exist on the device until linked or submitted.
 | `shell` | App shell with project-scoped routing (Projects at the top level, Account in the app bar) and the persistent system-state indicator; design tokens, Riverpod wiring (the foundational Epic) | navigation + theme providers | — |
 | `identity` | Better Auth client; current person and their project roles | sign-in/out, session | — |
 | `projects` | Own the local Project aggregate: create and edit Project config offline with no account, pull/join existing Projects, and the Project cards/description — Protocol version, Survey periods, Target list, Sites | config + creation providers | local Project (until linked) |
+| `analyses` | Own the built-in Analysis spec catalogue and a Project's objective + selected spec; gate and warn the Protocol design against the spec's required data shape, and run the pre-export readiness check | analysis providers | — |
 | `capture` | Offline Visit capture loop: effort timer, per-target Detection entry, opportunistic taxa, covariates, end Visit | Visit state notifiers | in-progress Visit (local) |
 | `sites` | Site list/map display and field Site creation, inside a Project | site editor | field-created Site (local) |
 | `help` | In-app manual explaining the core field journey (UX-023) | help screen | — |
@@ -84,7 +85,7 @@ field-created Site exist on the device until linked or submitted.
 | `sites` | Site lifecycle | `/sites` | Site |
 | `visits` | Idempotent ingest, immutability, corrections, validation | `/visits`, `/visits/:id/corrections` | Visit (with Detection, Determination, Measurement, Evidence metadata, Correction) |
 | `media` | Evidence storage abstraction and upload/download | `/media` | — |
-| `exports` | Detection-history matrix, Darwin Core, CSV, GeoPackage (queue jobs) | `/exports` | — |
+| `exports` | Detection-history matrix, Darwin Core, CSV, GeoPackage, and the analysis bundle (occasion-covariate table, data dictionary, generated methods paragraph, runnable recipe) as queue jobs | `/exports` | — |
 | `sync` | The versioned transport | `/api/v1/*` controllers | — |
 | `worker` | Same image, BullMQ consumer for `exports` | queue consumer | — |
 
@@ -92,6 +93,12 @@ field-created Site exist on the device until linked or submitted.
 
 Protocol definition format: TS types + JSON Schema, generated Dart, and golden
 fixtures. No runtime aggregate.
+
+### Shared — `packages/analysis/` (TypeScript + Dart codegen)
+
+Analysis spec format: TS types + JSON Schema, generated Dart, and golden
+fixtures for the built-in specs. Declarative data, no runtime aggregate and no
+executable code (INV-018).
 
 ## Data model
 
@@ -113,14 +120,14 @@ erDiagram
   VISIT ||--o{ CORRECTION : corrected_by
 ```
 
-- **Project** → `project` (nullable `description`, settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`. The `project.id` is the client-assigned UUIDv7 for a locally-created Project, or the server-generated id for one created online (ADR-0014).
+- **Project** → `project` (nullable `description`, nullable `objective`, selected `analysis_spec_id` + `analysis_spec_version`, settings jsonb, pinned taxonomic-reference id + version), `membership`, `protocol_version` (document jsonb, `frozen_at`), `survey_period`. The `project.id` is the client-assigned UUIDv7 for a locally-created Project, or the server-generated id for one created online (ADR-0014). The selected Analysis spec is resolved from the built-in catalogue; no spec is stored per Project (INV-018).
 - **Site** → `site` with `geom geometry(Geometry, 4326)` and `origin` enum; `site_measurement` for site covariates.
 - **Visit** → `visit` (project/site/survey_period/protocol_version FKs, `state` enum, effort jsonb, timestamps, validation fields); `detection` (unique per target taxon per Visit, `opportunistic` flag); `determination` (`replaces_id` self-reference for append-only revisions); `measurement` (value, unit, `provenance` jsonb, owner = visit or detection); `evidence` (storage key + `sha256`, immutable); `correction` (author, reason, payload jsonb, append-only).
 - **Constraints**: FKs, `state` enums, `CHECK` on non-negative counts, `ST_IsValid`/SRID checks, partial unique index `(visit_id, taxon_ref) WHERE NOT opportunistic`.
 - **Immutability & append-only** (INV-001, INV-009): no UPDATE path for a submitted Visit, Determination or Correction in application code.
 - **Provenance** (INV-010): `provenance.method` NOT NULL whenever a `measurement` row exists.
 - **Sensitive coordinates** (INV-011): true geometry is stored; obfuscation happens in the read/export layer, never in storage.
-- **Client local store** (drift, ADR-0002): owns one local **Project** aggregate — `projects` with its `protocol_versions`, `survey_periods`, and `sites` — populated by offline creation and the config pull alike; there is no separate pull-cache copy. `projects` also carries the synced `description`. A locally-created Project keeps its client-assigned identity when linked (INV-015).
+- **Client local store** (drift, ADR-0002): owns one local **Project** aggregate — `projects` with its `protocol_versions`, `survey_periods`, and `sites` — populated by offline creation and the config pull alike; there is no separate pull-cache copy. `projects` also carries the synced `description`, `objective` and selected Analysis spec id/version. A locally-created Project keeps its client-assigned identity when linked (INV-015).
 - **Auth tables** are owned by Better Auth, co-located in Postgres via Drizzle.
 
 ## Compatibility surfaces
@@ -130,9 +137,10 @@ erDiagram
 | Sync REST API | `server/src/sync/**`, `app/lib/outbox/**` | app ↔ server; server may be one release behind | `/api/v1`, additive only, unknown fields ignored | contract tests both sides (OpenAPI + client) |
 | Projects API | `server/src/projects/**`, `app/lib/projects/**` | app ↔ server | additive; `POST /projects` accepts an optional client-supplied id (idempotent create-or-return); a nullable `description` is additive | contract tests both sides |
 | Protocol format | `packages/protocol/**` | app ↔ server | versioned; additive changes extend; Project pins a version | golden fixtures validated in Dart and TS |
+| Analysis spec format | `packages/analysis/**` | app ↔ server | versioned; additive changes extend; specs are declarative data (INV-018) | golden fixtures validated in Dart and TS |
 | Client schema | `app/lib/store/**` | device upgrades | forward-only migrations | migration test from each prior version |
 | Server schema | `server/drizzle/**` | operator upgrades | forward-only migrations | migration test on a populated DB |
-| Export formats | `server/src/exports/**` | analysts, GBIF | stable per format version; additive columns | golden fixtures |
+| Export formats | `server/src/exports/**` | analysts, GBIF | stable per format version; additive columns; the analysis bundle is versioned with its spec | golden fixtures |
 | Media | `server/src/media/**` | volume/S3 | content-hashed keys, never mutated | upload + hash test |
 
 ## Key flows
@@ -152,6 +160,14 @@ an empty state with a create action (`projects` module) and a link into the
 streamlined in-app manual (`help` module, UX-023). Creating a Project is a
 guided form with inline validation and explanatory help on the non-obvious
 fields; the client never seeds a Project of its own.
+
+**Analysis-driven design and export.** A creator records an objective and
+selects an Analysis spec (`analyses` module). The spec's required data shape is
+surfaced as hard gates and warnings while the Protocol is defined, and again as
+a pre-export readiness check: a hard gate blocks the analysis bundle, never
+capture. Export generates the bundle — detection-history matrix,
+occasion-covariate table, data dictionary, generated methods paragraph and a
+runnable R recipe — which the researcher runs externally (INV-018).
 
 **Link journey.** On sign-up, the client outbox links the local data:
 `POST /projects` with the client id creates the Project server-side and a
@@ -234,6 +250,7 @@ flowchart TB
 - Local-first Projects: client-assigned identity, linked on sign-up (ADR-0014).
 - Project-scoped client navigation: Projects at the top level, a Project the hub for its Sites, Visits and config (ADR-0015).
 - First-run onboarding without a seeded Example Project: an empty state plus a guided create form, with the optional synced Project `description` and the in-app manual retained (ADR-0017).
+- Declarative Analysis spec catalogue: specs are data, analysis runs externally and never in-app (ADR-0018).
 
 ## Open questions
 
