@@ -8,7 +8,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - definition: A declarative, versioned definition of an analysis a Project may run: the question it answers, the data shape it requires, the target tool, and the bundle it emits. It is data, not code; selecting one never modifies captured data and never runs author-supplied code.
 - concept: DOMAIN.md › Analysis spec (value)
 - source: unmarked (Fiske & Chandler 2011); MacKenzie et al. occupancy modelling
-- avoid: analysis type, analysis kind
+- avoid: analysis kind
 
 ## Correction
 - code: `Correction`
