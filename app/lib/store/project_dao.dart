@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/sites/site.dart';
 import '../projects/projects_client.dart';
@@ -8,7 +9,14 @@ import '../projects/survey_periods_client.dart';
 import '../protocol/protocol.dart';
 import '../protocol_versions/protocol_versions_client.dart';
 import 'app_database.dart';
+import 'database_provider.dart';
 import 'site_dao.dart';
+
+/// The local Project aggregate's reader/writer, the Project settings surface
+/// writes through (`ARCHITECTURE.md` client local store).
+final projectDaoProvider = Provider<ProjectDao>(
+  (ref) => ProjectDao(ref.watch(databaseProvider)),
+);
 
 /// Owns the local Project aggregate (`ARCHITECTURE.md` client local store,
 /// ADR-0002, ADR-0014): one row in `projects` with its `protocol_versions`,

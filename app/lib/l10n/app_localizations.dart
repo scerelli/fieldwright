@@ -716,6 +716,36 @@ abstract class AppLocalizations {
   /// **'Could not create the project. Try again.'**
   String get projectEditorCreateFailed;
 
+  /// Helper text under the pinned Taxonomic reference id field (UX-026).
+  ///
+  /// In en, this message translates to:
+  /// **'The checklist the Project\'s taxon names resolve against.'**
+  String get projectEditorReferenceIdHelper;
+
+  /// Helper text under the pinned Taxonomic reference version field (UX-026).
+  ///
+  /// In en, this message translates to:
+  /// **'The exact checklist version pinned to the Project; taxon names resolve against it before submission.'**
+  String get projectEditorReferenceVersionHelper;
+
+  /// Error shown when saving an existing project's settings fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the project. Try again.'**
+  String get projectEditorSaveFailed;
+
+  /// Shown when the Project settings surface cannot find its Project in the local store.
+  ///
+  /// In en, this message translates to:
+  /// **'This Project is not on this device.'**
+  String get projectSettingsNotFound;
+
+  /// Title of the project settings surface and the Project hub entry that opens it.
+  ///
+  /// In en, this message translates to:
+  /// **'Project settings'**
+  String get projectSettingsTitle;
+
   /// Heading of the read-only view of a frozen Protocol version.
   ///
   /// In en, this message translates to:

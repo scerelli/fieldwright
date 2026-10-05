@@ -347,6 +347,25 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile creare il progetto. Riprova.';
 
   @override
+  String get projectEditorReferenceIdHelper =>
+      'La checklist rispetto a cui vengono risolti i nomi dei taxa del progetto.';
+
+  @override
+  String get projectEditorReferenceVersionHelper =>
+      'La versione esatta della checklist fissata al progetto; i nomi dei taxa vengono risolti rispetto ad essa prima dell\'invio.';
+
+  @override
+  String get projectEditorSaveFailed =>
+      'Impossibile salvare il progetto. Riprova.';
+
+  @override
+  String get projectSettingsNotFound =>
+      'Questo progetto non è su questo dispositivo.';
+
+  @override
+  String get projectSettingsTitle => 'Impostazioni del progetto';
+
+  @override
   String get protocolVersionTitle => 'Versione del protocollo';
 
   @override
