@@ -67,12 +67,13 @@ System font (Roboto/SF) is the fallback if bundling Inter is dropped; the scale 
 ## Component conventions
 
 - **Buttons**: filled primary / outlined secondary, min height 48 dp; enabled, disabled and pressed states from M3 tonal tokens.
-- **Detection state**: a labelled two-state segmented control (detected / not detected) with `detected` colour; "not yet recorded" is a distinct neutral dashed state (UX-003).
+- **Detection state**: a labelled two-state segmented control (detected / not detected) with `detected` colour; "not yet recorded" is a distinct neutral dashed state, and the end-of-Visit summary lists what remains unrecorded in that state (UX-003).
 - **Lists**: dense rows, leading icon, title 16 sp, tabular trailing values, chevron affordance.
 - **Forms**: inline validation under each field, helper text, errors in `error`; bottom sheets for modal input on mobile.
 - **Provisional taxon**: a dashed-outline chip labelled "unresolved" (`outline`), never styled like a resolved taxon (UX-033).
 - **Prompts**: "no pinned reference" is a non-blocking banner plus a Project-card badge, never a modal (UX-034).
-- **Submission readiness**: a card list of unmet requirements (no Protocol version, no pinned reference, unresolved taxa), each with an action; blocks submission only (UX-035).
+- **Needs attention**: a card list of unmet requirements (no Protocol version, no pinned reference, unresolved taxa, unrecorded targets), each with an action; it excludes the Visit from export but never blocks capture or submission (UX-035).
+- **Provisional Visit**: a Visit that is not analysis-ready carries the dashed `outline` marker (as hidden coordinates and provisional taxa do) wherever its state is shown, so "not resolved" reads the same everywhere (UX-014, UX-033).
 
 ## Tone of voice
 
@@ -80,17 +81,18 @@ Terse, precise, plain; no exclamation marks, no filler. Buttons state the action
 
 - CTA: "Start visit"
 - Empty state: "No projects yet. Create one to begin."
-- Error: "Can't submit yet — 3 taxa unresolved."
+- Error: "Won't export yet — 3 taxa unresolved."
 
 ## UX constraints met
 
 - **UX-001** — 48 dp targets / 8 dp gaps (Spacing & layout).
 - **UX-002** — onSurface `#14181A` 16:1 and dark `#E3E9EA` ~10:1 for critical text; state text `detected` ≥7:1; body 16 sp (Color, Typography).
-- **UX-003** — "not yet recorded" dashed neutral third state (Component conventions).
+- **UX-003** — "not yet recorded" dashed neutral third state and the end-of-Visit summary (Component conventions).
 - **UX-008** — shell sync indicator drawn in `outline`/on-surface, always visible.
 - **UX-014 / UX-033** — hidden coordinates and provisional taxa both use the dashed `outline` marker so they never look resolved.
 - **UX-020 / UX-030** — Project name and selected Analysis spec use on-surface text in the shell/hub.
-- **UX-034 / UX-035** — banner/badge and readiness-card tokens.
+- **UX-032** — provisional taxa and a provisional Visit use the dashed `outline` state; no blocking modal (Component conventions, Color).
+- **UX-034 / UX-035** — needs-attention card list and banner/Project-card badge tokens; a provisional Visit reuses the dashed `outline` marker.
 
 ## Assets & references
 

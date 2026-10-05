@@ -10,11 +10,18 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - source: unmarked (Fiske & Chandler 2011); MacKenzie et al. occupancy modelling
 - avoid: analysis kind
 
+## Analysis-ready
+- code: `analysisReady`
+- definition: The derived state of a submitted Visit that has exactly one Survey period and one Protocol version, its Project's pinned Taxonomic reference, every target taxon recorded, and no provisional Detection. Only an Analysis-ready Visit enters an export or the authoritative dataset; one that is not is provisional.
+- concept: DOMAIN.md › Visit (aggregate)
+- avoid: finalized
+
 ## Correction
 - code: `Correction`
 - definition: An append-only change to a submitted Visit, carrying its author, time, and reason. A Correction never mutates the submitted record; it is the only way a submitted Visit changes in effect.
 - concept: DOMAIN.md › Correction (entity)
 - avoid: edit, amendment
+- note: resolving a provisional Visit's taxa is a Correction.
 
 ## Covariate
 - code: `Covariate`
@@ -65,14 +72,14 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 - definition: A Detection with `detected = false`: the taxon was searched for, under recorded effort, and not found. It has no separate identifier — it is a Detection.
 - concept: DOMAIN.md › Detection (entity)
 - avoid: absence
-- note: absence is an inference an occupancy model draws from non-detections, never a field fact. A non-detection also requires a resolved target list, so a Visit whose taxa are provisional records opportunistic presence only.
+- note: absence is an inference an occupancy model draws from non-detections, never a field fact. A non-detection also requires a resolved target list, so a Visit whose taxa are provisional records opportunistic presence only. A target taxon with no Detection is "not recorded" — a distinct state, never counted as a non-detection (INV-019).
 
 ## Project
 - code: `Project`
 - definition: The container a creator sets up: its protocol, members, survey periods, sites, settings, optional objective, and the Analysis spec it runs. Sites, visits, and exports are scoped to one Project.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: study
-- note: its pinned Taxonomic reference may be chosen after the Project is created; until then Detections hold provisional taxa and submission is blocked.
+- note: its pinned Taxonomic reference may be chosen after the Project is created; until then Detections hold provisional taxa and a submitted Visit is provisional, held out of every export.
 
 ## Protocol
 - code: `Protocol`
@@ -94,7 +101,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Provisional taxon
 - code: `ProvisionalTaxon`
-- definition: A taxon recorded on a Detection before the Project's pinned Taxonomic reference is available — a name or abbreviation not yet resolved to a reference taxon. It is presence-only and is resolved before the Visit is submitted.
+- definition: A taxon recorded on a Detection before the Project's pinned Taxonomic reference is available — a name or abbreviation not yet resolved to a reference taxon. It is presence-only and is resolved before the Visit is analysis-ready.
 - concept: DOMAIN.md › Provisional taxon (value)
 - source: Darwin Core Occurrence (`scientificName` with no resolved `taxonID`)
 - avoid: draft species, free text
@@ -126,7 +133,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Taxonomic reference
 - code: `TaxonomicReference`
-- definition: The versioned external checklist taxon names resolve against. A Project pins one version, recorded with the data; until one is pinned, Detections hold provisional taxa and the Visit cannot be submitted.
+- definition: The versioned external checklist taxon names resolve against. A Project pins one version, recorded with the data; until one is pinned, Detections hold provisional taxa and a submitted Visit is provisional, held out of every export.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: species list, taxonomy
 
@@ -138,7 +145,8 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Visit
 - code: `Visit`
-- definition: One sampling event at one Site within one Survey period, under one Protocol version, with recorded Sampling effort. The unit that is captured offline, submitted immutably, and corrected via Corrections.
+- definition: One sampling event at one Site, captured offline, submitted immutably, and corrected via Corrections. It belongs to one Survey period under one Protocol version once it is analysis-ready.
 - concept: DOMAIN.md › Visit (aggregate)
 - source: Darwin Core Event
 - avoid: outing, trip, session
+- note: a Visit may be captured, ended and submitted with only a Site and provisional taxa; it becomes analysis-ready — and fit for an export — only with its Protocol version, Survey period, the Project's pinned reference, every target recorded, and every taxon resolved.
