@@ -1,6 +1,6 @@
 # ADR-0019: Decouple capture from taxon resolution; provisional taxa are local-only
 
-Status: Accepted
+Status: Superseded by ADR-0021
 Date: 2026-10-04
 Doc: ARCHITECTURE.md
 
