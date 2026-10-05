@@ -109,6 +109,40 @@ void main() {
     },
   );
 
+  test('C3: the store persists a Project with no pinned reference and reads a '
+      'null back after the database is reopened', () async {
+    final path = '${_tempDirectory().path}/ibis.sqlite';
+
+    var database = AppDatabase.open(path);
+    await ProjectDao(database).save(
+      const Project(
+        id: 'bare',
+        name: 'Bare survey',
+        validationEnabled: false,
+        sensitiveTaxaObfuscation: true,
+      ),
+    );
+    await database.close();
+
+    database = AppDatabase.open(path);
+    addTearDown(database.close);
+    final dao = ProjectDao(database);
+
+    final project = await dao.findById('bare');
+    expect(project, isNotNull);
+    expect(project!.taxonomicReferenceId, isNull);
+    expect(project.taxonomicReferenceVersion, isNull);
+
+    final row = await database
+        .customSelect(
+          'SELECT taxonomic_reference_id, taxonomic_reference_version '
+          "FROM projects WHERE id = 'bare'",
+        )
+        .getSingle();
+    expect(row.data['taxonomic_reference_id'], isNull);
+    expect(row.data['taxonomic_reference_version'], isNull);
+  });
+
   test('C1: the store persists the Project description and reads it back after '
       'the database is reopened', () async {
     final path = '${_tempDirectory().path}/ibis.sqlite';
@@ -177,7 +211,7 @@ CREATE TABLE projects (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     final projects = ProjectDao(migrated);
     final project = await projects.findById('p1');
@@ -473,7 +507,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     final project = await ProjectDao(migrated).findById('p1');
     expect(project, isNotNull);
@@ -557,7 +591,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 17);
+    expect(version.data['user_version'], 18);
 
     // The geometry-less row cannot become a domain Site and is dropped; the
     // undated row is kept with a safe created_at; the valid row survives.
@@ -678,4 +712,57 @@ CREATE TABLE config_sites (
       expect(sites.map((site) => site.id), ['s-modeled']);
     },
   );
+
+  test('migration: a version 17 store relaxes the Project pinned-reference '
+      'columns to nullable, preserving an existing Project', () async {
+    final migrated = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute('''
+CREATE TABLE projects (
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  validation_enabled INTEGER NOT NULL,
+  sensitive_taxa_obfuscation INTEGER NOT NULL,
+  taxonomic_reference_id TEXT NOT NULL,
+  taxonomic_reference_version TEXT NOT NULL,
+  PRIMARY KEY (id)
+);
+''');
+          raw.execute(
+            "INSERT INTO projects VALUES "
+            "('p1', 'River survey', NULL, 1, 0, 'it-flora', '2024.1')",
+          );
+          raw.execute('PRAGMA user_version = 17');
+        },
+      ),
+    );
+    addTearDown(migrated.close);
+
+    final version = await migrated
+        .customSelect('PRAGMA user_version')
+        .getSingle();
+    expect(version.data['user_version'], 18);
+
+    final dao = ProjectDao(migrated);
+    final preserved = await dao.findById('p1');
+    expect(preserved, isNotNull);
+    expect(preserved!.taxonomicReferenceId, 'it-flora');
+    expect(preserved.taxonomicReferenceVersion, '2024.1');
+
+    // A Project created with only its name now stores null pins.
+    await dao.save(
+      const Project(
+        id: 'p2',
+        name: 'Bare survey',
+        validationEnabled: false,
+        sensitiveTaxaObfuscation: true,
+      ),
+    );
+    final bare = await dao.findById('p2');
+    expect(bare, isNotNull);
+    expect(bare!.taxonomicReferenceId, isNull);
+    expect(bare.taxonomicReferenceVersion, isNull);
+  });
 }

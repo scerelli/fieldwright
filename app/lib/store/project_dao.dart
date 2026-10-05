@@ -36,8 +36,8 @@ class ProjectDao {
             description: Value(project.description),
             validationEnabled: project.validationEnabled,
             sensitiveTaxaObfuscation: project.sensitiveTaxaObfuscation,
-            taxonomicReferenceId: project.taxonomicReferenceId,
-            taxonomicReferenceVersion: project.taxonomicReferenceVersion,
+            taxonomicReferenceId: Value(project.taxonomicReferenceId),
+            taxonomicReferenceVersion: Value(project.taxonomicReferenceVersion),
           ),
         );
   }

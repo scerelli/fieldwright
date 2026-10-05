@@ -13,8 +13,8 @@ class Project {
     required this.name,
     required this.validationEnabled,
     required this.sensitiveTaxaObfuscation,
-    required this.taxonomicReferenceId,
-    required this.taxonomicReferenceVersion,
+    this.taxonomicReferenceId,
+    this.taxonomicReferenceVersion,
     this.description,
   });
 
@@ -30,9 +30,8 @@ class Project {
       validationEnabled: map['validationEnabled'] as bool? ?? false,
       sensitiveTaxaObfuscation:
           map['sensitiveTaxaObfuscation'] as bool? ?? false,
-      taxonomicReferenceId: json['taxonomicReferenceId'] as String? ?? '',
-      taxonomicReferenceVersion:
-          json['taxonomicReferenceVersion'] as String? ?? '',
+      taxonomicReferenceId: json['taxonomicReferenceId'] as String?,
+      taxonomicReferenceVersion: json['taxonomicReferenceVersion'] as String?,
     );
   }
 
@@ -45,27 +44,35 @@ class Project {
 
   final bool validationEnabled;
   final bool sensitiveTaxaObfuscation;
-  final String taxonomicReferenceId;
-  final String taxonomicReferenceVersion;
+
+  /// The pinned Taxonomic reference is chosen after the Project is created
+  /// (`DOMAIN.md` Project aggregate), so it is null until one is set.
+  final String? taxonomicReferenceId;
+  final String? taxonomicReferenceVersion;
 }
 
 /// The settings a creator sets when defining a Project (`DOMAIN.md`): its
 /// name, validation, sensitive-taxa obfuscation, and the pinned Taxonomic
 /// reference version.
+///
+/// Only the name is required — a creator can start a Project before choosing a
+/// pinned reference or settings — so the pinned reference is null until one is
+/// set and the settings default to the server's (validation off, sensitive-taxa
+/// obfuscation on).
 class CreateProjectInput {
   const CreateProjectInput({
     required this.name,
-    required this.validationEnabled,
-    required this.sensitiveTaxaObfuscation,
-    required this.taxonomicReferenceId,
-    required this.taxonomicReferenceVersion,
+    this.validationEnabled = false,
+    this.sensitiveTaxaObfuscation = true,
+    this.taxonomicReferenceId,
+    this.taxonomicReferenceVersion,
   });
 
   final String name;
   final bool validationEnabled;
   final bool sensitiveTaxaObfuscation;
-  final String taxonomicReferenceId;
-  final String taxonomicReferenceVersion;
+  final String? taxonomicReferenceId;
+  final String? taxonomicReferenceVersion;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'name': name,

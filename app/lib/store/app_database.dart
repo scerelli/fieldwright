@@ -192,9 +192,11 @@ class Projects extends Table {
 
   BoolColumn get sensitiveTaxaObfuscation => boolean()();
 
-  TextColumn get taxonomicReferenceId => text()();
+  /// The pinned Taxonomic reference is chosen after the Project is created
+  /// (`DOMAIN.md` Project aggregate), so both columns are null until one is set.
+  TextColumn get taxonomicReferenceId => text().nullable()();
 
-  TextColumn get taxonomicReferenceVersion => text()();
+  TextColumn get taxonomicReferenceVersion => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -296,7 +298,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -432,6 +434,15 @@ class AppDatabase extends _$AppDatabase {
             !await _hasColumn('projects', 'description')) {
           await migrator.addColumn(projects, projects.description);
         }
+      }
+      if (from < 18) {
+        // The pinned Taxonomic reference is chosen after the Project is created
+        // (`DOMAIN.md` Project aggregate), so its columns become nullable.
+        // SQLite cannot relax a NOT NULL constraint in place, so recreate the
+        // table from the current schema and copy every column across, keeping
+        // each Project (INV-015); a store whose `projects` was already created
+        // nullable by an earlier branch is recreated identically.
+        await migrator.alterTable(TableMigration(projects));
       }
     },
   );

@@ -99,7 +99,8 @@ class ProjectCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(project.taxonomicReferenceVersion, style: bodyStyle),
+            if (project.taxonomicReferenceVersion != null)
+              Text(project.taxonomicReferenceVersion!, style: bodyStyle),
             if (description != null && description.isNotEmpty)
               Text(description, style: bodyStyle),
           ],
