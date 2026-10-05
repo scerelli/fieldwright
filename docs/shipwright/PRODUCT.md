@@ -2,9 +2,11 @@
 
 ## Vision & problem statement
 
-IBIS is a mobile app for ecologists to run species detection/non-detection surveys under a protocol defined once by a project's creator, for any taxon, plants and animals alike. One person creates a project and defines the protocol — taxonomic scope, target list or complete-list mode, allowed detection methods, required effort fields, survey periods, site and visit covariates, and the taxonomic-reference version. Everyone else joins and collects data following it. Visits to the same site within one survey period are its repeat visits, which is what separates "absent" from "present but missed".
+IBIS is a mobile app for ecologists to run species detection/non-detection surveys under a protocol defined once by a project's creator, for any taxon, plants and animals alike. One person creates a project and defines the protocol — taxonomic scope, target list or complete-list mode, allowed detection methods, required effort fields, survey periods, site and visit covariates, and the taxonomic-reference version. Everyone else joins and collects data following it. Visits to the same site within one survey period are its repeat visits, which is what turns a recorded search into a non-detection you can trust.
 
 The pain it targets: existing tools let people record observations, or let a coordinator manage a project, but rarely both with the rigor occupancy analysis demands. A non-detection is only data when the search itself is recorded — which taxa were searched for, with what effort, how many times a site was revisited in a season, and by whom. Generic form tools (Epicollect5, KoboToolbox/ODK, Survey123) leave the researcher to hand-build that logic and enforce none of it; citizen-science apps (eBird, iNaturalist) optimise for presence records, not project-defined repeat-visit designs.
+
+Rigor is captured in the field and enforced at export: a collector finishes and syncs a Visit as it stands, without being blocked by a taxonomic reference or Protocol version they cannot know yet, and resolves it afterwards. The app never refuses a submission; instead it keeps unresolved data out of the authoritative dataset and every export until it is resolved.
 
 Elevator pitch: IBIS makes the rigor occupancy models require the default in the field. Every non-detection is traceable to how the species was searched for; it works offline for whole days on a low-end phone, is self-hostable by a non-devops person, and exports detection-history matrices and Darwin Core ready for occupancy analysis and publication.
 
@@ -24,6 +26,8 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - A real multi-collector project runs with at least two collectors, three sites, and three repeat visits per site — a design floor, not a power guarantee.
 - The protocol is gated on the design a closed occupancy model needs, and exports carry a data dictionary, a generated methods paragraph and a runnable recipe, so they are GBIF-ready (Darwin Core Event + Occurrence with `occurrenceStatus` and Humboldt effort terms) and ready to load into `unmarked` in R.
 - A new user reaches a first recorded Visit in their own Project within the first session, guided by a clear first-run prompt, a self-explanatory Project creation form, and the in-app manual.
+- Capture, ending and sync are never blocked by setup: a Visit is finished and synced with no pinned reference or Protocol version, and resolved afterwards.
+- Non-detections stay trustworthy: the app walks the target list during the Visit, and any untouched target is stored explicitly as "not recorded", never silently as a non-detection.
 
 **Beyond v1**
 
@@ -44,7 +48,8 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - As a collector, I want to start a visit at a site and have the effort timer run so that effort is recorded automatically.
 - As a collector, I want to record detected or not detected for every target taxon so that non-detections become valid data.
 - As a collector, I want to add opportunistic taxa, evidence (photo, audio), uncertain determinations with a specimen code, and covariate values with their provenance.
-- As a collector, I want to submit and sync a completed visit when connectivity returns, without editing it afterwards.
+- As a collector, I want to finish a Visit with only a Site and sync it as it stands, so that a reference or Protocol version I cannot know in the field never blocks my fieldwork.
+- As a creator or collector, I want a "needs attention" surface that lists what a Project still needs — a pinned reference, a Protocol version, unresolved names — with one-tap actions, so that I can resolve submitted Visits after the field day.
 - As a validator, I want to review submitted records and issue corrections so that errors are fixed without erasing history.
 - As a researcher, I want to state my objective and pick an analysis, so that IBIS shapes my protocol and export to what that analysis requires and documents the assumptions, with sensitive taxa obfuscated.
 - As a new user, I want a clear first step to create my own Project, and an in-app manual, so that I can start a survey without prior knowledge of the app.
@@ -57,7 +62,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 2. Sites: predefined by the creator (point, line or polygon) and created in the field, with their origin recorded.
 3. Roles: creator, collector, validator.
 4. Offline visit: effort timer, a detected / not-detected record for every target taxon, detection method, optional count, evidence (photo, audio recording), opportunistic extra taxa, uncertain determinations with a specimen code, covariates from phone sensors or instruments with provenance.
-5. Submit and sync.
+5. Finish and sync: a Visit is finished offline at any time, whatever its state, and syncs without waiting. A Visit that still holds a provisional taxon, or whose Project has no pinned reference or Protocol version, is stored flagged **provisional** and excluded from the authoritative dataset and every export until it is resolved; resolving it later is an append-only Correction. Capture, ending and submission are never refused.
 6. Exports: detection-history matrix (sites × visits, per taxon) with site and visit covariate tables for occupancy analysis; Darwin Core Event + Occurrence with `occurrenceStatus` present/absent and effort terms from the Humboldt extension; CSV; GeoPackage.
 7. Methods paragraph generated from the protocol.
 8. Coordinate obfuscation for sensitive taxa in exports and shared views.
@@ -65,7 +70,9 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 10. First-run onboarding and help: with no Project yet, the Projects list shows an empty state with a one-line explanation of what a Project is and a create action; creating a Project is a name-only guided form with inline validation, and the pinned reference and settings are configured afterward on a Project settings surface carrying explanatory help on the non-obvious fields; and a streamlined in-app manual is reachable from the Projects list.
 11. Analyses: a declarative `AnalysisSpec` catalogue — a Project records an objective and selects one spec (MVP ships a closed, single-species occupancy/detection spec). The spec's required data shape gates and warns on the protocol design, and its export bundle adds an occasion-covariate table, a data dictionary, a generated methods paragraph and a runnable R (`unmarked`) recipe. Specs are data, not code; analysis runs externally.
 
-> **Scope note (2026-10-04):** Taxonomic-reference provisioning is explicit v1 scope (Epic #381, ADR-0020): the operator supplies versioned reference artifacts, the API serves them, and the client caches and resolves names offline against the Project's pinned version. This elaborates item 1's "taxonomic reference and its version". Capture is decoupled from resolution: a Project may be created and Visits captured before a reference is pinned, and resolution is enforced at submission (ADR-0019).
+> **Scope note (2026-10-04):** Taxonomic-reference provisioning is explicit v1 scope (Epic #381, ADR-0020): the operator supplies versioned reference artifacts, the API serves them, and the client caches and resolves names offline against the Project's pinned version. This elaborates item 1's "taxonomic reference and its version". Capture is decoupled from resolution: a Project may be created and Visits captured before a reference is pinned, and resolution is enforced at export/analysis readiness, never at capture, ending or sync.
+
+> **Scope note (2026-10-06):** Submission and resolution are split across two clocks. The **field clock** — capture, the target checklist, ending and sync — is never blocked. The **desk clock** resolves a Project's pinned reference, Protocol version and taxon names, driven by a non-blocking "needs attention" surface with one-tap actions. A Visit syncs as it stands; while unresolved it is held **provisional** and out of every export, and resolving it is an append-only Correction. This replaces ADR-0019's enforcement-at-submission (the server ingest no longer rejects an unresolved Visit; it stores it provisional and excluded) and reframes INV-006/INV-008 as analysis-readiness conditions; `/model` restates them.
 
 ### Next
 
@@ -86,6 +93,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - **Offline-first**: a full visit, including evidence capture, must work with no connectivity for whole days.
 - **Device floor**: run acceptably on low-end Android phones common among students; every sensor-backed field falls back to manual entry (many have no barometer).
 - **Field conditions**: legible and operable in direct sun, rain, cold and gloves; long sessions on one battery; bounded local storage for audio evidence.
+- **Data integrity**: no unresolved Visit ever enters an export or the authoritative dataset; provisional status is explicit, never silent, and resolving a synced Visit is an append-only Correction.
 - **Security & privacy**: collectors' locations and tracks are personal data under GDPR; sensitive-species coordinates must never leave the server unobfuscated except to roles the project allows.
 - **Deployability**: self-hostable by a non-devops person via docker-compose (API + Postgres/PostGIS, media on a volume, optional S3).
 - **Scale & performance**: not yet known — see `/architect`.
@@ -100,9 +108,10 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 ## Risks & mitigations
 
 - **Crowded presence-data market** — mitigated only by the protocol rigor and analysis-ready exports; never simplify the rigor away.
-- **Data quality depends on observers following the protocol** — mitigated by enforced effort fields, target lists, and observer identity.
+- **Data quality depends on observers following the protocol** — mitigated by the capture target checklist (every target walked during the Visit), an explicit "not recorded" state distinct from a non-detection, and an export readiness check that flags incomplete or unresolved Visits.
 - **Phone-sensor accuracy varies by model** — mitigated by provenance and uncertainty on every value.
 - **Taxonomic references for fauna: which lists, their licences and update cadence** — decide before fauna projects ship; monitor until then.
+- **Unresolved data syncing to the server** — a Visit may sync before its names resolve, so the server holds provisional records; mitigated by an explicit provisional flag, exclusion from the authoritative dataset and every export, and resolution as an append-only Correction. Monitor.
 - **GDPR and sensitive-species leakage** — mitigated by coordinate obfuscation and role-based access.
 - **Asymmetric confidence** — a ready-to-run analysis bundle can read as a warrant of validity over a design that cannot support it — mitigated by hard structural gates, warnings with logged overrides, an explicit honesty clause, and reporting occupancy and detection with uncertainty; monitor.
 
@@ -111,7 +120,7 @@ Elevator pitch: IBIS makes the rigor occupancy models require the default in the
 - Owner is one developer, solo; repo on GitHub; docs and code in English.
 - Mobile: not React Native (decided); Flutter proposed over native ×2 and Kotlin Multiplatform.
 - Backend: NestJS REST proposed, Postgres/PostGIS, docker-compose, media on a volume, optional S3; self-hostable by a non-devops person (decided).
-- Sync: no sync engine — in-progress visits live only on the device; submitted visits are immutable server-side; corrections are append-only events; client-generated UUIDv7 IDs; an outbox uploads submissions; the client pulls project config, protocol, sites and target lists since a version.
+- Sync: no sync engine — in-progress visits live only on the device; a finished Visit syncs as it stands and is stored provisional until resolved; submitted visits are immutable server-side; resolving a synced Visit is an append-only Correction; client-generated UUIDv7 IDs; an outbox uploads submissions; the client pulls project config, protocol, sites and target lists since a version.
 - Taxonomic references are pinned per project with their version recorded; external vocabularies are Darwin Core (Event, Occurrence, `occurrenceStatus`) and the Humboldt extension.
 
 ## Milestones
