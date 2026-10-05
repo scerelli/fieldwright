@@ -432,6 +432,26 @@
   "@projectEditorCreateFailed": {
     "description": "Error shown when creating the project fails."
   },
+  "projectEditorReferenceIdHelper": "The checklist the Project's taxon names resolve against.",
+  "@projectEditorReferenceIdHelper": {
+    "description": "Helper text under the pinned Taxonomic reference id field (UX-026)."
+  },
+  "projectEditorReferenceVersionHelper": "The exact checklist version pinned to the Project; taxon names resolve against it before submission.",
+  "@projectEditorReferenceVersionHelper": {
+    "description": "Helper text under the pinned Taxonomic reference version field (UX-026)."
+  },
+  "projectEditorSaveFailed": "Could not save the project. Try again.",
+  "@projectEditorSaveFailed": {
+    "description": "Error shown when saving an existing project's settings fails."
+  },
+  "projectSettingsNotFound": "This Project is not on this device.",
+  "@projectSettingsNotFound": {
+    "description": "Shown when the Project settings surface cannot find its Project in the local store."
+  },
+  "projectSettingsTitle": "Project settings",
+  "@projectSettingsTitle": {
+    "description": "Title of the project settings surface and the Project hub entry that opens it."
+  },
   "protocolVersionTitle": "Protocol version",
   "@protocolVersionTitle": {
     "description": "Heading of the read-only view of a frozen Protocol version."

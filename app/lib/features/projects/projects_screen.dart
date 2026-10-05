@@ -117,24 +117,20 @@ class ProjectCard extends StatelessWidget {
 /// Opened from a Project in the Projects list; each entry routes to the
 /// matching sub-screen, which navigates back here.
 class ProjectDetailScreen extends StatelessWidget {
-  const ProjectDetailScreen({
-    super.key,
-    required this.projectId,
-    this.projectName,
-  });
+  const ProjectDetailScreen({super.key, required this.projectId, this.project});
 
   final String projectId;
 
-  /// The Project's name when the entry point supplied it; a deep link falls
-  /// back to the generic Projects title.
-  final String? projectName;
+  /// The Project when the entry point supplied it; a deep link falls back to
+  /// the generic Projects title.
+  final Project? project;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(projectName ?? l10n.navProjects)),
+      appBar: AppBar(title: Text(project?.name ?? l10n.navProjects)),
       body: ListView(
         children: [
           ListTile(
@@ -154,6 +150,13 @@ class ProjectDetailScreen extends StatelessWidget {
             leading: const Icon(Icons.date_range_outlined),
             title: Text(l10n.surveyPeriodsTitle),
             onTap: () => context.go('/projects/$projectId/survey-periods'),
+          ),
+          ListTile(
+            key: const Key('open_project_settings'),
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(l10n.projectSettingsTitle),
+            onTap: () =>
+                context.go('/projects/$projectId/settings', extra: project),
           ),
         ],
       ),

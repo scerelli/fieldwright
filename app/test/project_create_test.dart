@@ -2,15 +2,21 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:ibis/auth/auth_client.dart';
 import 'package:ibis/auth/auth_provider.dart';
+import 'package:ibis/features/projects/project_editor.dart';
 import 'package:ibis/features/projects/projects_screen.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/projects/projects_client.dart';
+import 'package:ibis/router/app_router.dart';
+import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/project_dao.dart';
 
 /// Fakes the HTTP layer: no request ever leaves the process.
 class FakeHttpAdapter implements HttpClientAdapter {
@@ -466,5 +472,236 @@ void main() {
       );
       expect(name.decoration?.helperText, isNull);
     });
+  });
+
+  group('project settings surface', () {
+    Widget settingsHarness(Widget child) => MaterialApp(
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: child,
+    );
+
+    const Project existing = Project(
+      id: 'p1',
+      name: 'Alpine Birds',
+      validationEnabled: true,
+      sensitiveTaxaObfuscation: true,
+    );
+
+    Future<ProjectDao> seededDao(WidgetTester tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final dao = ProjectDao(database);
+      await dao.save(existing);
+      return dao;
+    }
+
+    ProviderContainer containerWith(ProjectDao dao) {
+      final container = ProviderContainer(
+        overrides: [projectDaoProvider.overrideWithValue(dao)],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    /// Lets the settings surface resolve its Project from the local store.
+    Future<void> settleLoad(WidgetTester tester) async {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'C1: pinning a Taxonomic reference version on an existing Project '
+      'stores it (INV-008)',
+      (tester) async {
+        final dao = await seededDao(tester);
+        Project? saved;
+
+        await tester.pumpWidget(
+          settingsHarness(
+            ProjectEditor(
+              dao: dao,
+              initial: existing,
+              onSaved: (project) => saved = project,
+            ),
+          ),
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('project_reference_id')),
+          'it-flora',
+        );
+        await tester.enterText(
+          find.byKey(const Key('project_reference_version')),
+          '2024.1',
+        );
+        await tester.tap(find.byKey(const Key('save_project')));
+        await tester.pumpAndSettle();
+
+        final stored = await dao.findById('p1');
+        expect(stored, isNotNull);
+        expect(stored!.taxonomicReferenceId, 'it-flora');
+        expect(stored.taxonomicReferenceVersion, '2024.1');
+        expect(saved, isNotNull);
+        expect(saved!.taxonomicReferenceVersion, '2024.1');
+      },
+    );
+
+    testWidgets(
+      'C2: setting validation and sensitive-taxa obfuscation on an existing '
+      'Project stores them',
+      (tester) async {
+        final dao = await seededDao(tester);
+
+        await tester.pumpWidget(
+          settingsHarness(ProjectEditor(dao: dao, initial: existing)),
+        );
+
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const Key('project_validation')),
+              )
+              .value,
+          isTrue,
+        );
+
+        await tester.tap(find.byKey(const Key('project_validation')));
+        await tester.tap(find.byKey(const Key('project_obfuscation')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('save_project')));
+        await tester.pumpAndSettle();
+
+        final stored = await dao.findById('p1');
+        expect(stored, isNotNull);
+        expect(stored!.validationEnabled, isFalse);
+        expect(stored.sensitiveTaxaObfuscation, isFalse);
+      },
+    );
+
+    testWidgets(
+      'C3: the Project settings surface is reached only inside its Project '
+      '(UX-019)',
+      (tester) async {
+        final dao = await seededDao(tester);
+        final container = containerWith(dao);
+        final router = container.read(goRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+                AppLocalizations.delegate,
+                ...GlobalMaterialLocalizations.delegates,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The entry lives on the Project's hub, reached inside the Project.
+        router.go('/projects/p1', extra: existing);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('open_project_settings')), findsOneWidget);
+
+        // Tapping it takes the production route to the real settings surface,
+        // nested under the Project.
+        await tester.tap(find.byKey(const Key('open_project_settings')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('save_project')), findsOneWidget);
+        expect(
+          GoRouterState.of(
+            tester.element(find.byKey(const Key('save_project'))),
+          ).uri.path,
+          '/projects/p1/settings',
+        );
+
+        // No top-level entry reaches the settings surface.
+        router.go('/projects');
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('open_project_settings')), findsNothing);
+      },
+    );
+
+    testWidgets('the settings surface loads its Project from the local store when reached '
+        'without one', (tester) async {
+      final dao = await seededDao(tester);
+      final container = containerWith(dao);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: settingsHarness(const ProjectSettingsScreen(projectId: 'p1')),
+        ),
+      );
+      await settleLoad(tester);
+
+      final name = tester.widget<TextField>(
+        find.byKey(const Key('project_name')),
+      );
+      expect(name.controller?.text, 'Alpine Birds');
+      expect(find.byKey(const Key('save_project')), findsOneWidget);
+    });
+
+    testWidgets(
+      'the settings surface states plainly when its Project is not on the '
+      'device',
+      (tester) async {
+        final database = AppDatabase(NativeDatabase.memory());
+        addTearDown(database.close);
+        final container = containerWith(ProjectDao(database));
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: settingsHarness(
+              const ProjectSettingsScreen(projectId: 'missing'),
+            ),
+          ),
+        );
+        await settleLoad(tester);
+
+        expect(
+          find.text('This Project is not on this device.'),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('save_project')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'C4: the settings reference fields carry helper text (UX-026)',
+      (tester) async {
+        final dao = await seededDao(tester);
+        await tester.pumpWidget(
+          settingsHarness(ProjectEditor(dao: dao, initial: existing)),
+        );
+
+        final referenceId = tester.widget<TextField>(
+          find.byKey(const Key('project_reference_id')),
+        );
+        final referenceVersion = tester.widget<TextField>(
+          find.byKey(const Key('project_reference_version')),
+        );
+
+        expect(
+          referenceId.decoration?.helperText,
+          "The checklist the Project's taxon names resolve against.",
+        );
+        expect(
+          referenceVersion.decoration?.helperText,
+          'The exact checklist version pinned to the Project; taxon names '
+          'resolve against it before submission.',
+        );
+      },
+    );
   });
 }

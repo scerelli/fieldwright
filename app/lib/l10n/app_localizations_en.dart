@@ -339,6 +339,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not create the project. Try again.';
 
   @override
+  String get projectEditorReferenceIdHelper =>
+      'The checklist the Project\'s taxon names resolve against.';
+
+  @override
+  String get projectEditorReferenceVersionHelper =>
+      'The exact checklist version pinned to the Project; taxon names resolve against it before submission.';
+
+  @override
+  String get projectEditorSaveFailed =>
+      'Could not save the project. Try again.';
+
+  @override
+  String get projectSettingsNotFound => 'This Project is not on this device.';
+
+  @override
+  String get projectSettingsTitle => 'Project settings';
+
+  @override
   String get protocolVersionTitle => 'Protocol version';
 
   @override
