@@ -53,8 +53,8 @@ Map<String, dynamic> projectJson({
   String name = 'Alpine Birds',
   bool validationEnabled = false,
   bool sensitiveTaxaObfuscation = true,
-  String taxonomicReferenceId = 'it-flora',
-  String taxonomicReferenceVersion = '2024.1',
+  String? taxonomicReferenceId = 'it-flora',
+  String? taxonomicReferenceVersion = '2024.1',
 }) => <String, dynamic>{
   'id': id,
   'name': name,
@@ -90,9 +90,9 @@ FakeHttpAdapter signedInAdapter() => FakeHttpAdapter((options) async {
           name: body['name'] as String,
           validationEnabled: body['validationEnabled'] as bool,
           sensitiveTaxaObfuscation: body['sensitiveTaxaObfuscation'] as bool,
-          taxonomicReferenceId: body['taxonomicReferenceId'] as String,
+          taxonomicReferenceId: body['taxonomicReferenceId'] as String?,
           taxonomicReferenceVersion:
-              body['taxonomicReferenceVersion'] as String,
+              body['taxonomicReferenceVersion'] as String?,
         ),
         statusCode: 201,
       );
@@ -229,6 +229,44 @@ void main() {
         'taxonomicReferenceVersion': '2025.2',
       });
     });
+
+    test(
+      'create posts a Project with only its name and no pinned reference',
+      () async {
+        final adapter = signedInAdapter();
+        final auth = await signedInAuth(adapter);
+        final client = projectsWith(adapter, auth);
+
+        final project = await client.create(
+          const CreateProjectInput(name: 'Bare survey'),
+        );
+
+        expect(project.name, 'Bare survey');
+        expect(project.taxonomicReferenceId, isNull);
+        expect(project.taxonomicReferenceVersion, isNull);
+        expect(projectRequest(adapter).data, <String, dynamic>{
+          'name': 'Bare survey',
+          'validationEnabled': false,
+          'sensitiveTaxaObfuscation': true,
+          'taxonomicReferenceId': null,
+          'taxonomicReferenceVersion': null,
+        });
+      },
+    );
+
+    test('a Project with no pinned reference carries none', () {
+      final project = Project.fromJson(<String, dynamic>{
+        'id': 'p1',
+        'name': 'Bare survey',
+        'settings': <String, dynamic>{
+          'validationEnabled': false,
+          'sensitiveTaxaObfuscation': true,
+        },
+      });
+
+      expect(project.taxonomicReferenceId, isNull);
+      expect(project.taxonomicReferenceVersion, isNull);
+    });
   });
 
   group('create-project surface', () {
@@ -292,7 +330,125 @@ void main() {
       },
     );
 
-    testWidgets('invalid settings show an error and store nothing', (
+    testWidgets(
+      'UX-025: an empty name reports under the name field and stores nothing',
+      (tester) async {
+        final adapter = signedInAdapter();
+        late final AuthClient auth;
+        await tester.runAsync(() async {
+          auth = await signedInAuth(adapter);
+        });
+        final client = projectsWith(adapter, auth);
+        await pumpProjects(tester, auth: auth, client: client);
+
+        await openEditor(tester);
+        await saveEditor(tester);
+
+        final name = tester.widget<TextField>(
+          find.byKey(const Key('project_name')),
+        );
+        expect(name.decoration?.errorText, 'Enter a project name.');
+        expect(
+          adapter.requests.where((request) => request.path == '/projects'),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets(
+      'UX-025: a reference id with no version reports under the version field',
+      (tester) async {
+        final adapter = signedInAdapter();
+        late final AuthClient auth;
+        await tester.runAsync(() async {
+          auth = await signedInAuth(adapter);
+        });
+        final client = projectsWith(adapter, auth);
+        await pumpProjects(tester, auth: auth, client: client);
+
+        await openEditor(tester);
+        await fillEditor(
+          tester,
+          name: 'Alpine Birds',
+          referenceId: 'it-flora',
+          referenceVersion: '',
+        );
+        await saveEditor(tester);
+
+        final version = tester.widget<TextField>(
+          find.byKey(const Key('project_reference_version')),
+        );
+        expect(
+          version.decoration?.errorText,
+          'Enter a taxonomic reference version.',
+        );
+        expect(
+          adapter.requests.where((request) => request.path == '/projects'),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets(
+      'UX-025: a reference version with no id reports under the id field',
+      (tester) async {
+        final adapter = signedInAdapter();
+        late final AuthClient auth;
+        await tester.runAsync(() async {
+          auth = await signedInAuth(adapter);
+        });
+        final client = projectsWith(adapter, auth);
+        await pumpProjects(tester, auth: auth, client: client);
+
+        await openEditor(tester);
+        await tester.enterText(
+          find.byKey(const Key('project_name')),
+          'Alpine Birds',
+        );
+        await tester.enterText(
+          find.byKey(const Key('project_reference_version')),
+          '2024.1',
+        );
+        await saveEditor(tester);
+
+        final id = tester.widget<TextField>(
+          find.byKey(const Key('project_reference_id')),
+        );
+        expect(id.decoration?.errorText, 'Select a taxonomic reference.');
+        expect(
+          adapter.requests.where((request) => request.path == '/projects'),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets(
+      'C1: the create form saves with only its name and no pinned reference',
+      (tester) async {
+        final adapter = signedInAdapter();
+        late final AuthClient auth;
+        await tester.runAsync(() async {
+          auth = await signedInAuth(adapter);
+        });
+        final client = projectsWith(adapter, auth);
+        await pumpProjects(tester, auth: auth, client: client);
+
+        await openEditor(tester);
+        await tester.enterText(
+          find.byKey(const Key('project_name')),
+          'Bare survey',
+        );
+        await saveEditor(tester);
+
+        final request = projectRequest(adapter);
+        expect(request.method, 'POST');
+        expect(request.data['name'], 'Bare survey');
+        expect(request.data['taxonomicReferenceId'], isNull);
+        expect(request.data['taxonomicReferenceVersion'], isNull);
+      },
+    );
+
+    testWidgets('C4: the create form name field carries no helper text', (
       tester,
     ) async {
       final adapter = signedInAdapter();
@@ -304,19 +460,11 @@ void main() {
       await pumpProjects(tester, auth: auth, client: client);
 
       await openEditor(tester);
-      await fillEditor(
-        tester,
-        name: 'Alpine Birds',
-        referenceId: 'it-flora',
-        referenceVersion: '',
-      );
-      await saveEditor(tester);
 
-      expect(find.byKey(const Key('project_error')), findsOneWidget);
-      expect(
-        adapter.requests.where((request) => request.path == '/projects'),
-        isEmpty,
+      final name = tester.widget<TextField>(
+        find.byKey(const Key('project_name')),
       );
+      expect(name.decoration?.helperText, isNull);
     });
   });
 }
