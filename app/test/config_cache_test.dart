@@ -327,7 +327,7 @@ CREATE TABLE measurements (
         final version = await migrated
             .customSelect('PRAGMA user_version')
             .getSingle();
-        expect(version.data['user_version'], 18);
+        expect(version.data['user_version'], 19);
 
         final tables = await migrated
             .customSelect(

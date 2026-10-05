@@ -112,4 +112,39 @@ void main() {
       expect(find.text('State: In progress'), findsNothing);
     });
   });
+
+  testWidgets(
+    'starting and ending a Visit from a Project with no pinned reference or '
+    'Protocol version is not blocked (UX-032)',
+    (tester) async {
+      final database = _openDatabase();
+      await SiteDao(database).save(_site());
+
+      await tester.pumpWidget(
+        _app(database, const VisitsScreen(projectId: 'project-1')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('start_visit_site-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CaptureScreen), findsOneWidget);
+      final started = await VisitDao(database).all();
+      expect(started, hasLength(1));
+      expect(started.single.state, VisitState.inProgress);
+      expect(started.single.protocolVersionId, isNull);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(Key('end_visit_${started.single.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('end_visit_confirm')));
+      await tester.pumpAndSettle();
+
+      final ended = await VisitDao(database).all();
+      expect(ended.single.state, VisitState.ended);
+      expect(ended.single.effort.endedAt, isNotNull);
+    },
+  );
 }

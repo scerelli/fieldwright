@@ -30,10 +30,7 @@ class VisitsScreen extends ConsumerStatefulWidget {
 class _VisitsScreenState extends ConsumerState<VisitsScreen> {
   List<Visit> _visits = const <Visit>[];
 
-  bool get _configured =>
-      widget.projectId != null &&
-      widget.surveyPeriodId != null &&
-      widget.protocolVersionId != null;
+  bool get _configured => widget.projectId != null;
 
   @override
   void initState() {
@@ -52,8 +49,8 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
         .read(visitDaoProvider)
         .startVisit(
           siteId: site.id,
-          surveyPeriodId: widget.surveyPeriodId!,
-          protocolVersionId: widget.protocolVersionId!,
+          surveyPeriodId: widget.surveyPeriodId,
+          protocolVersionId: widget.protocolVersionId,
         );
     if (!mounted) return;
     setState(() => _visits = <Visit>[..._visits, visit]);
