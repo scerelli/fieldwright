@@ -25,6 +25,7 @@
 - **dio 5.11** — HTTP client for the REST API and the submission outbox.
 - **uuid 4.6** — client-generated UUIDv7 identifiers.
 - **sensors_plus 7.1** + **geolocator 14.1** — accelerometer/magnetometer/barometer and location.
+- **connectivity_plus 7.3.2** — network transport state (`none`/wifi/mobile) for the shell's UX-008 offline indicator; a transport type is not a reachability guarantee, so network code stays guarded by timeouts/errors (ADR-0022).
 - **record 7.1** + **image_picker 1.2** — audio and photo Evidence capture.
 - **freezed 4.0** + **build_runner 2.16** — code generation for models and drift.
 
@@ -126,6 +127,7 @@ GitHub Actions, one job per package running the check-only commands above.
 - **UI widgets/themes** — `material_ui`/`cupertino_ui`; Flutter 3.47 decoupled Material and Cupertino out of the SDK, so `package:flutter/material.dart` is the legacy path.
 - **Maps** — flutter_map + OSM; MapLibre (heavier), Google Maps (API key, conflicts with self-host) lost.
 - **State management** — Riverpod; Bloc (boilerplate), Provider (scales worst) lost.
+- **Connectivity source** — connectivity_plus; internet_connection_checker_plus (live reachability probing, heavier) and deriving offline from the outbox's failed state (conflates Offline with Sync-failed) lost (ADR-0022).
 - **Server test runner** — Vitest; Jest (slower on TS), `node:test` (fewer features) lost.
 - **Repo layout** — `app/` + `server/` + `packages/protocol/` + `infra/` (the shared protocol package is added by ARCHITECTURE.md); separate repositories (cross-repo overhead) lost.
 - **Package manager** — pnpm; npm/yarn (slower, less strict) lost.
