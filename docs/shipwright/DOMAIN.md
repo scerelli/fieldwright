@@ -103,6 +103,9 @@ The unit of offline capture, submission, and immutability.
   pinned reference, or held as a provisional taxon until it can be.
 - references: exactly one Site at capture; it has exactly one Survey period and
   one Protocol version before it is analysis-ready (INV-020).
+- records: the Project's pinned Taxonomic reference id and version whenever the
+  Project has one, so every resolved Detection carries the reference version it
+  resolved against (INV-021).
 - lifecycle: `in progress` (on the device, effort timer running) → `ended` →
   `submitted` (immutable) → `validated` or `rejected` when the project has
   validation enabled. When validation is disabled, `submitted` is terminal. A
@@ -220,7 +223,7 @@ stateDiagram-v2
 | INV-018 | An Analysis spec is declarative: selecting or applying one never modifies captured Project data and never runs author-supplied code; analysis output is derived and never authoritative. | Project | client |
 | INV-019 | "not recorded" and "not detected" are distinct states: a target taxon with no Detection is never counted as a non-detection. | Visit | both |
 | INV-020 | A Visit belongs to exactly one Site at capture; it has exactly one Survey period and one Protocol version before it is analysis-ready. | Visit | both |
-| INV-021 | A Detection's taxon resolves against the Project's pinned Taxonomic reference version, and that version is stored with the data it resolved; until it resolves it is provisional and presence-only. Resolving a synced Visit is an append-only Correction. | Visit / Project | both |
+| INV-021 | A Detection's taxon resolves against the Project's pinned Taxonomic reference version, and a resolved Detection requires that version — the Project's pinned reference id and version, a pair — to be recorded with its Visit; a Detection whose name does not resolve is provisional and presence-only until it is resolved by an append-only Correction. Resolving a synced Visit is an append-only Correction. | Visit / Project | both |
 | INV-022 | A Visit that is not analysis-ready — missing a Protocol version, a Survey period, the Project's pinned reference, a recorded target, or a resolved taxon — is **provisional** and excluded from every export and the authoritative dataset; submission never depends on analysis-readiness. | Visit / Project | both |
 
 ## Events
