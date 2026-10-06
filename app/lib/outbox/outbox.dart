@@ -197,10 +197,9 @@ class Outbox {
     // ended and retryable rather than marking it submitted. The server enforces
     // the same rule on its side.
     final config = _config;
-    if (config != null) {
-      final protocolVersion = await config.protocolVersion(
-        visit.protocolVersionId,
-      );
+    final protocolVersionId = visit.protocolVersionId;
+    if (config != null && protocolVersionId != null) {
+      final protocolVersion = await config.protocolVersion(protocolVersionId);
       final targets =
           protocolVersion?.document.targetList ?? const <TargetTaxon>[];
       if (!allTargetsRecorded(targets, detections)) {

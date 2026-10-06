@@ -211,7 +211,7 @@ CREATE TABLE projects (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 18);
+    expect(version.data['user_version'], 19);
 
     final projects = ProjectDao(migrated);
     final project = await projects.findById('p1');
@@ -507,7 +507,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 18);
+    expect(version.data['user_version'], 19);
 
     final project = await ProjectDao(migrated).findById('p1');
     expect(project, isNotNull);
@@ -591,7 +591,7 @@ CREATE TABLE config_sites (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 18);
+    expect(version.data['user_version'], 19);
 
     // The geometry-less row cannot become a domain Site and is dropped; the
     // undated row is kept with a safe created_at; the valid row survives.
@@ -743,7 +743,7 @@ CREATE TABLE projects (
     final version = await migrated
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 18);
+    expect(version.data['user_version'], 19);
 
     final dao = ProjectDao(migrated);
     final preserved = await dao.findById('p1');

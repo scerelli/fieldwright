@@ -562,9 +562,9 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
   late final GeneratedColumn<String> surveyPeriodId = GeneratedColumn<String>(
     'survey_period_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _protocolVersionIdMeta = const VerificationMeta(
     'protocolVersionId',
@@ -574,9 +574,9 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
       GeneratedColumn<String>(
         'protocol_version_id',
         aliasedName,
-        false,
+        true,
         type: DriftSqlType.string,
-        requiredDuringInsert: true,
+        requiredDuringInsert: false,
       );
   @override
   late final GeneratedColumnWithTypeConverter<VisitState, String> state =
@@ -666,8 +666,6 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
           _surveyPeriodIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_surveyPeriodIdMeta);
     }
     if (data.containsKey('protocol_version_id')) {
       context.handle(
@@ -677,8 +675,6 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
           _protocolVersionIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_protocolVersionIdMeta);
     }
     if (data.containsKey('effort_started_at')) {
       context.handle(
@@ -729,11 +725,11 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
       surveyPeriodId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}survey_period_id'],
-      )!,
+      ),
       protocolVersionId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}protocol_version_id'],
-      )!,
+      ),
       state: $VisitsTable.$converterstate.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -767,8 +763,14 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, VisitRow> {
 class VisitRow extends DataClass implements Insertable<VisitRow> {
   final String id;
   final String siteId;
-  final String surveyPeriodId;
-  final String protocolVersionId;
+
+  /// The Survey period attached to the Visit, or null while a Visit starts and
+  /// is captured with only a Site (INV-020).
+  final String? surveyPeriodId;
+
+  /// The Protocol version attached to the Visit, or null while a Visit starts
+  /// and is captured with only a Site (INV-020).
+  final String? protocolVersionId;
   final VisitState state;
   final DateTime effortStartedAt;
   final DateTime? effortEndedAt;
@@ -780,8 +782,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
   const VisitRow({
     required this.id,
     required this.siteId,
-    required this.surveyPeriodId,
-    required this.protocolVersionId,
+    this.surveyPeriodId,
+    this.protocolVersionId,
     required this.state,
     required this.effortStartedAt,
     this.effortEndedAt,
@@ -792,8 +794,12 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['site_id'] = Variable<String>(siteId);
-    map['survey_period_id'] = Variable<String>(surveyPeriodId);
-    map['protocol_version_id'] = Variable<String>(protocolVersionId);
+    if (!nullToAbsent || surveyPeriodId != null) {
+      map['survey_period_id'] = Variable<String>(surveyPeriodId);
+    }
+    if (!nullToAbsent || protocolVersionId != null) {
+      map['protocol_version_id'] = Variable<String>(protocolVersionId);
+    }
     {
       map['state'] = Variable<String>(
         $VisitsTable.$converterstate.toSql(state),
@@ -813,8 +819,12 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     return VisitsCompanion(
       id: Value(id),
       siteId: Value(siteId),
-      surveyPeriodId: Value(surveyPeriodId),
-      protocolVersionId: Value(protocolVersionId),
+      surveyPeriodId: surveyPeriodId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(surveyPeriodId),
+      protocolVersionId: protocolVersionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(protocolVersionId),
       state: Value(state),
       effortStartedAt: Value(effortStartedAt),
       effortEndedAt: effortEndedAt == null && nullToAbsent
@@ -834,8 +844,10 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     return VisitRow(
       id: serializer.fromJson<String>(json['id']),
       siteId: serializer.fromJson<String>(json['siteId']),
-      surveyPeriodId: serializer.fromJson<String>(json['surveyPeriodId']),
-      protocolVersionId: serializer.fromJson<String>(json['protocolVersionId']),
+      surveyPeriodId: serializer.fromJson<String?>(json['surveyPeriodId']),
+      protocolVersionId: serializer.fromJson<String?>(
+        json['protocolVersionId'],
+      ),
       state: $VisitsTable.$converterstate.fromJson(
         serializer.fromJson<String>(json['state']),
       ),
@@ -850,8 +862,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'siteId': serializer.toJson<String>(siteId),
-      'surveyPeriodId': serializer.toJson<String>(surveyPeriodId),
-      'protocolVersionId': serializer.toJson<String>(protocolVersionId),
+      'surveyPeriodId': serializer.toJson<String?>(surveyPeriodId),
+      'protocolVersionId': serializer.toJson<String?>(protocolVersionId),
       'state': serializer.toJson<String>(
         $VisitsTable.$converterstate.toJson(state),
       ),
@@ -864,8 +876,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
   VisitRow copyWith({
     String? id,
     String? siteId,
-    String? surveyPeriodId,
-    String? protocolVersionId,
+    Value<String?> surveyPeriodId = const Value.absent(),
+    Value<String?> protocolVersionId = const Value.absent(),
     VisitState? state,
     DateTime? effortStartedAt,
     Value<DateTime?> effortEndedAt = const Value.absent(),
@@ -873,8 +885,12 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
   }) => VisitRow(
     id: id ?? this.id,
     siteId: siteId ?? this.siteId,
-    surveyPeriodId: surveyPeriodId ?? this.surveyPeriodId,
-    protocolVersionId: protocolVersionId ?? this.protocolVersionId,
+    surveyPeriodId: surveyPeriodId.present
+        ? surveyPeriodId.value
+        : this.surveyPeriodId,
+    protocolVersionId: protocolVersionId.present
+        ? protocolVersionId.value
+        : this.protocolVersionId,
     state: state ?? this.state,
     effortStartedAt: effortStartedAt ?? this.effortStartedAt,
     effortEndedAt: effortEndedAt.present
@@ -950,8 +966,8 @@ class VisitRow extends DataClass implements Insertable<VisitRow> {
 class VisitsCompanion extends UpdateCompanion<VisitRow> {
   final Value<String> id;
   final Value<String> siteId;
-  final Value<String> surveyPeriodId;
-  final Value<String> protocolVersionId;
+  final Value<String?> surveyPeriodId;
+  final Value<String?> protocolVersionId;
   final Value<VisitState> state;
   final Value<DateTime> effortStartedAt;
   final Value<DateTime?> effortEndedAt;
@@ -971,8 +987,8 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
   VisitsCompanion.insert({
     required String id,
     required String siteId,
-    required String surveyPeriodId,
-    required String protocolVersionId,
+    this.surveyPeriodId = const Value.absent(),
+    this.protocolVersionId = const Value.absent(),
     required VisitState state,
     required DateTime effortStartedAt,
     this.effortEndedAt = const Value.absent(),
@@ -980,8 +996,6 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        siteId = Value(siteId),
-       surveyPeriodId = Value(surveyPeriodId),
-       protocolVersionId = Value(protocolVersionId),
        state = Value(state),
        effortStartedAt = Value(effortStartedAt);
   static Insertable<VisitRow> custom({
@@ -1011,8 +1025,8 @@ class VisitsCompanion extends UpdateCompanion<VisitRow> {
   VisitsCompanion copyWith({
     Value<String>? id,
     Value<String>? siteId,
-    Value<String>? surveyPeriodId,
-    Value<String>? protocolVersionId,
+    Value<String?>? surveyPeriodId,
+    Value<String?>? protocolVersionId,
     Value<VisitState>? state,
     Value<DateTime>? effortStartedAt,
     Value<DateTime?>? effortEndedAt,
@@ -5495,8 +5509,8 @@ typedef $$SitesTableProcessedTableManager =
 typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   required String id,
   required String siteId,
-  required String surveyPeriodId,
-  required String protocolVersionId,
+  Value<String?> surveyPeriodId,
+  Value<String?> protocolVersionId,
   required VisitState state,
   required DateTime effortStartedAt,
   Value<DateTime?> effortEndedAt,
@@ -5506,8 +5520,8 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
 typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<String> id,
   Value<String> siteId,
-  Value<String> surveyPeriodId,
-  Value<String> protocolVersionId,
+  Value<String?> surveyPeriodId,
+  Value<String?> protocolVersionId,
   Value<VisitState> state,
   Value<DateTime> effortStartedAt,
   Value<DateTime?> effortEndedAt,
@@ -6041,8 +6055,8 @@ class $$VisitsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> siteId = const Value.absent(),
-                Value<String> surveyPeriodId = const Value.absent(),
-                Value<String> protocolVersionId = const Value.absent(),
+                Value<String?> surveyPeriodId = const Value.absent(),
+                Value<String?> protocolVersionId = const Value.absent(),
                 Value<VisitState> state = const Value.absent(),
                 Value<DateTime> effortStartedAt = const Value.absent(),
                 Value<DateTime?> effortEndedAt = const Value.absent(),
@@ -6063,8 +6077,8 @@ class $$VisitsTableTableManager
               ({
                 required String id,
                 required String siteId,
-                required String surveyPeriodId,
-                required String protocolVersionId,
+                Value<String?> surveyPeriodId = const Value.absent(),
+                Value<String?> protocolVersionId = const Value.absent(),
                 required VisitState state,
                 required DateTime effortStartedAt,
                 Value<DateTime?> effortEndedAt = const Value.absent(),

@@ -50,9 +50,13 @@ class Visits extends Table {
 
   TextColumn get siteId => text()();
 
-  TextColumn get surveyPeriodId => text()();
+  /// The Survey period attached to the Visit, or null while a Visit starts and
+  /// is captured with only a Site (INV-020).
+  TextColumn get surveyPeriodId => text().nullable()();
 
-  TextColumn get protocolVersionId => text()();
+  /// The Protocol version attached to the Visit, or null while a Visit starts
+  /// and is captured with only a Site (INV-020).
+  TextColumn get protocolVersionId => text().nullable()();
 
   TextColumn get state => textEnum<VisitState>()();
 
@@ -298,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -443,6 +447,19 @@ class AppDatabase extends _$AppDatabase {
         // each Project (INV-015); a store whose `projects` was already created
         // nullable by an earlier branch is recreated identically.
         await migrator.alterTable(TableMigration(projects));
+      }
+      if (from < 19) {
+        // A Visit starts and is captured with only a Site: its Survey period
+        // and Protocol version are attached later, before the Visit is
+        // analysis-ready (`DOMAIN.md` INV-020). SQLite cannot relax a NOT NULL
+        // constraint in place, so recreate the table from the current schema
+        // and copy every column across, keeping each Visit (INV-020); a store
+        // whose `visits` was already created nullable by an earlier branch is
+        // recreated identically, and one that predates `visits` altogether is
+        // left to the creation branch above.
+        if (await _hasTable('visits')) {
+          await migrator.alterTable(TableMigration(visits));
+        }
       }
     },
   );

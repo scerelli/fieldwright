@@ -26,16 +26,24 @@ class Visit {
   const Visit({
     required this.id,
     required this.siteId,
-    required this.surveyPeriodId,
-    required this.protocolVersionId,
+    this.surveyPeriodId,
+    this.protocolVersionId,
     required this.state,
     required this.effort,
   });
 
   final String id;
   final String siteId;
-  final String surveyPeriodId;
-  final String protocolVersionId;
+
+  /// The Survey period attached to the Visit, or null while it starts and is
+  /// captured with only a Site. It is attached before the Visit is
+  /// analysis-ready (INV-020).
+  final String? surveyPeriodId;
+
+  /// The Protocol version attached to the Visit, or null while it starts and is
+  /// captured with only a Site. It is attached before the Visit is
+  /// analysis-ready (INV-020).
+  final String? protocolVersionId;
   final VisitState state;
   final SamplingEffort effort;
 
