@@ -17,13 +17,14 @@
  * The transaction records the Project's pinned Taxonomic reference id and
  * version on the Visit whenever the Project has one, even with no Protocol
  * version or Survey period, so the reference a resolved taxon was captured
- * against is stored with the data (INV-008, INV-021); only a Project with no pin
+ * against is stored with the data (INV-021); only a Project with no pin
  * yields null reference columns (INV-020, INV-022). A Detection with a resolved
  * `taxon` therefore requires the Project to have a pin — resolution without a
  * stored reference is impossible — while a provisional Detection is accepted
- * with no pin. Resolving taxon names against that reference is the other half of
- * INV-008 and is deferred until the reference lists and their versioning are
- * decided (DOMAIN.md Open questions).
+ * with no pin. A provisional taxon is resolved against the Project's pinned
+ * reference by an append-only Correction (INV-021); resolving taxon names
+ * against the reference lists is deferred until their versioning is decided
+ * (DOMAIN.md Open questions).
  */
 import {
   BadRequestException,
@@ -52,6 +53,7 @@ import {
 } from '../db/schema.js';
 import {
   assertResolutionCorrectionPayload,
+  isResolutionCorrectionPayload,
   loadAnalysisReadyVisitIds,
 } from './readiness.js';
 import {
@@ -438,6 +440,54 @@ export class VisitsService {
         );
       }
 
+      if (isResolutionCorrectionPayload(input.payload)) {
+        const [owner] = await tx
+          .select({
+            taxonomicReferenceVersion: project.taxonomicReferenceVersion,
+          })
+          .from(project)
+          .where(eq(project.id, current.projectId))
+          .limit(1);
+        const pinnedVersion = owner?.taxonomicReferenceVersion ?? null;
+        // A resolved taxon resolves against the Project's current pinned
+        // reference (INV-021); a Correction carrying any other version, or a
+        // Project with no pin, cannot be applied.
+        if (
+          owner === undefined ||
+          pinnedVersion === null ||
+          pinnedVersion !== input.payload.taxonomicReferenceVersion
+        ) {
+          throw new BadRequestException(
+            "a resolution Correction must carry the Project's pinned Taxonomic reference version",
+          );
+        }
+
+        // A resolution may not create a second non-opportunistic Detection for
+        // a taxon the Visit already records: an opportunistic Detection is
+        // presence-only and never claims a target (INV-003), so only a
+        // non-opportunistic recorded taxon collides (INV-003, INV-021).
+        const recordedDetections = await tx
+          .select({
+            taxon: detection.taxon,
+            opportunistic: detection.opportunistic,
+          })
+          .from(detection)
+          .where(eq(detection.visitId, visitId));
+        const recordedTaxa = new Set(
+          recordedDetections
+            .filter((row) => !row.opportunistic)
+            .map((row) => row.taxon)
+            .filter((taxon): taxon is string => taxon !== null),
+        );
+        for (const assignment of input.payload.resolvedTaxa) {
+          if (recordedTaxa.has(assignment.taxon)) {
+            throw new BadRequestException(
+              'a resolution Correction cannot resolve a provisional Detection onto a taxon already recorded on the same Visit',
+            );
+          }
+        }
+      }
+
       const [created] = await tx
         .insert(correction)
         .values({
@@ -548,11 +598,11 @@ export class VisitsService {
    * The ids of a Project's analysis-ready Visits (GLOSSARY.md Analysis-ready,
    * INV-019 – INV-022), derived from stored state — the Project's pinned
    * reference, each Visit's Survey period and Protocol version, its required
-   * effort, target completeness and no provisional Detection. The
-   * `exports` module gates on this set so a non-ready Visit never enters an
-   * export. Deriving from the Corrections that resolve a synced Visit's
-   * provisional taxa (INV-021) is Story #393's sibling #401; this reads the
-   * stored state as it stands.
+   * effort, target completeness and no provisional Detection — with the
+   * recorded resolution Corrections (INV-021) applied, so a synced Visit whose
+   * provisional taxa a Correction has resolved counts as ready while its stored
+   * rows stay exactly as submitted (INV-001). The `exports` module gates on
+   * this set so a non-ready Visit never enters an export.
    */
   async analysisReadyVisitIds(projectId: string): Promise<Set<string>> {
     return loadAnalysisReadyVisitIds(this.db, projectId);

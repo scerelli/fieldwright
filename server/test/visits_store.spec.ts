@@ -33,6 +33,8 @@ import {
   visit,
   type MeasurementProvenance,
 } from '../src/db/schema.js';
+import { loadResolvedTaxaByVisit } from '../src/visits/readiness.js';
+import { targetTaxaOf } from '../src/visits/visit-rules.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
 import {
   VisitsService,
@@ -406,6 +408,28 @@ describe('Visit store', () => {
       .where(eq(detection.visitId, id));
     expect(storedDetection!.taxon).toBeNull();
     expect(storedDetection!.provisionalName).toBe('cf. Anthus');
+  });
+
+  it("records the Project's pinned reference id and version as a pair on a Visit insert, or stores both null (INV-021)", async () => {
+    const pinned = await seedReferences();
+    const pinnedId = await storeSubmittedVisit(pinned);
+
+    const [pinnedVisit] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, pinnedId));
+    expect(pinnedVisit!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(pinnedVisit!.taxonomicReferenceVersion).toBe('2024.1');
+
+    const unpinned = await seedReferences({ id: null, version: null });
+    const unpinnedId = await storeSubmittedVisit(unpinned);
+
+    const [unpinnedVisit] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, unpinnedId));
+    expect(unpinnedVisit!.taxonomicReferenceId).toBeNull();
+    expect(unpinnedVisit!.taxonomicReferenceVersion).toBeNull();
   });
 
   it('rejects a resolved Detection for a Project with no pinned reference (INV-021)', async () => {
@@ -1132,6 +1156,67 @@ describe('Visit store', () => {
     ).toHaveLength(0);
   });
 
+  it('rejects a Visit that stores exactly one of the pinned reference id and version at the database (INV-021)', async () => {
+    const refs = await seedReferences();
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const submittedAt = new Date('2026-04-01T09:00:00Z');
+
+    const halfPairs = [
+      {
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: null,
+      },
+      {
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: '2024.1',
+      },
+    ];
+    for (const reference of halfPairs) {
+      await expect(
+        db.insert(visit).values({
+          id: randomUUID(),
+          ...refs,
+          ...reference,
+          state: 'submitted',
+          effort: {},
+          startedAt,
+          submittedAt,
+        }),
+      ).rejects.toThrow();
+    }
+
+    // The pair is recorded together or not at all: both columns or neither.
+    const wholePairs = [
+      {
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      },
+      { taxonomicReferenceId: null, taxonomicReferenceVersion: null },
+    ];
+    for (const reference of wholePairs) {
+      const [stored] = await db
+        .insert(visit)
+        .values({
+          id: randomUUID(),
+          ...refs,
+          ...reference,
+          state: 'submitted',
+          effort: {},
+          startedAt,
+          submittedAt,
+        })
+        .returning();
+      expect(stored!.taxonomicReferenceId).toBe(reference.taxonomicReferenceId);
+      expect(stored!.taxonomicReferenceVersion).toBe(
+        reference.taxonomicReferenceVersion,
+      );
+    }
+
+    expect(
+      await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
+    ).toHaveLength(2);
+  });
+
   it('rejects a Measurement whose Provenance has no method at the database', async () => {
     const refs = await seedReferences();
     const visitId = randomUUID();
@@ -1168,7 +1253,7 @@ describe('Visit store', () => {
     ).toHaveLength(0);
   });
 
-  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
+  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-021)', async () => {
     const refs = await seedReferences();
     const id = randomUUID();
 
@@ -1272,6 +1357,32 @@ describe('Visit store', () => {
     expect(rerun.status, rerun.stderr).toBe(0);
 
     expect((await applied()).rows).toEqual(before);
+  });
+
+  describe('target taxa derivation (INV-004)', () => {
+    it('derives the required target taxa from the declared taxonomic scope in complete-list mode (INV-004)', () => {
+      expect(
+        targetTaxaOf({
+          protocolId: 'wetland-plants',
+          version: 1,
+          taxonomicScope: { taxa: ['Tracheophyta', 'Bryophyta'] },
+        }),
+      ).toEqual(['Tracheophyta', 'Bryophyta']);
+    });
+
+    it('derives the required target taxa from the Target list when the document declares one (INV-004)', () => {
+      expect(
+        targetTaxaOf({
+          protocolId: 'alpine-birds',
+          version: 1,
+          taxonomicScope: { taxa: ['Aves'] },
+          targetList: [
+            { taxonRef: 'Aves|Turdus|merula' },
+            { taxonRef: 'Aves|Erithacus|rubecula' },
+          ],
+        }),
+      ).toEqual(['Aves|Turdus|merula', 'Aves|Erithacus|rubecula']);
+    });
   });
 
   describe('analysis-readiness derivation (INV-019 – INV-022)', () => {
@@ -1420,6 +1531,54 @@ describe('Visit store', () => {
 
       const ready = await visits.analysisReadyVisitIds(refs.projectId);
       expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a complete-list Visit records no in-scope target (INV-004, INV-019, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        taxonomicScope: { taxa: ['Anthus trivialis', 'Sylvia borin'] },
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is analysis-ready when a complete-list Visit records every in-scope taxon (INV-004, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        taxonomicScope: { taxa: ['Anthus trivialis', 'Sylvia borin'] },
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
     });
 
     it('is not analysis-ready when a required Sampling-effort field is not recorded (INV-005)', async () => {
@@ -1606,6 +1765,59 @@ describe('Visit store', () => {
       const ready = await visits.analysisReadyVisitIds(refs.projectId);
       expect(ready.has(firstOnly)).toBe(true);
       expect(ready.has(superseded)).toBe(false);
+    });
+
+    it('orders resolution Corrections with equal createdAt by id, so the applied resolution is deterministic (INV-021)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+      const id = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, id);
+
+      // Both Corrections share a createdAt. The greater id is inserted first, so
+      // insertion order is the reverse of id order: only an `id` tiebreak makes
+      // the fold deterministic, and the greater id is applied last and wins.
+      const greaterId = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+      const lesserId = '00000000-0000-4000-8000-000000000000';
+      const at = new Date('2026-05-01T00:00:00Z');
+      await db.insert(correction).values([
+        {
+          id: greaterId,
+          visitId: id,
+          authorId: author.id,
+          reason: 'greater id',
+          payload: {
+            kind: 'resolution',
+            taxonomicReferenceVersion: '2024.1',
+            resolvedTaxa: [
+              { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+            ],
+          },
+          createdAt: at,
+        },
+        {
+          id: lesserId,
+          visitId: id,
+          authorId: author.id,
+          reason: 'lesser id',
+          payload: {
+            kind: 'resolution',
+            taxonomicReferenceVersion: '2024.1',
+            resolvedTaxa: [
+              { provisionalName: 'cf. Anthus', taxon: 'Anthus pratensis' },
+            ],
+          },
+          createdAt: at,
+        },
+      ]);
+
+      const resolved = await loadResolvedTaxaByVisit(db, refs.projectId);
+      expect(resolved.get(id)?.get('cf. Anthus')).toBe('Anthus trivialis');
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
     });
   });
 });

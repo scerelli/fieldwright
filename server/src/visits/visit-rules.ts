@@ -36,16 +36,35 @@ export function missingRequiredEffortFields(
 }
 
 /**
- * The taxon identifiers a Protocol version's Target list requires a Detection
- * for, read from its `targetList` (packages/protocol `TargetTaxon`). A document
- * that omits the list is in complete-list mode, where the declared taxonomic
- * scope — not a Target list — defines the required taxa, so it requires none
- * here.
+ * The taxon identifiers a Protocol version's declared taxonomic scope lists,
+ * read from its `taxonomicScope.taxa` (packages/protocol `TaxonomicScope`). In
+ * complete-list mode these are the required target taxa (INV-004,
+ * GLOSSARY.md Target list). A document that omits the scope, or carries
+ * non-string entries, contributes none.
+ */
+function scopeTaxaOf(document: Record<string, unknown>): string[] {
+  const scope = document.taxonomicScope;
+  if (typeof scope !== 'object' || scope === null) {
+    return [];
+  }
+  const taxa = (scope as { taxa?: unknown }).taxa;
+  if (!Array.isArray(taxa)) {
+    return [];
+  }
+  return taxa.filter((entry): entry is string => typeof entry === 'string');
+}
+
+/**
+ * The taxon identifiers a Protocol version requires a Detection for (INV-004,
+ * GLOSSARY.md Target list). A document with a `targetList`
+ * (packages/protocol `TargetTaxon`) uses it. A document that omits the list is
+ * in complete-list mode, where the declared taxonomic scope — its
+ * `taxonomicScope.taxa` — defines the required taxa.
  */
 export function targetTaxaOf(document: Record<string, unknown>): string[] {
   const value = document.targetList;
   if (!Array.isArray(value)) {
-    return [];
+    return scopeTaxaOf(document);
   }
   const taxa: string[] = [];
   for (const entry of value) {

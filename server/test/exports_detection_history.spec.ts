@@ -128,6 +128,21 @@ interface StoredTaxonProject {
   storedTaxon: string;
 }
 
+/**
+ * A Project in complete-list mode: its Protocol versions declare no Target
+ * list, so their `taxonomicScope.taxa` define the required target taxa
+ * (INV-004). One analysis-ready Visit records every taxon of the narrower
+ * scope; a second, wider scope's third taxon contributes a column the narrower
+ * Visit leaves blank (INV-019).
+ */
+interface CompleteListProject {
+  projectId: string;
+  narrowVisitId: string;
+  wideVisitId: string;
+  narrowTaxa: [string, string];
+  wideExtraTaxon: string;
+}
+
 function runDrizzleKitMigrate(databaseUrl: string) {
   return spawnSync(process.execPath, [drizzleKitBin, 'migrate'], {
     cwd: serverRoot,
@@ -167,6 +182,7 @@ describe('detection-history CSV golden fixture', () => {
   let gate: GateProject;
   let correctionProject: CorrectionProject;
   let storedTaxonProject: StoredTaxonProject;
+  let completeListProject: CompleteListProject;
 
   beforeAll(async () => {
     postgres = await new PostgreSqlContainer('postgis/postgis:18-3.6').start();
@@ -205,6 +221,7 @@ describe('detection-history CSV golden fixture', () => {
     gate = await seedGateProject();
     correctionProject = await seedCorrectionProject();
     storedTaxonProject = await seedStoredTaxonProject();
+    completeListProject = await seedCompleteListProject();
   }, 240_000);
 
   beforeEach(async () => {
@@ -228,7 +245,7 @@ describe('detection-history CSV golden fixture', () => {
    * Seeds one Project whose Protocol version declares a three-entry Target
    * list, two Sites, two Survey periods and two Visits whose Detections cover a
    * detection, a non-detection and an opportunistic Detection. Every submitted
-   * Visit records a Detection for each of its Target list taxa (INV-002), so no
+   * Visit records a Detection for each of its Target list taxa (INV-019), so no
    * cell is left unreachable; the opportunistic Detection adds no column and
    * fills no cell (INV-003). Returns the Protocol version the Visits reference.
    */
@@ -748,6 +765,145 @@ describe('detection-history CSV golden fixture', () => {
     return { projectId: created!.id, visitId, storedTaxon };
   }
 
+  /**
+   * Seeds the complete-list Project (INV-004): neither Protocol version declares
+   * a Target list, so each Visit's required target taxa are its Protocol
+   * document's `taxonomicScope.taxa`. The narrow Visit records every one of its
+   * two scope taxa (a detection and a non-detection); the wide Visit records
+   * all three of its scope taxa, contributing a third column the narrow Visit
+   * leaves blank (INV-019). Both are analysis-ready.
+   */
+  async function seedCompleteListProject(): Promise<CompleteListProject> {
+    const narrowTaxa = [
+      'Aves|Turdus|merula',
+      'Aves|Erithacus|rubecula',
+    ] as const;
+    const wideExtraTaxon = 'Aves|Parus|major';
+
+    const [created] = await db
+      .insert(project)
+      .values({
+        name: 'Complete-list project',
+        settings: { validationEnabled: false, sensitiveTaxaObfuscation: false },
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      })
+      .returning();
+
+    const [narrowProtocol] = await db
+      .insert(protocolVersion)
+      .values({
+        projectId: created!.id,
+        protocolId: 'complete-list-narrow',
+        version: 1,
+        document: {
+          protocolId: 'complete-list-narrow',
+          version: 1,
+          taxonomicScope: { taxa: [...narrowTaxa] },
+        },
+      })
+      .returning();
+
+    const [wideProtocol] = await db
+      .insert(protocolVersion)
+      .values({
+        projectId: created!.id,
+        protocolId: 'complete-list-wide',
+        version: 1,
+        document: {
+          protocolId: 'complete-list-wide',
+          version: 1,
+          taxonomicScope: { taxa: [...narrowTaxa, wideExtraTaxon] },
+        },
+      })
+      .returning();
+
+    const [completeListSite] = await db
+      .insert(site)
+      .values({ projectId: created!.id, name: 'Complete-list plot' })
+      .returning();
+
+    const [period] = await db
+      .insert(surveyPeriod)
+      .values({
+        projectId: created!.id,
+        name: 'Complete-list period',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      })
+      .returning();
+
+    const base = {
+      projectId: created!.id,
+      siteId: completeListSite!.id,
+      surveyPeriodId: period!.id,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+      state: 'submitted' as const,
+      effort: {},
+      submittedAt: new Date('2024-01-05T09:00:00.000Z'),
+    };
+
+    const narrowVisitId = randomUUID();
+    const wideVisitId = randomUUID();
+
+    await db.insert(visit).values([
+      {
+        ...base,
+        id: narrowVisitId,
+        protocolVersionId: narrowProtocol!.id,
+        startedAt: new Date('2024-01-01T08:00:00.000Z'),
+      },
+      {
+        ...base,
+        id: wideVisitId,
+        protocolVersionId: wideProtocol!.id,
+        startedAt: new Date('2024-01-02T08:00:00.000Z'),
+      },
+    ]);
+
+    await db.insert(detection).values([
+      {
+        visitId: narrowVisitId,
+        taxon: narrowTaxa[0],
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: narrowVisitId,
+        taxon: narrowTaxa[1],
+        detected: false,
+        method: 'acoustic',
+      },
+      {
+        visitId: wideVisitId,
+        taxon: narrowTaxa[0],
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: wideVisitId,
+        taxon: narrowTaxa[1],
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: wideVisitId,
+        taxon: wideExtraTaxon,
+        detected: true,
+        method: 'visual',
+      },
+    ]);
+
+    return {
+      projectId: created!.id,
+      narrowVisitId,
+      wideVisitId,
+      narrowTaxa: [narrowTaxa[0], narrowTaxa[1]],
+      wideExtraTaxon,
+    };
+  }
+
   /** Processes a `csv` Export for `projectId` and returns its decoded bytes. */
   async function processProjectCsvExport(projectId: string): Promise<string> {
     const [record] = await db
@@ -889,5 +1045,27 @@ describe('detection-history CSV golden fixture', () => {
     expect(row.get(correctionProject.nonDetectedTaxon)).not.toBe(
       row.get(correctionProject.unrecordedTaxon),
     );
+  }, 30_000);
+
+  it('exports the declared taxonomic scope as target columns and cells for a complete-list Visit (C4, INV-004)', async () => {
+    const csv = await processProjectCsvExport(completeListProject.projectId);
+    const header = csv.split('\r\n')[0]!.split(',');
+
+    expect(header).toEqual([
+      'site_id',
+      'survey_period_id',
+      'visit_id',
+      'started_at',
+      ...completeListProject.narrowTaxa,
+      completeListProject.wideExtraTaxon,
+    ]);
+
+    const narrowRow = csvRowFor(csv, completeListProject.narrowVisitId);
+    expect(narrowRow.get(completeListProject.narrowTaxa[0])).toBe('1');
+    expect(narrowRow.get(completeListProject.narrowTaxa[1])).toBe('0');
+    expect(narrowRow.get(completeListProject.wideExtraTaxon)).toBe('');
+
+    const wideRow = csvRowFor(csv, completeListProject.wideVisitId);
+    expect(wideRow.get(completeListProject.wideExtraTaxon)).toBe('1');
   }, 30_000);
 });

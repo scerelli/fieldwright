@@ -8,15 +8,18 @@ import 'package:material_ui/material_ui.dart';
 import 'package:ibis/features/sites/site.dart';
 import 'package:ibis/features/visits/capture_screen.dart';
 import 'package:ibis/features/visits/detection.dart';
+import 'package:ibis/features/visits/detection_list.dart';
 import 'package:ibis/features/visits/submission_readiness.dart';
 import 'package:ibis/features/visits/visit.dart';
 import 'package:ibis/features/visits/visits_screen.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/projects/projects_client.dart';
 import 'package:ibis/protocol/protocol.dart';
+import 'package:ibis/protocol_versions/protocol_versions_client.dart';
 import 'package:ibis/theme/app_theme.dart';
 import 'package:ibis/store/app_database.dart';
 import 'package:ibis/store/database_provider.dart';
+import 'package:ibis/store/detection_dao.dart';
 import 'package:ibis/store/project_dao.dart';
 import 'package:ibis/store/site_dao.dart';
 import 'package:ibis/store/visit_dao.dart';
@@ -97,6 +100,62 @@ Future<Visit> _provisionalVisit(AppDatabase database) async {
   await SiteDao(database).save(_site());
   final visit = await VisitDao(database).startVisit(siteId: 'site-1');
   return VisitDao(database).endVisit(visit);
+}
+
+/// A complete-list mode Protocol document: no Target list, its required taxa
+/// declared in `taxonomicScope.taxa` (GLOSSARY.md › Target list, INV-004).
+const ProtocolDocument _completeListDocument = ProtocolDocument(
+  protocolId: 'alpine-birds',
+  version: 1,
+  taxonomicScope: TaxonomicScope(
+    taxa: <String>['Aves|Turdus|merula', 'Aves|Parus|major'],
+  ),
+  detectionMethods: <DetectionMethod>[
+    DetectionMethod(id: 'visual', label: 'Visual'),
+  ],
+  requiredEffortFields: <SamplingEffortField>[SamplingEffortField.start],
+);
+
+/// A Protocol document with an explicit Target list.
+const ProtocolDocument _targetListDocument = ProtocolDocument(
+  protocolId: 'alpine-birds',
+  version: 2,
+  taxonomicScope: TaxonomicScope(taxa: <String>['Aves']),
+  detectionMethods: <DetectionMethod>[
+    DetectionMethod(id: 'visual', label: 'Visual'),
+  ],
+  requiredEffortFields: <SamplingEffortField>[SamplingEffortField.start],
+  targetList: <TargetTaxon>[TargetTaxon(taxonRef: 'Aves|Anas|platyrhynchos')],
+);
+
+/// An ended Visit under [_completeListDocument], in a Project with a pinned
+/// Taxonomic reference, so readiness turns only on its recorded targets.
+Future<Visit> _completeListEndedVisit(AppDatabase database) async {
+  await SiteDao(database).save(_site());
+  await ProjectDao(database).save(
+    const Project(
+      id: 'project-1',
+      name: 'Alpine Birds',
+      validationEnabled: false,
+      sensitiveTaxaObfuscation: true,
+      taxonomicReferenceId: 'it-flora',
+      taxonomicReferenceVersion: '2024.1',
+    ),
+  );
+  await ProjectDao(database).saveProtocolVersion(
+    const ProtocolVersion(
+      id: 'protocol-version-1',
+      projectId: 'project-1',
+      document: _completeListDocument,
+    ),
+  );
+  return VisitDao(database).endVisit(
+    await VisitDao(database).startVisit(
+      siteId: 'site-1',
+      surveyPeriodId: 'survey-period-1',
+      protocolVersionId: 'protocol-version-1',
+    ),
+  );
 }
 
 void main() {
@@ -422,6 +481,110 @@ void main() {
 
       expect(find.byKey(const Key('provisional_visit_marker')), findsNothing);
       expect(find.byType(NeedsAttention), findsNothing);
+    });
+  });
+
+  group('complete-list readiness (INV-004, UX-035)', () {
+    test('a Protocol with no Target list derives its required taxa from the '
+        'declared Taxonomic scope', () {
+      expect(
+        requiredTargetTaxa(_completeListDocument)
+            .map((target) => target.taxonRef),
+        <String>['Aves|Turdus|merula', 'Aves|Parus|major'],
+      );
+    });
+
+    test('a Protocol with a Target list uses it', () {
+      expect(
+        requiredTargetTaxa(_targetListDocument)
+            .map((target) => target.taxonRef),
+        <String>['Aves|Anas|platyrhynchos'],
+      );
+    });
+
+    testWidgets(
+      'the detection list lists a not-recorded row for each in-scope taxon in '
+      'complete-list mode',
+      (tester) async {
+        final database = _openDatabase();
+
+        await tester.pumpWidget(
+          _app(
+            database,
+            const Scaffold(
+              body: SingleChildScrollView(
+                child: DetectionList(
+                  protocol: _completeListDocument,
+                  visitId: 'visit-1',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        for (final taxon in _completeListDocument.taxonomicScope.taxa) {
+          expect(
+            find.byKey(Key('detection_not_recorded_$taxon')),
+            findsOneWidget,
+            reason: '$taxon is in scope and unrecorded',
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'a complete-list Visit with an unrecorded in-scope taxon is not '
+      'analysis-ready and the needs-attention surface names it',
+      (tester) async {
+        final database = _openDatabase();
+        final visit = await _completeListEndedVisit(database);
+        await DetectionDao(database).record(
+          Detection(
+            visitId: visit.id,
+            taxonRef: 'Aves|Turdus|merula',
+            detected: true,
+            method: 'visual',
+          ),
+        );
+
+        await tester.pumpWidget(_app(database, CaptureScreen(visit: visit)));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('needs_attention_unrecordedTargets')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('a complete-list Visit that records every in-scope taxon is '
+        'analysis-ready', (tester) async {
+      final database = _openDatabase();
+      final visit = await _completeListEndedVisit(database);
+      final dao = DetectionDao(database);
+      await dao.record(
+        Detection(
+          visitId: visit.id,
+          taxonRef: 'Aves|Turdus|merula',
+          detected: true,
+          method: 'visual',
+        ),
+      );
+      await dao.record(
+        Detection(
+          visitId: visit.id,
+          taxonRef: 'Aves|Parus|major',
+          detected: false,
+          method: 'visual',
+        ),
+      );
+
+      await tester.pumpWidget(_app(database, CaptureScreen(visit: visit)));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NeedsAttention), findsNothing);
+      expect(find.byKey(const Key('provisional_visit_marker')), findsNothing);
     });
   });
 }

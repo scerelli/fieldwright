@@ -456,37 +456,59 @@ describe('POST /api/v1/visits', () => {
     );
   });
 
-  it('stores a Visit row with no recorded Taxonomic reference id or version as provisional (ADR-0021)', async () => {
+  it('records a Visit pinned reference as a pair or not at all (ADR-0021, INV-021)', async () => {
     const refs = await seedReferences();
-    const id = uuidv7();
 
+    // A Visit with neither column recorded is provisional and stores as-is.
+    const provisionalId = uuidv7();
     await db.execute(sql`
       insert into visit
         (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
       values
-        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+        (${provisionalId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
     `);
 
-    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
-    expect(stored).toBeDefined();
-    expect(stored!.taxonomicReferenceId).toBeNull();
-    expect(stored!.taxonomicReferenceVersion).toBeNull();
-
-    const partialId = uuidv7();
-    await db.execute(sql`
-      insert into visit
-        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
-      values
-        (${partialId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
-    `);
-
-    const [partial] = await db
+    const [provisional] = await db
       .select()
       .from(visit)
-      .where(eq(visit.id, partialId));
-    expect(partial).toBeDefined();
-    expect(partial!.taxonomicReferenceId).toBe('italy-vascular-flora');
-    expect(partial!.taxonomicReferenceVersion).toBeNull();
+      .where(eq(visit.id, provisionalId));
+    expect(provisional).toBeDefined();
+    expect(provisional!.taxonomicReferenceId).toBeNull();
+    expect(provisional!.taxonomicReferenceVersion).toBeNull();
+
+    // Exactly one of the pair is rejected at the database (visit_reference_pair).
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+      `),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_version)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), '2024.1')
+      `),
+    ).rejects.toThrow();
+
+    // The pair recorded together is accepted.
+    const pairedId = uuidv7();
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id, taxonomic_reference_version)
+      values
+        (${pairedId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora', '2024.1')
+    `);
+
+    const [paired] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, pairedId));
+    expect(paired!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(paired!.taxonomicReferenceVersion).toBe('2024.1');
   });
 
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {
@@ -885,6 +907,80 @@ describe('POST /api/v1/visits', () => {
       {
         reason: 'resolve without a version',
         payload: { kind: 'resolution', resolvedTaxa: [] },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('refuses a resolution Correction that resolves a provisional Detection onto a taxon already recorded on the same Visit with 400 and stores no row (INV-003, INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-collision@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    await db.insert(detection).values([
+      {
+        visitId: id,
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      },
+    ]);
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve onto an already recorded taxon',
+        payload: {
+          kind: 'resolution',
+          taxonomicReferenceVersion: '2024.1',
+          resolvedTaxa: [
+            { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+          ],
+        },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('refuses a resolution Correction whose reference version differs from the Project pin with 400 and stores no row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-stale-pin@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    await db.insert(detection).values({
+      visitId: id,
+      provisionalName: 'cf. Anthus',
+      detected: true,
+      method: 'visual',
+    });
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve against a stale reference',
+        payload: {
+          kind: 'resolution',
+          taxonomicReferenceVersion: '2023.0',
+          resolvedTaxa: [
+            { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+          ],
+        },
       },
       { cookie: collector.cookie },
     );

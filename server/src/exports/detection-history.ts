@@ -1,20 +1,21 @@
 /**
  * The detection-history matrix builder for the `exports` module
  * (ARCHITECTURE.md): a pure function over a Project's Visits, their Detections
- * and the Target list each Visit's Protocol version declares. It produces the
- * occupancy-ready matrix — one row per Visit, one column per Target list
- * `taxonRef` — ready for {@link serializeCsv}.
+ * and the target taxa each Visit's Protocol version declares — its Target list,
+ * or, in complete-list mode, the taxa in its declared taxonomic scope. It
+ * produces the occupancy-ready matrix — one row per Visit, one column per
+ * target taxon — ready for {@link serializeCsv}.
  *
- * The two states INV-002 keeps apart are kept apart here: a Target list taxon
+ * The two states INV-019 keeps apart are kept apart here: a target taxon
  * with a recorded Detection is `1` (detected) or `0` (a non-detection, i.e. a
  * Detection with `detected = false`); a taxon with no recorded Detection is
  * left blank, never `0`, because "not recorded" is not "not detected". An
  * opportunistic Detection fills no cell and adds no column (INV-003).
  */
 
-/** One Detection's contribution to the matrix (DOMAIN.md, INV-002, INV-003). */
+/** One Detection's contribution to the matrix (DOMAIN.md, INV-019, INV-003). */
 export interface DetectionHistoryDetection {
-  /** The Detection's taxon, matched against a Target list `taxonRef`. */
+  /** The Detection's taxon, matched against a declared target taxon. */
   taxon: string;
   /** True when detected, false for a non-detection. */
   detected: boolean;
@@ -23,10 +24,9 @@ export interface DetectionHistoryDetection {
 }
 
 /**
- * One Visit's matrix input: its identity columns, the `taxonRef`s its Protocol
- * version's Target list declares (in declared order), and its Detections. A
- * document without a Target list is in complete-list mode and contributes no
- * taxon columns here.
+ * One Visit's matrix input: its identity columns, the target taxa its Protocol
+ * version declares (in declared order) — its Target list `taxonRef`s, or, in
+ * complete-list mode, its declared taxonomic scope's taxa — and its Detections.
  */
 export interface DetectionHistoryVisit {
   visitId: string;
@@ -51,8 +51,8 @@ const STARTED_AT_COLUMN = 'started_at';
 /**
  * Builds the detection-history matrix for `visits`. Rows are ordered by Site
  * id, then Visit `startedAt`, then Visit id (so two Visits that agree on both
- * still order deterministically); taxon columns are the distinct Target list
- * `taxonRef`s in first-seen order over the ordered Visits. Identical input
+ * still order deterministically); taxon columns are the distinct declared
+ * target taxa in first-seen order over the ordered Visits. Identical input
  * therefore produces identical output.
  */
 export function buildDetectionHistoryMatrix(
@@ -98,7 +98,7 @@ function compareVisits(
   return 0;
 }
 
-/** The distinct Target list `taxonRef`s, in first-seen order. */
+/** The distinct declared target taxa, in first-seen order. */
 function collectTaxonRefs(visits: readonly DetectionHistoryVisit[]): string[] {
   const seen = new Set<string>();
   const refs: string[] = [];
@@ -114,9 +114,9 @@ function collectTaxonRefs(visits: readonly DetectionHistoryVisit[]): string[] {
 }
 
 /**
- * The cell for a Target list `taxonRef`: `1` or `0` from the Visit's
+ * The cell for a declared target taxon: `1` or `0` from the Visit's
  * non-opportunistic Detection for that taxon, or blank when none is recorded
- * (INV-002). Opportunistic Detections never fill a cell (INV-003).
+ * (INV-019). Opportunistic Detections never fill a cell (INV-003).
  */
 function cellFor(visit: DetectionHistoryVisit, taxonRef: string): string {
   const detection = visit.detections.find(

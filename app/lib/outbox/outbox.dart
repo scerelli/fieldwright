@@ -78,7 +78,8 @@ class Outbox {
 
   /// The DAOs the submission aggregate is loaded from. Delivery needs the
   /// Visit's Detections, Determinations, Measurements and Evidence; [ConfigDao]
-  /// additionally supplies the pinned Protocol version the INV-002 gate reads.
+  /// additionally supplies the Visit's Project, whose pinned Taxonomic
+  /// reference id decides which Detections submit provisionally (INV-021).
   /// They are optional so an outbox can be wired for queuing alone.
   final ConfigDao? _config;
   final DetectionDao? _detections;
@@ -207,10 +208,10 @@ class Outbox {
       return SyncState.failed;
     }
 
-    // INV-002 is retired: a Visit no longer needs every target recorded before
-    // submission. Target completeness is an analysis-readiness condition
-    // (INV-019, INV-022) surfaced in the needs-attention list, enforced at
-    // export — never a submission gate (ADR-0021).
+    // A Visit no longer needs every target recorded before submission. Target
+    // completeness is an analysis-readiness condition (INV-019, INV-022)
+    // surfaced in the needs-attention list, enforced at export — never a
+    // submission gate (ADR-0021).
     final detectionMethods = await visits.detectionMethodsFor(visit.id);
 
     await _dao.setSyncState(visit.id, SyncState.syncing);

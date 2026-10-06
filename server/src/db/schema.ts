@@ -257,11 +257,12 @@ export const visitState = pgEnum('visit_state', [
  * `validator` Membership) and `validated_at` is the Validation instant; both
  * are null until the Visit is validated or rejected.
  *
- * `taxonomic_reference_id` and `taxonomic_reference_version` record the
- * Project's pinned Taxonomic reference version the Visit's data was captured
- * against (INV-008); the ingest transaction copies the pin from the Project,
- * and they stay null while the Project has no pin (provisional Visit,
- * INV-022).
+ * `taxonomic_reference_id` and `taxonomic_reference_version` are a pair
+ * recording the Project's pinned Taxonomic reference id and version the
+ * Visit's data was captured against (INV-021): the ingest copies both from the
+ * Project, or leaves both null while the Project has no pin, so a Visit never
+ * stores exactly one of the two (check `visit_reference_pair`). A Visit with
+ * no pin is provisional (INV-022).
  */
 export const visit = pgTable(
   'visit',
@@ -297,6 +298,10 @@ export const visit = pgTable(
     check(
       'visit_timestamps_ordered',
       sql`(${table.endedAt} is null or ${table.endedAt} >= ${table.startedAt}) and ${table.submittedAt} >= ${table.startedAt}`,
+    ),
+    check(
+      'visit_reference_pair',
+      sql`(${table.taxonomicReferenceId} is null) = (${table.taxonomicReferenceVersion} is null)`,
     ),
   ],
 );
