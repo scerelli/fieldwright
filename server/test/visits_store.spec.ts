@@ -1272,4 +1272,175 @@ describe('Visit store', () => {
 
     expect((await applied()).rows).toEqual(before);
   });
+
+  describe('analysis-readiness derivation (INV-019 – INV-022)', () => {
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const submittedAt = new Date('2026-04-01T09:00:00Z');
+
+    async function seedProtocol(
+      projectId: string,
+      document: Record<string, unknown>,
+    ): Promise<string> {
+      const [created] = await db
+        .insert(protocolVersion)
+        .values({ projectId, protocolId: randomUUID(), version: 1, document })
+        .returning();
+      return created.id;
+    }
+
+    it('is analysis-ready with the Project pin, a Survey period and Protocol version, every target recorded and no provisional Detection (INV-020 – INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [
+          { taxonRef: 'Anthus trivialis' },
+          { taxonRef: 'Sylvia borin' },
+        ],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
+    });
+
+    it('is not analysis-ready when the Project has no pinned Taxonomic reference (INV-021, INV-022)', async () => {
+      const refs = await seedReferences({ id: null, version: null });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when the Visit has no Survey period (INV-020, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: null,
+        protocolVersionId: refs.protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when the Visit has no Protocol version (INV-020, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId: null,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a Detection is provisional (INV-021, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a target taxon is not recorded (INV-019, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [
+          { taxonRef: 'Anthus trivialis' },
+          { taxonRef: 'Sylvia borin' },
+        ],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a required Sampling-effort field is not recorded (INV-005)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        requiredEffortFields: ['durationMinutes'],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+  });
 });
