@@ -24,6 +24,7 @@ import {
   determination,
   evidence,
   measurement,
+  membership,
   project,
   protocolVersion,
   site,
@@ -33,7 +34,10 @@ import {
   type MeasurementProvenance,
 } from '../src/db/schema.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
-import { VisitsService } from '../src/visits/visits.service.js';
+import {
+  VisitsService,
+  type StoreDetectionInput,
+} from '../src/visits/visits.service.js';
 
 const serverRoot = fileURLToPath(new URL('..', import.meta.url));
 const drizzleKitBin = fileURLToPath(
@@ -149,14 +153,19 @@ describe('Visit store', () => {
     await container?.stop();
   });
 
-  async function seedReferences(): Promise<SeedReferences> {
+  async function seedReferences(
+    taxonomicReference: { id: string | null; version: string | null } = {
+      id: 'italy-vascular-flora',
+      version: '2024.1',
+    },
+  ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit store project',
         settings: { validationEnabled: true, sensitiveTaxaObfuscation: false },
-        taxonomicReferenceId: 'italy-vascular-flora',
-        taxonomicReferenceVersion: '2024.1',
+        taxonomicReferenceId: taxonomicReference.id,
+        taxonomicReferenceVersion: taxonomicReference.version,
       })
       .returning();
 
@@ -345,6 +354,263 @@ describe('Visit store', () => {
     expect(photo.detectionId).toBe(byTaxon['Anthus trivialis']!.id);
     const audio = evidenceRows.find((row) => row.kind === 'audio')!;
     expect(audio.detectionId).toBeNull();
+  });
+
+  it('records the Project pin even when the Visit has no Protocol version or Survey period (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    const stored = await visits.storeSubmittedVisit({
+      id,
+      projectId: refs.projectId,
+      siteId: refs.siteId,
+      surveyPeriodId: null,
+      protocolVersionId: null,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+    });
+
+    const [owner] = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, refs.projectId));
+    expect(stored.surveyPeriodId).toBeNull();
+    expect(stored.protocolVersionId).toBeNull();
+    expect(stored.taxonomicReferenceId).toBe(owner!.taxonomicReferenceId);
+    expect(stored.taxonomicReferenceVersion).toBe(
+      owner!.taxonomicReferenceVersion,
+    );
+  });
+
+  it('accepts and stores a Visit with provisional Detections for a Project with no pinned Taxonomic reference (INV-022)', async () => {
+    const refs = await seedReferences({ id: null, version: null });
+    const id = randomUUID();
+
+    const stored = await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+      detections: [
+        { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+      ],
+    });
+
+    expect(stored.taxonomicReferenceId).toBeNull();
+    expect(stored.taxonomicReferenceVersion).toBeNull();
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(storedDetection!.taxon).toBeNull();
+    expect(storedDetection!.provisionalName).toBe('cf. Anthus');
+  });
+
+  it('rejects a resolved Detection for a Project with no pinned reference (INV-021)', async () => {
+    const refs = await seedReferences({ id: null, version: null });
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('stores a Detection carrying only a provisionalName and no resolved taxon (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+      detections: [
+        { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+      ],
+    });
+
+    const [stored] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(stored!.taxon).toBeNull();
+    expect(stored!.provisionalName).toBe('cf. Anthus');
+    expect(stored!.detected).toBe(true);
+  });
+
+  it('rejects a Detection that carries both a taxon and a provisional name, or neither (INV-021)', async () => {
+    const refs = await seedReferences();
+
+    const malformed: StoreDetectionInput[] = [
+      {
+        taxon: 'Anthus trivialis',
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      },
+      { detected: true, method: 'visual' },
+    ];
+
+    for (const entry of malformed) {
+      const id = randomUUID();
+      await expect(
+        visits.storeSubmittedVisit({
+          id,
+          ...refs,
+          effort: {},
+          startedAt: new Date('2026-04-01T08:00:00Z'),
+          submittedAt: new Date('2026-04-01T09:00:00Z'),
+          detections: [entry],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(
+        await db.select().from(visit).where(eq(visit.id, id)),
+      ).toHaveLength(0);
+    }
+  });
+
+  it('rejects a provisional Detection that is not presence-only (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: false, method: 'visual' },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('stores a Detection with exactly one of a resolved taxon or a provisional name (INV-021, ADR-0021)', async () => {
+    const refs = await seedReferences();
+    const id = await storeSubmittedVisit(refs);
+
+    const [resolved] = await db
+      .insert(detection)
+      .values({
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      })
+      .returning();
+    expect(resolved!.taxon).toBe('Anthus trivialis');
+    expect(resolved!.provisionalName).toBeNull();
+
+    const [provisional] = await db
+      .insert(detection)
+      .values({
+        visitId: id,
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      })
+      .returning();
+    expect(provisional!.taxon).toBeNull();
+    expect(provisional!.provisionalName).toBe('cf. Anthus');
+
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        taxon: 'Sylvia borin',
+        provisionalName: 'cf. Sylvia borin',
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    const rows = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(rows).toHaveLength(2);
+  });
+
+  it('rejects a duplicate effective target taxon per Visit for non-opportunistic Detections (INV-003, ADR-0021)', async () => {
+    const refs = await seedReferences();
+    const id = await storeSubmittedVisit(refs);
+
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Anthus trivialis',
+      detected: true,
+      method: 'visual',
+    });
+
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: false,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    // A provisional name counts against a resolved taxon of the same name.
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        provisionalName: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    // Opportunistic Detections are not unique per Visit, and a duplicate
+    // opportunistic taxon does not collide with the resolved target.
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Vulpes vulpes',
+      detected: true,
+      method: 'visual',
+      opportunistic: true,
+    });
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Vulpes vulpes',
+      detected: true,
+      method: 'visual',
+      opportunistic: true,
+    });
+
+    const rows = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(rows).toHaveLength(3);
   });
 
   it('enforces exactly one Site, Survey period and Protocol version by foreign key', async () => {
@@ -906,6 +1172,13 @@ describe('Visit store', () => {
     const refs = await seedReferences();
     const id = randomUUID();
 
+    // 0011 predates Story #366's nullable Project pin, so a faithful pre-0011
+    // database has a pin on every Project; back-fill any pin left null by a
+    // later test so the migration's `SET NOT NULL` backfill can hold.
+    await db.execute(
+      sql`update "project" set "taxonomic_reference_id" = 'italy-vascular-flora', "taxonomic_reference_version" = '2024.1' where "taxonomic_reference_id" is null`,
+    );
+
     // Reproduce a database on the pre-0011 schema that already holds a
     // submitted Visit: drop the columns the migration adds, and un-record the
     // migration (and every later one, since drizzle re-applies from a
@@ -999,5 +1272,340 @@ describe('Visit store', () => {
     expect(rerun.status, rerun.stderr).toBe(0);
 
     expect((await applied()).rows).toEqual(before);
+  });
+
+  describe('analysis-readiness derivation (INV-019 – INV-022)', () => {
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const submittedAt = new Date('2026-04-01T09:00:00Z');
+
+    async function seedProtocol(
+      projectId: string,
+      document: Record<string, unknown>,
+    ): Promise<string> {
+      const [created] = await db
+        .insert(protocolVersion)
+        .values({ projectId, protocolId: randomUUID(), version: 1, document })
+        .returning();
+      return created.id;
+    }
+
+    it('is analysis-ready with the Project pin, a Survey period and Protocol version, every target recorded and no provisional Detection (INV-020 – INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [
+          { taxonRef: 'Anthus trivialis' },
+          { taxonRef: 'Sylvia borin' },
+        ],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
+    });
+
+    it('is not analysis-ready when the Project has no pinned Taxonomic reference (INV-021, INV-022)', async () => {
+      const refs = await seedReferences({ id: null, version: null });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when the Visit has no Survey period (INV-020, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: null,
+        protocolVersionId: refs.protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when the Visit has no Protocol version (INV-020, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId: null,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a Detection is provisional (INV-021, INV-022)', async () => {
+      const refs = await seedReferences();
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a target taxon is not recorded (INV-019, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [
+          { taxonRef: 'Anthus trivialis' },
+          { taxonRef: 'Sylvia borin' },
+        ],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a required Sampling-effort field is not recorded (INV-005)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        requiredEffortFields: ['durationMinutes'],
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    async function seedCollector(projectId: string): Promise<{ id: string }> {
+      const author = await seedPerson();
+      await db.insert(membership).values({
+        personId: author.id,
+        projectId,
+        role: 'collector',
+      });
+      return author;
+    }
+
+    const resolutionPayload = {
+      kind: 'resolution',
+      taxonomicReferenceVersion: '2024.1',
+      resolvedTaxa: [
+        { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+      ],
+    };
+
+    async function storeProvisionalVisit(
+      refs: SeedReferences,
+      protocolVersionId: string,
+      id: string,
+    ): Promise<void> {
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      });
+    }
+
+    it('leaves the stored Visit and Detection rows unchanged when a resolution Correction is applied (INV-001)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+      const id = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, id);
+
+      const [visitBefore] = await db
+        .select()
+        .from(visit)
+        .where(eq(visit.id, id));
+      const detectionsBefore = await db
+        .select()
+        .from(detection)
+        .where(eq(detection.visitId, id))
+        .orderBy(detection.id);
+
+      await visits.recordCorrection(author.id, id, {
+        reason: 'resolve cf. Anthus',
+        payload: resolutionPayload,
+      });
+      await visits.analysisReadyVisitIds(refs.projectId);
+
+      const [visitAfter] = await db
+        .select()
+        .from(visit)
+        .where(eq(visit.id, id));
+      const detectionsAfter = await db
+        .select()
+        .from(detection)
+        .where(eq(detection.visitId, id))
+        .orderBy(detection.id);
+      expect(visitAfter).toEqual(visitBefore);
+      expect(detectionsAfter).toEqual(detectionsBefore);
+    });
+
+    it('becomes analysis-ready once a resolution Correction is applied, and then enters exports (INV-021, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+      const id = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, id);
+
+      expect((await visits.analysisReadyVisitIds(refs.projectId)).has(id)).toBe(
+        false,
+      );
+
+      await visits.recordCorrection(author.id, id, {
+        reason: 'resolve cf. Anthus',
+        payload: resolutionPayload,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
+    });
+
+    it('re-derives the same analysis-readiness from an applied resolution Correction (idempotent, INV-001)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+      const id = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, id);
+      await visits.recordCorrection(author.id, id, {
+        reason: 'resolve cf. Anthus',
+        payload: resolutionPayload,
+      });
+
+      const first = await visits.analysisReadyVisitIds(refs.projectId);
+      const second = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(first.has(id)).toBe(true);
+      expect([...second].sort()).toEqual([...first].sort());
+    });
+
+    it('applies resolution Corrections in recorded order, the latest assignment winning (INV-021)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+
+      const firstOnly = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, firstOnly);
+      await db.insert(correction).values({
+        visitId: firstOnly,
+        authorId: author.id,
+        reason: 'resolution',
+        payload: resolutionPayload,
+        createdAt: new Date('2026-05-01T00:00:00Z'),
+      });
+
+      const superseded = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, superseded);
+      await db.insert(correction).values([
+        {
+          visitId: superseded,
+          authorId: author.id,
+          reason: 'first resolution',
+          payload: resolutionPayload,
+          createdAt: new Date('2026-05-01T00:00:00Z'),
+        },
+        {
+          visitId: superseded,
+          authorId: author.id,
+          reason: 'second resolution',
+          payload: {
+            kind: 'resolution',
+            taxonomicReferenceVersion: '2024.1',
+            resolvedTaxa: [
+              { provisionalName: 'cf. Anthus', taxon: 'Anthus pratensis' },
+            ],
+          },
+          createdAt: new Date('2026-05-01T00:01:00Z'),
+        },
+      ]);
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(firstOnly)).toBe(true);
+      expect(ready.has(superseded)).toBe(false);
+    });
   });
 });

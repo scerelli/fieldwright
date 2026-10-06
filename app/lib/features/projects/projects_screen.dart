@@ -65,6 +65,8 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   project: project,
                   onTap: () =>
                       context.go('/projects/${project.id}', extra: project),
+                  onPinReference: () =>
+                      context.push('/projects/${project.id}/settings'),
                 );
               },
             ),
@@ -82,13 +84,24 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
 /// Taxonomic reference version as basic info, plus the authored description
 /// when one is set.
 class ProjectCard extends StatelessWidget {
-  const ProjectCard({super.key, required this.project, this.onTap});
+  const ProjectCard({
+    super.key,
+    required this.project,
+    this.onTap,
+    this.onPinReference,
+  });
 
   final Project project;
   final VoidCallback? onTap;
 
+  /// The pin/download action the UX-034 badge offers; null renders the badge
+  /// as plain text (a card outside the list, e.g. a snapshot). The Projects
+  /// list wires it to the Project settings surface.
+  final VoidCallback? onPinReference;
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final description = project.description?.trim();
     final bodyStyle = Theme.of(context).textTheme.bodyLarge;
 
@@ -99,7 +112,30 @@ class ProjectCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(project.taxonomicReferenceVersion, style: bodyStyle),
+            if (project.taxonomicReferenceId == null)
+              // UX-034: a Project with no pinned reference carries a
+              // non-blocking badge that offers the pin action — never a modal;
+              // capture and submission go on with provisional taxa until one is
+              // pinned.
+              Padding(
+                key: Key('project_no_reference_${project.id}'),
+                padding: const EdgeInsets.only(top: 4),
+                child: onPinReference == null
+                    ? Text(
+                        l10n.projectCardNoReference,
+                        style: bodyStyle?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      )
+                    : TextButton.icon(
+                        key: Key('project_pin_reference_${project.id}'),
+                        onPressed: onPinReference,
+                        icon: const Icon(Icons.link_outlined, size: 16),
+                        label: Text(l10n.projectCardNoReference),
+                      ),
+              ),
+            if (project.taxonomicReferenceVersion != null)
+              Text(project.taxonomicReferenceVersion!, style: bodyStyle),
             if (description != null && description.isNotEmpty)
               Text(description, style: bodyStyle),
           ],
@@ -116,24 +152,20 @@ class ProjectCard extends StatelessWidget {
 /// Opened from a Project in the Projects list; each entry routes to the
 /// matching sub-screen, which navigates back here.
 class ProjectDetailScreen extends StatelessWidget {
-  const ProjectDetailScreen({
-    super.key,
-    required this.projectId,
-    this.projectName,
-  });
+  const ProjectDetailScreen({super.key, required this.projectId, this.project});
 
   final String projectId;
 
-  /// The Project's name when the entry point supplied it; a deep link falls
-  /// back to the generic Projects title.
-  final String? projectName;
+  /// The Project when the entry point supplied it; a deep link falls back to
+  /// the generic Projects title.
+  final Project? project;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(projectName ?? l10n.navProjects)),
+      appBar: AppBar(title: Text(project?.name ?? l10n.navProjects)),
       body: ListView(
         children: [
           ListTile(
@@ -153,6 +185,13 @@ class ProjectDetailScreen extends StatelessWidget {
             leading: const Icon(Icons.date_range_outlined),
             title: Text(l10n.surveyPeriodsTitle),
             onTap: () => context.go('/projects/$projectId/survey-periods'),
+          ),
+          ListTile(
+            key: const Key('open_project_settings'),
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(l10n.projectSettingsTitle),
+            onTap: () =>
+                context.go('/projects/$projectId/settings', extra: project),
           ),
         ],
       ),

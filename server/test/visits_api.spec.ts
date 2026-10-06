@@ -70,8 +70,8 @@ interface SeedReferences {
   siteId: string;
   surveyPeriodId: string;
   protocolVersionId: string;
-  taxonomicReferenceId: string;
-  taxonomicReferenceVersion: string;
+  taxonomicReferenceId: string | null;
+  taxonomicReferenceVersion: string | null;
 }
 
 describe('POST /api/v1/visits', () => {
@@ -152,22 +152,22 @@ describe('POST /api/v1/visits', () => {
   async function seedReferences(
     requiredEffortFields?: string[],
     targetList?: Array<{ taxonRef: string }>,
-    taxonomicReference: { id: string; version: string } = {
+    taxonomicReference: { id: string; version: string } | null = {
       id: 'italy-vascular-flora',
       version: '2024.1',
     },
     settings: ProjectSettings = {
       validationEnabled: true,
       sensitiveTaxaObfuscation: false,
-    }
+    },
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit API project',
         settings,
-        taxonomicReferenceId: taxonomicReference.id,
-        taxonomicReferenceVersion: taxonomicReference.version,
+        taxonomicReferenceId: taxonomicReference?.id ?? null,
+        taxonomicReferenceVersion: taxonomicReference?.version ?? null,
       })
       .returning();
 
@@ -313,8 +313,8 @@ describe('POST /api/v1/visits', () => {
       siteId: refs.siteId,
       surveyPeriodId: refs.surveyPeriodId,
       protocolVersionId: refs.protocolVersionId,
-      taxonomicReferenceId: refs.taxonomicReferenceId,
-      taxonomicReferenceVersion: refs.taxonomicReferenceVersion,
+      taxonomicReferenceId: refs.taxonomicReferenceId!,
+      taxonomicReferenceVersion: refs.taxonomicReferenceVersion!,
       state,
       effort: {},
       startedAt: new Date('2026-04-01T08:00:00Z'),
@@ -355,31 +355,138 @@ describe('POST /api/v1/visits', () => {
     expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
   });
 
-  it('rejects a Visit row with no recorded Taxonomic reference id or version at the database', async () => {
+  it('accepts and stores a Visit with provisional Detections for a Project with no pinned Taxonomic reference (INV-022)', async () => {
+    const refs = await seedReferences(undefined, undefined, null);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored).toBeDefined();
+    expect(stored!.taxonomicReferenceId).toBeNull();
+    expect(stored!.taxonomicReferenceVersion).toBeNull();
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(storedDetection!.taxon).toBeNull();
+    expect(storedDetection!.provisionalName).toBe('cf. Anthus');
+  });
+
+  it('accepts and stores a Visit with no Survey period or no Protocol version (INV-020, INV-022)', async () => {
+    for (const omitted of ['surveyPeriodId', 'protocolVersionId'] as const) {
+      const refs = await seedReferences();
+      const id = uuidv7();
+      const payload: Record<string, unknown> = { ...validPayload(refs, id) };
+      delete payload[omitted];
+
+      const response = await submitVisit(payload, { cookie });
+
+      expect(response.status, await response.clone().text()).toBe(201);
+      const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+      expect(stored).toBeDefined();
+      if (omitted === 'surveyPeriodId') {
+        expect(stored!.surveyPeriodId).toBeNull();
+      } else {
+        expect(stored!.protocolVersionId).toBeNull();
+      }
+    }
+  });
+
+  it('accepts and stores a Detection with only a provisionalName and no resolved taxon (INV-021)', async () => {
     const refs = await seedReferences();
     const id = uuidv7();
 
-    await expect(
-      db.execute(sql`
-        insert into visit
-          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
-        values
-          (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
-      `),
-    ).rejects.toThrow();
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      },
+      { cookie },
+    );
 
-    await expect(
-      db.execute(sql`
-        insert into visit
-          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
-        values
-          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
-      `),
-    ).rejects.toThrow();
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(stored!.taxon).toBeNull();
+    expect(stored!.provisionalName).toBe('cf. Anthus');
+    expect(stored!.detected).toBe(true);
+  });
 
+  it('records the Project’s pinned reference even when the Visit has no Protocol version or Survey period (INV-021)', async () => {
+    const reference = { id: 'fauna-italiae', version: '2025.2' };
+    const refs = await seedReferences(undefined, undefined, reference);
+    const id = uuidv7();
+    const payload: Record<string, unknown> = { ...validPayload(refs, id) };
+    delete payload.protocolVersionId;
+    delete payload.surveyPeriodId;
+
+    const response = await submitVisit(payload, { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.protocolVersionId).toBeNull();
+    expect(stored!.surveyPeriodId).toBeNull();
+    expect(stored!.taxonomicReferenceId).toBe(reference.id);
+    expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
+  });
+
+  it('rejects a Detection with a resolved taxon for a Project with no pinned reference (INV-021)', async () => {
+    const refs = await seedReferences(undefined, undefined, null);
+    const id = uuidv7();
+
+    const response = await submitVisit(validPayload(refs, id), { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(400);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
       0,
     );
+  });
+
+  it('stores a Visit row with no recorded Taxonomic reference id or version as provisional (ADR-0021)', async () => {
+    const refs = await seedReferences();
+    const id = uuidv7();
+
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
+      values
+        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+    `);
+
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored).toBeDefined();
+    expect(stored!.taxonomicReferenceId).toBeNull();
+    expect(stored!.taxonomicReferenceVersion).toBeNull();
+
+    const partialId = uuidv7();
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+      values
+        (${partialId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+    `);
+
+    const [partial] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, partialId));
+    expect(partial).toBeDefined();
+    expect(partial!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(partial!.taxonomicReferenceVersion).toBeNull();
   });
 
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {
@@ -427,7 +534,7 @@ describe('POST /api/v1/visits', () => {
     );
   });
 
-  it('rejects a Sampling effort that omits a field the Protocol version requires with 400 and stores no Visit', async () => {
+  it('stores a Visit whose Sampling effort omits a field the Protocol version requires (readiness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences([
       'start',
       'duration',
@@ -448,9 +555,9 @@ describe('POST /api/v1/visits', () => {
       { cookie },
     );
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
@@ -481,7 +588,7 @@ describe('POST /api/v1/visits', () => {
     expect(rows[0]!.effort).toMatchObject(effort);
   });
 
-  it('rejects a submission with no Detection for a target taxon with 400 and stores no Visit', async () => {
+  it('stores a Visit with no Detection for a target taxon (target completeness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences(undefined, [
       { taxonRef: 'Anthus trivialis' },
       { taxonRef: 'Sylvia borin' },
@@ -490,9 +597,9 @@ describe('POST /api/v1/visits', () => {
 
     const response = await submitVisit(validPayload(refs, id), { cookie });
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
@@ -517,13 +624,11 @@ describe('POST /api/v1/visits', () => {
       .select()
       .from(detection)
       .where(eq(detection.visitId, id));
-    const nonDetection = detections.find(
-      (row) => row.taxon === 'Sylvia borin',
-    );
+    const nonDetection = detections.find((row) => row.taxon === 'Sylvia borin');
     expect(nonDetection?.detected).toBe(false);
   });
 
-  it('rejects a submission whose only Detection for a target taxon is opportunistic with 400 and stores no Visit', async () => {
+  it('stores a Visit whose only Detection for a target taxon is opportunistic (target completeness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences(undefined, [
       { taxonRef: 'Vulpes vulpes' },
     ]);
@@ -544,9 +649,9 @@ describe('POST /api/v1/visits', () => {
       { cookie },
     );
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
@@ -703,7 +808,9 @@ describe('POST /api/v1/visits', () => {
       },
     };
 
-    const response = await postCorrection(id, body, { cookie: collector.cookie });
+    const response = await postCorrection(id, body, {
+      cookie: collector.cookie,
+    });
 
     expect(response.status, await response.clone().text()).toBe(201);
     const rows = await db
@@ -715,6 +822,77 @@ describe('POST /api/v1/visits', () => {
     expect(rows[0]!.reason).toBe(body.reason);
     expect(rows[0]!.payload).toEqual(body.payload);
     expect(rows[0]!.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('records a resolution Correction storing the resolved taxa and the reference version in an append-only row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-resolution@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const firstResolution = {
+      kind: 'resolution',
+      taxonomicReferenceVersion: '2024.1',
+      resolvedTaxa: [
+        { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+      ],
+    };
+    const secondResolution = {
+      ...firstResolution,
+      resolvedTaxa: [
+        { provisionalName: 'cf. Anthus', taxon: 'Anthus pratensis' },
+      ],
+    };
+
+    const first = await postCorrection(
+      id,
+      { reason: 'resolve cf. Anthus', payload: firstResolution },
+      { cookie: collector.cookie },
+    );
+    expect(first.status, await first.clone().text()).toBe(201);
+
+    const second = await postCorrection(
+      id,
+      { reason: 're-resolve cf. Anthus', payload: secondResolution },
+      { cookie: collector.cookie },
+    );
+    expect(second.status, await second.clone().text()).toBe(201);
+
+    const rows = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.visitId, id))
+      .orderBy(correction.createdAt);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.authorId).toBe(collector.id);
+    expect(rows[0]!.reason).toBe('resolve cf. Anthus');
+    expect(rows[0]!.payload).toEqual(firstResolution);
+    expect(rows[0]!.createdAt).toBeInstanceOf(Date);
+    expect(rows[1]!.payload).toEqual(secondResolution);
+  });
+
+  it('refuses a malformed resolution Correction with 400 and stores no row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-malformed-resolution@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve without a version',
+        payload: { kind: 'resolution', resolvedTaxa: [] },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
   });
 
   it('records a Correction authored by a validator Membership', async () => {
@@ -758,7 +936,9 @@ describe('POST /api/v1/visits', () => {
   it('refuses a Correction against an in_progress or ended Visit with 409 and stores no row', async () => {
     for (const state of ['in_progress', 'ended'] as const) {
       const refs = await seedReferences();
-      const collector = await signUpAndSignIn(`correction-${state}@example.com`);
+      const collector = await signUpAndSignIn(
+        `correction-${state}@example.com`,
+      );
       await addMembership(collector.id, refs.projectId, 'collector');
       const id = await seedVisit(refs, state);
 

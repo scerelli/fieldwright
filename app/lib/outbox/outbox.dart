@@ -5,6 +5,7 @@ import '../features/visits/detection.dart';
 import '../features/visits/determination.dart';
 import '../features/visits/evidence.dart';
 import '../features/visits/measurement.dart';
+import '../features/visits/submission_readiness.dart';
 import '../features/visits/visit.dart';
 import '../protocol/protocol.dart';
 import '../store/config_dao.dart';
@@ -110,10 +111,12 @@ class Outbox {
 
   /// Loads each Detection's Determinations, pairing them with the Detection
   /// they belong to (DOMAIN.md › Determination) so the submission nests them
-  /// correctly.
+  /// correctly. A Detection whose taxon is in [provisionalTaxonRefs] is marked
+  /// provisional, so it submits as an explicit `provisionalName` (INV-021).
   Future<List<SubmittedDetection>> _withDeterminations(
     String visitId,
     List<Detection> detections,
+    Set<String> provisionalTaxonRefs,
   ) async {
     final determinations = _determinations;
     final entries = <SubmittedDetection>[];
@@ -124,6 +127,7 @@ class Outbox {
           determinations: determinations == null
               ? const <Determination>[]
               : await determinations.forDetection(visitId, detection.taxonRef),
+          provisional: provisionalTaxonRefs.contains(detection.taxonRef),
         ),
       );
     }
@@ -170,9 +174,21 @@ class Outbox {
 
     final detections =
         await _detections?.forVisit(visit.id) ?? const <Detection>[];
+
+    // A Detection is provisional — submitted as an explicit `provisionalName`
+    // rather than a resolved `taxon` key — when the Project has no pinned
+    // Taxonomic reference (INV-021). Submission never depends on resolution
+    // (INV-022): a provisional Visit is delivered as it stands and the server
+    // holds it out of every export until a Correction resolves it (ADR-0021).
+    final project = await _config?.project(site.projectId);
+    final provisional = provisionalTaxa(
+      detections,
+      hasPinnedReference: project?.taxonomicReferenceId != null,
+    );
+
     final aggregate = SubmissionAggregate(
       visit: visit,
-      detections: await _withDeterminations(visit.id, detections),
+      detections: await _withDeterminations(visit.id, detections, provisional),
       measurements:
           await _measurements?.forVisit(visit.id) ?? const <Measurement>[],
       evidence: await _evidence?.forVisit(visit.id) ?? const <Evidence>[],
@@ -191,24 +207,10 @@ class Outbox {
       return SyncState.failed;
     }
 
-    // INV-002: a Visit cannot be submitted while any target taxon of its pinned
-    // Protocol version has no Detection. Read the exact version the Visit
-    // references — never the latest — and refuse locally, leaving the Visit
-    // ended and retryable rather than marking it submitted. The server enforces
-    // the same rule on its side.
-    final config = _config;
-    if (config != null) {
-      final protocolVersion = await config.protocolVersion(
-        visit.protocolVersionId,
-      );
-      final targets =
-          protocolVersion?.document.targetList ?? const <TargetTaxon>[];
-      if (!allTargetsRecorded(targets, detections)) {
-        await _dao.setSyncState(visit.id, SyncState.failed);
-        return SyncState.failed;
-      }
-    }
-
+    // INV-002 is retired: a Visit no longer needs every target recorded before
+    // submission. Target completeness is an analysis-readiness condition
+    // (INV-019, INV-022) surfaced in the needs-attention list, enforced at
+    // export — never a submission gate (ADR-0021).
     final detectionMethods = await visits.detectionMethodsFor(visit.id);
 
     await _dao.setSyncState(visit.id, SyncState.syncing);

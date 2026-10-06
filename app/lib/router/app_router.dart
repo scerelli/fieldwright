@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../features/account/account_screen.dart';
 import '../features/help/help_screen.dart';
 import '../features/projects/members_screen.dart';
+import '../features/projects/project_editor.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/projects/protocol_version_screen.dart';
 import '../features/projects/survey_periods_screen.dart';
@@ -37,10 +38,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       final extra = state.extra;
                       return ProjectDetailScreen(
                         projectId: state.pathParameters['projectId']!,
-                        projectName: extra is Project ? extra.name : null,
+                        project: extra is Project ? extra : null,
                       );
                     },
                     routes: [
+                      GoRoute(
+                        path: 'settings',
+                        builder: (context, state) => ProjectSettingsScreen(
+                          projectId: state.pathParameters['projectId']!,
+                          initial: state.extra is Project
+                              ? state.extra as Project
+                              : null,
+                        ),
+                      ),
                       GoRoute(
                         path: 'protocol',
                         builder: (context, state) => ProtocolVersionScreen(

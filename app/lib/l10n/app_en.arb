@@ -432,6 +432,26 @@
   "@projectEditorCreateFailed": {
     "description": "Error shown when creating the project fails."
   },
+  "projectEditorReferenceIdHelper": "The checklist the Project's taxon names resolve against.",
+  "@projectEditorReferenceIdHelper": {
+    "description": "Helper text under the pinned Taxonomic reference id field (UX-026)."
+  },
+  "projectEditorReferenceVersionHelper": "The exact checklist version pinned to the Project; taxon names resolve against it before submission.",
+  "@projectEditorReferenceVersionHelper": {
+    "description": "Helper text under the pinned Taxonomic reference version field (UX-026)."
+  },
+  "projectEditorSaveFailed": "Could not save the project. Try again.",
+  "@projectEditorSaveFailed": {
+    "description": "Error shown when saving an existing project's settings fails."
+  },
+  "projectSettingsNotFound": "This Project is not on this device.",
+  "@projectSettingsNotFound": {
+    "description": "Shown when the Project settings surface cannot find its Project in the local store."
+  },
+  "projectSettingsTitle": "Project settings",
+  "@projectSettingsTitle": {
+    "description": "Title of the project settings surface and the Project hub entry that opens it."
+  },
   "protocolVersionTitle": "Protocol version",
   "@protocolVersionTitle": {
     "description": "Heading of the read-only view of a frozen Protocol version."
@@ -700,5 +720,67 @@
   "helpSubmitVisitBody": "Submit an ended Visit when you have a connection. Submission is safe to retry, the Visit becomes immutable, and a validator may validate it when the Project enables validation.",
   "@helpSubmitVisitBody": {
     "description": "Manual copy explaining how a Visit is submitted and made immutable."
+  },
+  "needsAttentionTitle": "Needs attention",
+  "@needsAttentionTitle": {
+    "description": "Heading of the non-blocking submission-readiness card list (UX-035)."
+  },
+  "needsAttentionProtocolVersion": "No Protocol version",
+  "@needsAttentionProtocolVersion": {
+    "description": "Needs-attention item: the Visit has no Protocol version attached (INV-020)."
+  },
+  "needsAttentionSetProtocolVersion": "Set Protocol version",
+  "@needsAttentionSetProtocolVersion": {
+    "description": "Action that clears the missing Protocol version requirement (UX-035)."
+  },
+  "needsAttentionSurveyPeriod": "No Survey period",
+  "@needsAttentionSurveyPeriod": {
+    "description": "Needs-attention item: the Visit has no Survey period attached (INV-020)."
+  },
+  "needsAttentionSetSurveyPeriod": "Set Survey period",
+  "@needsAttentionSetSurveyPeriod": {
+    "description": "Action that clears the missing Survey period requirement (UX-035)."
+  },
+  "needsAttentionPinnedReference": "No pinned reference",
+  "@needsAttentionPinnedReference": {
+    "description": "Needs-attention item: the Project has no pinned Taxonomic reference (INV-021)."
+  },
+  "needsAttentionPinReference": "Pin reference",
+  "@needsAttentionPinReference": {
+    "description": "Action that clears the missing pinned reference requirement (UX-034, UX-035)."
+  },
+  "needsAttentionUnrecordedTargets": "{count, plural, =1{1 target not recorded} other{{count} targets not recorded}}",
+  "@needsAttentionUnrecordedTargets": {
+    "description": "Needs-attention item: target taxa with no Detection (INV-019).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needsAttentionRecordTargets": "Record targets",
+  "@needsAttentionRecordTargets": {
+    "description": "Action that clears the unrecorded-targets requirement (UX-035)."
+  },
+  "needsAttentionUnresolvedTaxa": "{count, plural, =1{1 taxon unresolved} other{{count} taxa unresolved}}",
+  "@needsAttentionUnresolvedTaxa": {
+    "description": "Needs-attention item: provisional taxa not yet resolved (INV-021).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needsAttentionResolveTaxa": "Resolve taxa",
+  "@needsAttentionResolveTaxa": {
+    "description": "Action that clears the unresolved-taxa requirement (UX-035)."
+  },
+  "provisionalVisit": "Provisional",
+  "@provisionalVisit": {
+    "description": "Label of the dashed outline marker a not analysis-ready Visit carries (UX-033)."
+  },
+  "projectCardNoReference": "No reference pinned",
+  "@projectCardNoReference": {
+    "description": "Project-card badge when the Project has no pinned Taxonomic reference (UX-034)."
   }
 }

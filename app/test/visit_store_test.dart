@@ -75,6 +75,34 @@ void main() {
     },
   );
 
+  test(
+    'a Visit starts at a Site with no Protocol version or Survey period and is '
+    'stored',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final dao = VisitDao(database);
+
+      final visit = await dao.startVisit(siteId: 'site-1');
+
+      expect(visit.siteId, 'site-1');
+      expect(visit.surveyPeriodId, isNull);
+      expect(visit.protocolVersionId, isNull);
+      expect(visit.state, VisitState.inProgress);
+
+      final loaded = await dao.findById(visit.id);
+      expect(loaded, isNotNull);
+      expect(loaded!.surveyPeriodId, isNull);
+      expect(loaded.protocolVersionId, isNull);
+
+      final stored = await (database.select(
+        database.visits,
+      )..where((table) => table.id.equals(visit.id))).getSingle();
+      expect(stored.surveyPeriodId, isNull);
+      expect(stored.protocolVersionId, isNull);
+    },
+  );
+
   test('ending a Visit moves it to ended with an end time and rejects further in-progress changes', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
@@ -108,34 +136,31 @@ void main() {
     expect(afterRejectedChange.effort.endedAt, endedAt);
   });
 
-  test(
-    'a submitted Visit is immutable and rejects further in-progress changes '
-    '(INV-001)',
-    () async {
-      final database = AppDatabase(NativeDatabase.memory());
-      addTearDown(database.close);
-      final dao = VisitDao(database);
-      final visit = await dao.startVisit(
-        siteId: 'site-1',
-        surveyPeriodId: 'survey-period-1',
-        protocolVersionId: 'protocol-version-1',
-      );
-      final ended = await dao.endVisit(visit);
-      final submitted = await dao.markSubmitted(ended.id);
-      expect(submitted.state, VisitState.submitted);
+  test('a submitted Visit is immutable and rejects further in-progress changes '
+      '(INV-001)', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final dao = VisitDao(database);
+    final visit = await dao.startVisit(
+      siteId: 'site-1',
+      surveyPeriodId: 'survey-period-1',
+      protocolVersionId: 'protocol-version-1',
+    );
+    final ended = await dao.endVisit(visit);
+    final submitted = await dao.markSubmitted(ended.id);
+    expect(submitted.state, VisitState.submitted);
 
-      await expectLater(() => dao.save(submitted), throwsStateError);
-      await expectLater(
-        () => dao.save(submitted.copyWith(state: VisitState.inProgress)),
-        throwsStateError,
-      );
-      await expectLater(() => dao.endVisit(submitted), throwsStateError);
+    await expectLater(() => dao.save(submitted), throwsStateError);
+    await expectLater(
+      () => dao.save(submitted.copyWith(state: VisitState.inProgress)),
+      throwsStateError,
+    );
+    await expectLater(() => dao.endVisit(submitted), throwsStateError);
 
-      final afterRejectedChanges = await dao.findById(submitted.id);
-      expect(afterRejectedChanges!.state, VisitState.submitted);
-      expect(afterRejectedChanges.effort.endedAt, isNotNull);
-    },
-  );
+    final afterRejectedChanges = await dao.findById(submitted.id);
+    expect(afterRejectedChanges!.state, VisitState.submitted);
+    expect(afterRejectedChanges.effort.endedAt, isNotNull);
+  });
 
   test(
     'a started Visit is readable from the local store after the app restarts',
@@ -194,7 +219,7 @@ CREATE TABLE sites (
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 17);
+      expect(version.data['user_version'], 19);
 
       final tables = await database
           .customSelect(
@@ -217,6 +242,65 @@ CREATE TABLE sites (
         protocolVersionId: 'protocol-version-1',
       );
       expect((await dao.findById(visit.id))!.state, VisitState.inProgress);
+    },
+  );
+
+  test(
+    'migration: a version 18 store makes the Visit Survey period and Protocol '
+    'version nullable forward-only',
+    () async {
+      final migrated = AppDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw.execute('''
+CREATE TABLE visits (
+  id TEXT NOT NULL,
+  site_id TEXT NOT NULL,
+  survey_period_id TEXT NOT NULL,
+  protocol_version_id TEXT NOT NULL,
+  state TEXT NOT NULL,
+  effort_started_at INTEGER NOT NULL,
+  effort_ended_at INTEGER,
+  effort_observers TEXT,
+  PRIMARY KEY (id)
+);
+''');
+            raw.execute(
+              "INSERT INTO visits VALUES "
+              "('v1', 's1', 'sp1', 'pv1', 'inProgress', 1, NULL, NULL)",
+            );
+            raw.execute('PRAGMA user_version = 18');
+          },
+        ),
+      );
+      addTearDown(migrated.close);
+
+      final version = await migrated
+          .customSelect('PRAGMA user_version')
+          .getSingle();
+      expect(version.data['user_version'], 19);
+
+      final columns = await migrated
+          .customSelect('PRAGMA table_info(visits)')
+          .get();
+      final notNull = <String, bool>{
+        for (final row in columns)
+          row.data['name'] as String: row.data['notnull'] as int == 1,
+      };
+      expect(notNull['survey_period_id'], isFalse);
+      expect(notNull['protocol_version_id'], isFalse);
+
+      final existing = await VisitDao(migrated).findById('v1');
+      expect(existing, isNotNull);
+      expect(existing!.surveyPeriodId, 'sp1');
+      expect(existing.protocolVersionId, 'pv1');
+
+      final started = await VisitDao(migrated).startVisit(siteId: 's2');
+      final stored = await (migrated.select(
+        migrated.visits,
+      )..where((table) => table.id.equals(started.id))).getSingle();
+      expect(stored.surveyPeriodId, isNull);
+      expect(stored.protocolVersionId, isNull);
     },
   );
 

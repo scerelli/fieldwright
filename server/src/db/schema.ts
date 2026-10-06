@@ -96,14 +96,16 @@ export interface ProjectSettings {
  * Project (DOMAIN.md): the container a creator sets up. Its Memberships,
  * Protocol versions, Survey periods and Sites are scoped to it. `description`
  * is optional authored text that travels to the Project's members (ADR-0016).
+ * The pinned Taxonomic reference id and version are nullable until the creator
+ * chooses one, so a Project exists before its reference is defined.
  */
 export const project = pgTable('project', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   description: text('description'),
   settings: jsonb('settings').$type<ProjectSettings>().notNull(),
-  taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
-  taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
+  taxonomicReferenceId: text('taxonomic_reference_id'),
+  taxonomicReferenceVersion: text('taxonomic_reference_version'),
 });
 
 export type Project = typeof project.$inferSelect;
@@ -236,9 +238,13 @@ export const visitState = pgEnum('visit_state', [
 
 /**
  * Visit (DOMAIN.md): the unit of offline capture, submission and immutability.
- * Its id is a client-generated UUIDv7. It references exactly one Site, one
- * Survey period and one Protocol version (INV-006), enforced by the non-null
- * foreign keys below; `ended_at` and `submitted_at` never precede `started_at`
+ * Its id is a client-generated UUIDv7. It references exactly one Site at
+ * capture (INV-020), enforced by the non-null Site foreign key below. Under
+ * ADR-0021 a Visit is submitted as it stands: its Survey period, Protocol
+ * version and pinned Taxonomic reference id/version are nullable, attached
+ * before the Visit becomes analysis-ready (INV-020, INV-022), so a Visit
+ * captured with only a Site stores as-is and is provisional until resolution.
+ * `ended_at` and `submitted_at` never precede `started_at`
  * (check `visit_timestamps_ordered`). `effort` holds the Sampling effort fields
  * the Protocol version requires; `submitted_at` is the submission instant. A
  * stored Visit is immutable (INV-001): the `visit_immutable` trigger in the
@@ -254,7 +260,8 @@ export const visitState = pgEnum('visit_state', [
  * `taxonomic_reference_id` and `taxonomic_reference_version` record the
  * Project's pinned Taxonomic reference version the Visit's data was captured
  * against (INV-008); the ingest transaction copies the pin from the Project,
- * and the NOT NULL columns reject a Visit row stored without one.
+ * and they stay null while the Project has no pin (provisional Visit,
+ * INV-022).
  */
 export const visit = pgTable(
   'visit',
@@ -266,14 +273,15 @@ export const visit = pgTable(
     siteId: uuid('site_id')
       .notNull()
       .references(() => site.id, { onDelete: 'cascade' }),
-    surveyPeriodId: uuid('survey_period_id')
-      .notNull()
-      .references(() => surveyPeriod.id, { onDelete: 'cascade' }),
-    protocolVersionId: uuid('protocol_version_id')
-      .notNull()
-      .references(() => protocolVersion.id, { onDelete: 'cascade' }),
-    taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
-    taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
+    surveyPeriodId: uuid('survey_period_id').references(() => surveyPeriod.id, {
+      onDelete: 'cascade',
+    }),
+    protocolVersionId: uuid('protocol_version_id').references(
+      () => protocolVersion.id,
+      { onDelete: 'cascade' },
+    ),
+    taxonomicReferenceId: text('taxonomic_reference_id'),
+    taxonomicReferenceVersion: text('taxonomic_reference_version'),
     state: visitState('state').notNull(),
     effort: jsonb('effort').$type<Record<string, unknown>>().notNull(),
     startedAt: timestamp('started_at').notNull(),
@@ -298,8 +306,14 @@ export type Visit = typeof visit.$inferSelect;
 /**
  * Detection (DOMAIN.md): one taxon detected, or searched for and not detected,
  * in one Visit. A non-detection is a Detection with `detected = false`. A
- * target-taxon Detection is unique per Visit; opportunistic Detections are
- * not, and never imply a non-detection (INV-003). Counts are never negative.
+ * Detection holds a resolved `taxon` or a `provisional_name`, exactly one
+ * (INV-021): `detection_taxon_exactly_one` rejects a row with both or neither,
+ * so nothing unresolved is stored without its provisional marker. A
+ * target-taxon Detection is unique per Visit on its effective taxon; the
+ * partial unique index keys on `coalesce(taxon, provisional_name)` so a
+ * provisional name counts against a resolved taxon of the same name.
+ * Opportunistic Detections are not unique and never imply a non-detection
+ * (INV-003). Counts are never negative.
  */
 export const detection = pgTable(
   'detection',
@@ -308,7 +322,8 @@ export const detection = pgTable(
     visitId: uuid('visit_id')
       .notNull()
       .references(() => visit.id, { onDelete: 'cascade' }),
-    taxon: text('taxon').notNull(),
+    taxon: text('taxon'),
+    provisionalName: text('provisional_name'),
     detected: boolean('detected').notNull(),
     method: text('method').notNull(),
     count: integer('count'),
@@ -319,8 +334,15 @@ export const detection = pgTable(
       'detection_count_non_negative',
       sql`${table.count} is null or ${table.count} >= 0`,
     ),
+    check(
+      'detection_taxon_exactly_one',
+      sql`(${table.taxon} is null) <> (${table.provisionalName} is null)`,
+    ),
     uniqueIndex('detection_visit_taxon_target_key')
-      .on(table.visitId, table.taxon)
+      .on(
+        table.visitId,
+        sql`coalesce(${table.taxon}, ${table.provisionalName})`,
+      )
       .where(sql`not ${table.opportunistic}`),
   ],
 );

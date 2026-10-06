@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
@@ -142,5 +143,193 @@ describe('baseline migration', () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]!.description).toBeNull();
-  });
+  }, 30_000);
+
+  it('relaxes the Visit resolution columns and adds the Detection provisional name on a populated database (ADR-0021)', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    const projectId = randomUUID();
+    const siteId = randomUUID();
+    const surveyPeriodId = randomUUID();
+    const protocolVersionId = randomUUID();
+    const visitId = randomUUID();
+    const detectionId = randomUUID();
+
+    await query(
+      databaseUrl,
+      `insert into "project" (id, name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('${projectId}',
+               'Populated migration project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": false}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "site" (id, project_id, name) values ('${siteId}', '${projectId}', 'Plot A')`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "survey_period" (id, project_id, name, start_date, end_date)
+       values ('${surveyPeriodId}', '${projectId}', 'Spring 2026', '2026-03-01', '2026-05-31')`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "protocol_version" (id, project_id, protocol_id, version, document)
+       values ('${protocolVersionId}', '${projectId}', 'standard', 1, '{}'::jsonb)`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "visit"
+         ("id", "project_id", "site_id", "survey_period_id", "protocol_version_id", "taxonomic_reference_id", "taxonomic_reference_version", "state", "effort", "started_at", "submitted_at")
+       values
+         ('${visitId}', '${projectId}', '${siteId}', '${surveyPeriodId}', '${protocolVersionId}', 'italy-vascular-flora', '2024.1', 'submitted', '{}'::jsonb, now(), now())`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "detection" (id, visit_id, taxon, detected, method)
+       values ('${detectionId}', '${visitId}', 'Anthus trivialis', true, 'visual')`,
+    );
+
+    // Reproduce a database on the pre-0017 schema that already holds the rows:
+    // restore the NOT NULL resolution columns, drop the provisional name and
+    // the exactly-one constraint, restore the taxon-keyed index, and un-record
+    // the migration so `migrate` re-applies it.
+    await query(
+      databaseUrl,
+      `alter table "detection" drop constraint if exists "detection_taxon_exactly_one"`,
+    );
+    await query(
+      databaseUrl,
+      `drop index if exists "detection_visit_taxon_target_key"`,
+    );
+    await query(
+      databaseUrl,
+      `alter table "detection" drop column if exists "provisional_name"`,
+    );
+    await query(
+      databaseUrl,
+      `alter table "detection" alter column "taxon" set not null`,
+    );
+    await query(
+      databaseUrl,
+      `create unique index "detection_visit_taxon_target_key" on "detection" using btree ("visit_id", "taxon") where not "detection"."opportunistic"`,
+    );
+    for (const column of [
+      'survey_period_id',
+      'protocol_version_id',
+      'taxonomic_reference_id',
+      'taxonomic_reference_version',
+    ]) {
+      await query(
+        databaseUrl,
+        `alter table "visit" alter column "${column}" set not null`,
+      );
+    }
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0017_slimy_betty_brant')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    // Every existing row survives the migration.
+    const visits = await query(
+      databaseUrl,
+      `select "id", "survey_period_id", "protocol_version_id", "taxonomic_reference_id", "taxonomic_reference_version" from "visit" where "id" = '${visitId}'`,
+    );
+    expect(visits).toHaveLength(1);
+    expect(visits[0]!.survey_period_id).toBe(surveyPeriodId);
+    expect(visits[0]!.protocol_version_id).toBe(protocolVersionId);
+    expect(visits[0]!.taxonomic_reference_id).toBe('italy-vascular-flora');
+    expect(visits[0]!.taxonomic_reference_version).toBe('2024.1');
+
+    const detections = await query(
+      databaseUrl,
+      `select "id", "taxon", "provisional_name" from "detection" where "id" = '${detectionId}'`,
+    );
+    expect(detections).toHaveLength(1);
+    expect(detections[0]!.taxon).toBe('Anthus trivialis');
+    expect(detections[0]!.provisional_name).toBeNull();
+
+    // The Visit resolution columns are now nullable and the Detection carries
+    // the new provisional name alongside a nullable taxon.
+    const visitColumns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'visit'
+         and column_name in ('survey_period_id', 'protocol_version_id', 'taxonomic_reference_id', 'taxonomic_reference_version')
+       order by column_name`,
+    );
+    expect(visitColumns).toEqual([
+      { column_name: 'protocol_version_id', is_nullable: 'YES' },
+      { column_name: 'survey_period_id', is_nullable: 'YES' },
+      { column_name: 'taxonomic_reference_id', is_nullable: 'YES' },
+      { column_name: 'taxonomic_reference_version', is_nullable: 'YES' },
+    ]);
+
+    const detectionColumns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'detection'
+         and column_name in ('taxon', 'provisional_name')
+       order by column_name`,
+    );
+    expect(detectionColumns).toEqual([
+      { column_name: 'provisional_name', is_nullable: 'YES' },
+      { column_name: 'taxon', is_nullable: 'YES' },
+    ]);
+  }, 30_000);
+
+  it('makes the pinned Taxonomic reference nullable on a populated database', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    await query(
+      databaseUrl,
+      `insert into "project" (name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('Pinned project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": true}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_id" set not null',
+    );
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_version" set not null',
+    );
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0016_bored_loki')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const columns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'project'
+         and column_name in ('taxonomic_reference_id', 'taxonomic_reference_version')
+       order by column_name`,
+    );
+    expect(columns).toEqual([
+      { column_name: 'taxonomic_reference_id', is_nullable: 'YES' },
+      { column_name: 'taxonomic_reference_version', is_nullable: 'YES' },
+    ]);
+
+    const rows = await query(
+      databaseUrl,
+      `select id, taxonomic_reference_id, taxonomic_reference_version from "project" where name = 'Pinned project'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.taxonomic_reference_id).toBe('italy-vascular-flora');
+    expect(rows[0]!.taxonomic_reference_version).toBe('2024.1');
+  }, 30_000);
 });

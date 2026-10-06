@@ -1,10 +1,11 @@
 /**
- * Protocol-level submission rules for the `visits` module (DOMAIN.md,
- * ARCHITECTURE.md). A rule is a pure predicate over a submission's data and
- * the Protocol version document it references; the ingest transaction in
- * `visits.service.ts` loads that document and runs these before storing, so a
- * rejected submission leaves no Visit behind (ADR-0010: rule-heavy rules run
- * in server code inside a transaction).
+ * Protocol-level readiness predicates for the `visits` module (DOMAIN.md,
+ * ARCHITECTURE.md). A predicate is a pure function over a submission's data and
+ * the Protocol version document it references. A Visit is stored as it stands
+ * (ADR-0021, INV-022) and is never rejected for readiness at ingest, so these
+ * feed the derived analysis-readiness (INV-019 – INV-022) rather than
+ * submission-time guards. The one structural rule the ingest still enforces is
+ * a Detection's taxon shape (INV-021).
  */
 import { BadRequestException } from '@nestjs/common';
 
@@ -85,35 +86,52 @@ export function missingTargetTaxa(
 }
 
 /**
- * Rejects a submission that omits a Detection for a taxon its Protocol
- * version's Target list names (INV-002). Runs inside the ingest transaction, so
- * throwing here stores no Visit.
+ * Rejects a Detection that does not carry exactly one of a resolved `taxon` or
+ * a provisional name, or that carries a provisional name while not recording a
+ * presence (INV-021). A provisional taxon is unresolved, so it is presence-only
+ * — it cannot be claimed as searched-for-and-not-detected. This is a structural
+ * rule, not readiness: it runs before the ingest transaction, so a malformed
+ * Detection stores no Visit.
  */
-export function assertTargetTaxonCompleteness(
-  detections: readonly DetectionTaxon[],
-  targetTaxa: readonly string[],
-): void {
-  const missing = missingTargetTaxa(detections, targetTaxa);
-  if (missing.length > 0) {
+export function assertDetectionTaxonShape(detection: {
+  taxon?: string | null;
+  provisionalName?: string | null;
+  detected: boolean;
+}): void {
+  const hasTaxon = detection.taxon !== undefined && detection.taxon !== null;
+  const hasProvisionalName =
+    detection.provisionalName !== undefined &&
+    detection.provisionalName !== null;
+  if (hasTaxon === hasProvisionalName) {
     throw new BadRequestException(
-      `Visit is missing a Detection for target taxon(s): ${missing.join(', ')}`,
+      'a Detection must carry either a resolved taxon or a provisional name, not both and not neither',
+    );
+  }
+  if (hasProvisionalName && detection.detected !== true) {
+    throw new BadRequestException(
+      'a provisional Detection is presence-only and must record detected = true',
     );
   }
 }
 
 /**
- * Rejects a submission whose Sampling effort omits a field its Protocol
- * version requires (INV-005). Runs inside the ingest transaction, so throwing
- * here stores no Visit.
+ * Rejects a submission that carries a Detection with a resolved `taxon` while
+ * the Project has no pinned Taxonomic reference (INV-021): a resolved taxon's
+ * reference version is stored with the data it resolved against, so resolution
+ * without a pin is impossible. A provisional Detection is unaffected — it is
+ * accepted with no pin. Runs inside the ingest transaction, so throwing here
+ * stores no Visit.
  */
-export function assertRequiredEffortFields(
-  effort: Record<string, unknown>,
-  requiredEffortFields: readonly string[],
+export function assertResolvedDetectionsHaveReference(
+  detections: readonly { taxon?: string | null }[],
+  hasPinnedReference: boolean,
 ): void {
-  const missing = missingRequiredEffortFields(effort, requiredEffortFields);
-  if (missing.length > 0) {
+  if (hasPinnedReference) {
+    return;
+  }
+  if (detections.some((detection) => detection.taxon != null)) {
     throw new BadRequestException(
-      `Sampling effort is missing required field(s): ${missing.join(', ')}`,
+      'a resolved Detection requires the Project to have a pinned Taxonomic reference',
     );
   }
 }

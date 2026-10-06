@@ -1,6 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { Injectable, Module, type INestApplicationContext } from '@nestjs/common';
+import {
+  Injectable,
+  Module,
+  type INestApplicationContext,
+} from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   PostgreSqlContainer,
@@ -236,6 +240,9 @@ describe('exports generator registration', () => {
         opportunistic: true,
       },
       { visitId: visit2, taxon: 'A', detected: true, method: 'visual' },
+      // visit2 records both Target list taxa, so it stays analysis-ready
+      // (INV-022) and remains in the export after #400's readiness gate.
+      { visitId: visit2, taxon: 'B', detected: false, method: 'visual' },
     ]);
 
     const [otherSite] = await db
@@ -280,7 +287,7 @@ describe('exports generator registration', () => {
     const expected = [
       'site_id,survey_period_id,visit_id,started_at,B,A',
       `${site1},${period1},${visit1},2024-01-01T00:00:00.000Z,1,0`,
-      `${site2},${period2},${visit2},2024-02-01T00:00:00.000Z,,1`,
+      `${site2},${period2},${visit2},2024-02-01T00:00:00.000Z,0,1`,
     ].join('\r\n');
 
     expect(csv).toBe(expected);

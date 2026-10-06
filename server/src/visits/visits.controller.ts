@@ -4,8 +4,11 @@
  * client-generated UUIDv7 `id` identifies the Visit, so a repeat submission of
  * the same id returns the already-stored Visit without writing a second row,
  * and unknown fields are ignored (the `/api/v1` compatibility surface is
- * additive only). A submitted Visit is immutable (INV-001): this module
- * exposes no update route.
+ * additive only). Under ADR-0021 a Visit is accepted as it stands: its Survey
+ * period, Protocol version and pinned reference are optional and a Detection
+ * carries a resolved `taxon` or a provisional name, so a provisional Visit is
+ * stored rather than rejected (INV-020 – INV-022). A submitted Visit is
+ * immutable (INV-001): this module exposes no update route.
  */
 import {
   Body,
@@ -80,9 +83,15 @@ export class DeterminationDto {
 }
 
 export class DetectionDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  taxon!: string;
+  taxon?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  provisionalName?: string;
 
   @IsBoolean()
   detected!: boolean;
@@ -151,11 +160,13 @@ export class SubmitVisitDto {
   @IsUUID()
   siteId!: string;
 
+  @IsOptional()
   @IsUUID()
-  surveyPeriodId!: string;
+  surveyPeriodId?: string | null;
 
+  @IsOptional()
   @IsUUID()
-  protocolVersionId!: string;
+  protocolVersionId?: string | null;
 
   @IsObject()
   effort!: Record<string, unknown>;
@@ -202,6 +213,11 @@ export class ApplyValidationDto {
  * The Correction a collector or validator records against a stored Visit
  * (GLOSSARY.md Correction): the reason and the change payload. The author and
  * the recording time are resolved server-side, so the body carries neither.
+ * A payload that resolves a synced Visit's provisional taxa is a typed
+ * resolution Correction (`ResolutionCorrectionPayload` in `readiness.ts`,
+ * INV-021) carrying the resolved taxa and the pinned Taxonomic reference
+ * version; the endpoint stores it append-only, and a malformed one is refused
+ * with 400 before any row is written. Every other payload stays opaque.
  */
 export class RecordCorrectionDto {
   @IsString()
@@ -357,14 +373,15 @@ function toStoreInput(dto: SubmitVisitDto): StoreSubmittedVisitInput {
     id: dto.id,
     projectId: dto.projectId,
     siteId: dto.siteId,
-    surveyPeriodId: dto.surveyPeriodId,
-    protocolVersionId: dto.protocolVersionId,
+    surveyPeriodId: dto.surveyPeriodId ?? null,
+    protocolVersionId: dto.protocolVersionId ?? null,
     effort: dto.effort,
     startedAt: new Date(dto.startedAt),
     endedAt: dto.endedAt ? new Date(dto.endedAt) : null,
     submittedAt: new Date(dto.submittedAt),
     detections: dto.detections?.map((entry) => ({
-      taxon: entry.taxon,
+      taxon: entry.taxon ?? null,
+      provisionalName: entry.provisionalName ?? null,
       detected: entry.detected,
       method: entry.method,
       count: entry.count ?? null,
