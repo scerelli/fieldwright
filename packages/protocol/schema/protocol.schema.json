@@ -81,7 +81,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Taxon identifiers in scope, resolvable against the Project's pinned Taxonomic reference (INV-008)."
+          "description": "Taxon identifiers in scope, resolvable against the Project's pinned Taxonomic reference (INV-021)."
         }
       }
     },

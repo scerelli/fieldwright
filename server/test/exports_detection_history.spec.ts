@@ -245,7 +245,7 @@ describe('detection-history CSV golden fixture', () => {
    * Seeds one Project whose Protocol version declares a three-entry Target
    * list, two Sites, two Survey periods and two Visits whose Detections cover a
    * detection, a non-detection and an opportunistic Detection. Every submitted
-   * Visit records a Detection for each of its Target list taxa (INV-002), so no
+   * Visit records a Detection for each of its Target list taxa (INV-019), so no
    * cell is left unreachable; the opportunistic Detection adds no column and
    * fills no cell (INV-003). Returns the Protocol version the Visits reference.
    */

@@ -6,14 +6,14 @@
  * produces the occupancy-ready matrix — one row per Visit, one column per
  * target taxon — ready for {@link serializeCsv}.
  *
- * The two states INV-002 keeps apart are kept apart here: a target taxon
+ * The two states INV-019 keeps apart are kept apart here: a target taxon
  * with a recorded Detection is `1` (detected) or `0` (a non-detection, i.e. a
  * Detection with `detected = false`); a taxon with no recorded Detection is
  * left blank, never `0`, because "not recorded" is not "not detected". An
  * opportunistic Detection fills no cell and adds no column (INV-003).
  */
 
-/** One Detection's contribution to the matrix (DOMAIN.md, INV-002, INV-003). */
+/** One Detection's contribution to the matrix (DOMAIN.md, INV-019, INV-003). */
 export interface DetectionHistoryDetection {
   /** The Detection's taxon, matched against a declared target taxon. */
   taxon: string;
@@ -116,7 +116,7 @@ function collectTaxonRefs(visits: readonly DetectionHistoryVisit[]): string[] {
 /**
  * The cell for a declared target taxon: `1` or `0` from the Visit's
  * non-opportunistic Detection for that taxon, or blank when none is recorded
- * (INV-002). Opportunistic Detections never fill a cell (INV-003).
+ * (INV-019). Opportunistic Detections never fill a cell (INV-003).
  */
 function cellFor(visit: DetectionHistoryVisit, taxonRef: string): string {
   const detection = visit.detections.find(

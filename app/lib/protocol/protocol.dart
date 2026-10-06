@@ -211,7 +211,7 @@ class ProtocolDocument {
 class TaxonomicScope {
   const TaxonomicScope({required this.taxa});
 
-  /// Taxon identifiers in scope, resolvable against the Project's pinned Taxonomic reference (INV-008).
+  /// Taxon identifiers in scope, resolvable against the Project's pinned Taxonomic reference (INV-021).
   final List<String> taxa;
 
   factory TaxonomicScope.fromJson(Map<String, dynamic> json) {

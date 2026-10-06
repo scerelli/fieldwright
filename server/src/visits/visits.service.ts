@@ -598,11 +598,11 @@ export class VisitsService {
    * The ids of a Project's analysis-ready Visits (GLOSSARY.md Analysis-ready,
    * INV-019 – INV-022), derived from stored state — the Project's pinned
    * reference, each Visit's Survey period and Protocol version, its required
-   * effort, target completeness and no provisional Detection. The
-   * `exports` module gates on this set so a non-ready Visit never enters an
-   * export. Deriving from the Corrections that resolve a synced Visit's
-   * provisional taxa (INV-021) is Story #393's sibling #401; this reads the
-   * stored state as it stands.
+   * effort, target completeness and no provisional Detection — with the
+   * recorded resolution Corrections (INV-021) applied, so a synced Visit whose
+   * provisional taxa a Correction has resolved counts as ready while its stored
+   * rows stay exactly as submitted (INV-001). The `exports` module gates on
+   * this set so a non-ready Visit never enters an export.
    */
   async analysisReadyVisitIds(projectId: string): Promise<Set<string>> {
     return loadAnalysisReadyVisitIds(this.db, projectId);
