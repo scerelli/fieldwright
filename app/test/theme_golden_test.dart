@@ -18,18 +18,21 @@ Future<void> pumpShell(WidgetTester tester, Brightness brightness) async {
   addTearDown(container.dispose);
 
   await tester.pumpWidget(
-    MaterialApp.router(
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
-      themeMode: brightness == Brightness.dark
-          ? ThemeMode.dark
-          : ThemeMode.light,
-      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-        AppLocalizations.delegate,
-        ...GlobalMaterialLocalizations.delegates,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: container.read(goRouterProvider),
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        theme: buildLightTheme(),
+        darkTheme: buildDarkTheme(),
+        themeMode: brightness == Brightness.dark
+            ? ThemeMode.dark
+            : ThemeMode.light,
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: container.read(goRouterProvider),
+      ),
     ),
   );
   await tester.pumpAndSettle();

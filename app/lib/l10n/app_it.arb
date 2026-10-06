@@ -94,6 +94,7 @@
   "projectsCreateProject": "Crea progetto",
   "projectEditorNewTitle": "Nuovo progetto",
   "projectEditorName": "Nome del progetto",
+  "projectEditorDescription": "Descrizione",
   "projectEditorReferenceId": "Riferimento tassonomico",
   "projectEditorReferenceVersion": "Versione del riferimento tassonomico",
   "projectEditorValidation": "Validazione",

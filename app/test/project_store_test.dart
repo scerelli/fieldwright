@@ -765,4 +765,73 @@ CREATE TABLE projects (
     expect(bare!.taxonomicReferenceId, isNull);
     expect(bare.taxonomicReferenceVersion, isNull);
   });
+
+  test('create assigns a client UUIDv7 identity and all() lists the stored '
+      'Project (ADR-0014, INV-015)', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final dao = ProjectDao(database);
+
+    final created = await dao.create(name: 'Offline survey');
+    expect(created.id, isNotEmpty);
+    expect(created.name, 'Offline survey');
+    expect(created.description, isNull);
+    expect(created.validationEnabled, isFalse);
+    expect(created.sensitiveTaxaObfuscation, isTrue);
+    expect(created.taxonomicReferenceId, isNull);
+    expect(created.taxonomicReferenceVersion, isNull);
+
+    final stored = await dao.findById(created.id);
+    expect(stored, isNotNull);
+    expect(stored!.name, 'Offline survey');
+
+    expect((await dao.all()).map((project) => project.id), [created.id]);
+  });
+
+  test(
+    'create stores the optional description and pinned reference when set',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final dao = ProjectDao(database);
+
+      final created = await dao.create(
+        name: 'Wetland survey',
+        description: 'Marsh transects',
+        validationEnabled: true,
+        sensitiveTaxaObfuscation: false,
+        taxonomicReferenceId: 'it-flora',
+        taxonomicReferenceVersion: '2025.2',
+      );
+
+      final stored = (await dao.all()).single;
+      expect(stored.id, created.id);
+      expect(stored.description, 'Marsh transects');
+      expect(stored.validationEnabled, isTrue);
+      expect(stored.sensitiveTaxaObfuscation, isFalse);
+      expect(stored.taxonomicReferenceId, 'it-flora');
+      expect(stored.taxonomicReferenceVersion, '2025.2');
+    },
+  );
+
+  test('all() lists a locally-created Project after the database is reopened '
+      '(INV-015)', () async {
+    final path = '${_tempDirectory().path}/ibis.sqlite';
+
+    var database = AppDatabase.open(path);
+    final created = await ProjectDao(database).create(name: 'Offline survey');
+    await database.close();
+
+    database = AppDatabase.open(path);
+    addTearDown(database.close);
+    final all = await ProjectDao(database).all();
+    expect(all.single.id, created.id);
+    expect(all.single.name, 'Offline survey');
+  });
+
+  test('all() is empty when no Project is stored', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    expect(await ProjectDao(database).all(), isEmpty);
+  });
 }

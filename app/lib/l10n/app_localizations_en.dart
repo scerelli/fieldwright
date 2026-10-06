@@ -310,6 +310,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectEditorName => 'Project name';
 
   @override
+  String get projectEditorDescription => 'Description';
+
+  @override
   String get projectEditorReferenceId => 'Taxonomic reference';
 
   @override

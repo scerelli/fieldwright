@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../features/sites/site.dart';
 import '../projects/projects_client.dart';
@@ -18,6 +19,12 @@ final projectDaoProvider = Provider<ProjectDao>(
   (ref) => ProjectDao(ref.watch(databaseProvider)),
 );
 
+/// The stored Projects the Projects list renders (`UX.md` UX-022), read from the
+/// local store alone so it shows without a server or an account (`ADR-0014`).
+final projectsProvider = FutureProvider<List<Project>>(
+  (ref) => ref.watch(projectDaoProvider).all(),
+);
+
 /// Owns the local Project aggregate (`ARCHITECTURE.md` client local store,
 /// ADR-0002, ADR-0014): one row in `projects` with its `protocol_versions`,
 /// `survey_periods` and `sites`.
@@ -32,6 +39,42 @@ class ProjectDao {
 
   final AppDatabase _database;
   final SiteDao _sites;
+  final Uuid _uuid = const Uuid();
+
+  /// Creates a Project with a client-assigned identity and no network request
+  /// (`ADR-0014`, INV-015): the id is a UUIDv7 assigned here, and the Project is
+  /// written straight to the local store. Only the name is required; the
+  /// description, the pinned Taxonomic reference and the settings are all
+  /// optional and configured afterward (`UX.md` UX-026).
+  Future<Project> create({
+    required String name,
+    String? description,
+    bool validationEnabled = false,
+    bool sensitiveTaxaObfuscation = true,
+    String? taxonomicReferenceId,
+    String? taxonomicReferenceVersion,
+  }) async {
+    final project = Project(
+      id: _uuid.v7(),
+      name: name,
+      description: description,
+      validationEnabled: validationEnabled,
+      sensitiveTaxaObfuscation: sensitiveTaxaObfuscation,
+      taxonomicReferenceId: taxonomicReferenceId,
+      taxonomicReferenceVersion: taxonomicReferenceVersion,
+    );
+    await save(project);
+    return project;
+  }
+
+  /// Every stored Project, ordered so the list is stable across reads. A
+  /// client-assigned UUIDv7 id sorts by creation time (INV-015).
+  Future<List<Project>> all() async {
+    final rows = await (_database.select(
+      _database.projects,
+    )..orderBy([(table) => OrderingTerm.asc(table.id)])).get();
+    return rows.map(_toProject).toList(growable: false);
+  }
 
   /// Writes (or replaces) the Project's root row, keeping its identity.
   Future<void> save(Project project) async {

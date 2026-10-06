@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,9 @@ import 'package:ibis/projects/members_client.dart';
 import 'package:ibis/projects/survey_periods_client.dart';
 import 'package:ibis/protocol_versions/protocol_versions_client.dart';
 import 'package:ibis/shell/app_shell.dart';
+import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/database_provider.dart';
+import 'package:ibis/store/project_dao.dart';
 
 /// Fakes the HTTP layer: no request ever leaves the process.
 class FakeHttpAdapter implements HttpClientAdapter {
@@ -64,8 +68,8 @@ Map<String, dynamic> projectJson({
   'taxonomicReferenceVersion': '2024.1',
 };
 
-/// Routes by path: `POST /projects` echoes the created Project, the members
-/// and survey-period lists answer empty, and sign-in sets the auth cookie.
+/// Routes by path: the members and survey-period lists answer empty. Creation
+/// is local (`ADR-0014`), so no `/projects` POST is served.
 FakeHttpAdapter projectsAdapter() => FakeHttpAdapter((options) async {
   if (options.path == '/api/auth/sign-in/email') {
     return jsonResponse(
@@ -81,13 +85,6 @@ FakeHttpAdapter projectsAdapter() => FakeHttpAdapter((options) async {
           'better-auth.session_token=session-token-123; Path=/; HttpOnly', // glossary:allow Better Auth session cookie, not the domain Visit
         ],
       },
-    );
-  }
-  if (options.path == '/projects' && options.method == 'POST') {
-    final body = (options.data! as Map).cast<String, dynamic>();
-    return jsonResponse(
-      projectJson(name: body['name'] as String),
-      statusCode: 201,
     );
   }
   if (options.path == '/projects/p1/members' && options.method == 'GET') {
@@ -107,11 +104,21 @@ Dio fakeDio(FakeHttpAdapter adapter) {
   return dio;
 }
 
-Future<void> pumpApp(WidgetTester tester, FakeHttpAdapter adapter) async {
+Future<AppDatabase> pumpApp(
+  WidgetTester tester,
+  FakeHttpAdapter adapter,
+) async {
+  tester.view.physicalSize = const Size(1200, 3000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  final database = AppDatabase(NativeDatabase.memory());
+  addTearDown(database.close);
   final auth = AuthClient(baseUrl: 'http://test.local', dio: fakeDio(adapter));
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        databaseProvider.overrideWithValue(database),
         authClientProvider.overrideWithValue(auth),
         projectsClientProvider.overrideWithValue(
           ProjectsClient(
@@ -146,6 +153,7 @@ Future<void> pumpApp(WidgetTester tester, FakeHttpAdapter adapter) async {
     ),
   );
   await tester.pumpAndSettle();
+  return database;
 }
 
 /// Lets a real (non-fake-async) HTTP future complete without hanging the test.
@@ -158,26 +166,18 @@ Future<void> flush(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Creates a Project through the editor so it appears in the Projects list.
+/// Creates a Project through the editor, locally (`ADR-0014`).
 Future<void> createProject(WidgetTester tester, String name) async {
   await tester.tap(find.byKey(const Key('create_project')));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('project_name')), name);
-  await tester.enterText(
-    find.byKey(const Key('project_reference_id')),
-    'it-flora',
-  );
-  await tester.enterText(
-    find.byKey(const Key('project_reference_version')),
-    '2024.1',
-  );
   await tester.tap(find.byKey(const Key('save_project')));
   await flush(tester);
 }
 
 /// Opens the project detail entry point from the Projects list.
-Future<void> openProject(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('project_p1')));
+Future<void> openProject(WidgetTester tester, String projectId) async {
+  await tester.tap(find.byKey(Key('project_$projectId')));
   await tester.pumpAndSettle();
 }
 
@@ -188,12 +188,13 @@ void main() {
   testWidgets(
     'a project opens its protocol version, members and survey periods',
     (tester) async {
-      await pumpApp(tester, projectsAdapter());
+      final database = await pumpApp(tester, projectsAdapter());
       await createProject(tester, 'Alpine Birds');
 
       expect(find.text('Alpine Birds'), findsOneWidget);
 
-      await openProject(tester);
+      final project = (await ProjectDao(database).all()).single;
+      await openProject(tester, project.id);
 
       expect(find.byKey(const Key('open_protocol_version')), findsOneWidget);
       expect(find.byKey(const Key('open_members')), findsOneWidget);
@@ -201,21 +202,21 @@ void main() {
 
       await tester.tap(find.byKey(const Key('open_protocol_version')));
       await tester.pumpAndSettle();
-      expect(currentPath(tester), '/projects/p1/protocol');
+      expect(currentPath(tester), '/projects/${project.id}/protocol');
       expect(find.byKey(const Key('protocol_id')), findsOneWidget);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('open_members')));
       await flush(tester);
-      expect(currentPath(tester), '/projects/p1/members');
+      expect(currentPath(tester), '/projects/${project.id}/members');
       expect(find.byKey(const Key('members_list')), findsOneWidget);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('open_survey_periods')));
       await flush(tester);
-      expect(currentPath(tester), '/projects/p1/survey-periods');
+      expect(currentPath(tester), '/projects/${project.id}/survey-periods');
       expect(find.byKey(const Key('survey_periods_list')), findsOneWidget);
     },
   );
@@ -223,9 +224,10 @@ void main() {
   testWidgets('each sub-screen navigates back to the project and the list', (
     tester,
   ) async {
-    await pumpApp(tester, projectsAdapter());
+    final database = await pumpApp(tester, projectsAdapter());
     await createProject(tester, 'Alpine Birds');
-    await openProject(tester);
+    final project = (await ProjectDao(database).all()).single;
+    await openProject(tester, project.id);
 
     await tester.tap(find.byKey(const Key('open_protocol_version')));
     await tester.pumpAndSettle();
