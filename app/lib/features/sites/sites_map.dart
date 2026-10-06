@@ -1,11 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../store/app_database.dart';
 import '../../store/database_provider.dart';
 import 'map_tile_cache.dart';
 import 'site.dart';
@@ -13,26 +10,12 @@ import 'site_detail.dart';
 
 const _osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-final projectSitesProvider = FutureProvider.family<List<Site>, String>((
-  ref,
-  projectId,
-) async {
-  final database = ref.watch(databaseProvider);
-  final rows = await database.select(database.sites).get();
-  return rows
-      .where((row) => row.projectId == projectId)
-      .map(_siteFromRow)
-      .toList(growable: false);
-});
-
-Site _siteFromRow(SiteRow row) => Site(
-  id: row.id,
-  projectId: row.projectId,
-  geometry: SiteGeometry.fromJson(
-    jsonDecode(row.geometry) as Map<String, Object?>,
-  ),
-  origin: row.origin,
-  createdAt: row.createdAt.toUtc(),
+/// The open Project's Sites with their full record — covariates and location
+/// provenance included (`SiteDao.findByProject`). This one provider backs the
+/// Sites tab, the Visits tab and [SitesMap], so adding a Site invalidates a
+/// single cache and every reader sees it (`INV-012`).
+final projectSitesProvider = FutureProvider.family<List<Site>, String>(
+  (ref, projectId) => ref.watch(siteDaoProvider).findByProject(projectId),
 );
 
 class SitesMap extends ConsumerStatefulWidget {
