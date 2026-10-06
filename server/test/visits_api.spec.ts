@@ -895,6 +895,80 @@ describe('POST /api/v1/visits', () => {
     ).toHaveLength(0);
   });
 
+  it('refuses a resolution Correction that resolves a provisional Detection onto a taxon already recorded on the same Visit with 400 and stores no row (INV-003, INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-collision@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    await db.insert(detection).values([
+      {
+        visitId: id,
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      },
+    ]);
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve onto an already recorded taxon',
+        payload: {
+          kind: 'resolution',
+          taxonomicReferenceVersion: '2024.1',
+          resolvedTaxa: [
+            { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+          ],
+        },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
+  it('refuses a resolution Correction whose reference version differs from the Project pin with 400 and stores no row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn('correction-stale-pin@example.com');
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    await db.insert(detection).values({
+      visitId: id,
+      provisionalName: 'cf. Anthus',
+      detected: true,
+      method: 'visual',
+    });
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve against a stale reference',
+        payload: {
+          kind: 'resolution',
+          taxonomicReferenceVersion: '2023.0',
+          resolvedTaxa: [
+            { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+          ],
+        },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
   it('records a Correction authored by a validator Membership', async () => {
     const refs = await seedReferences();
     const validator = await signUpAndSignIn('correction-validator@example.com');

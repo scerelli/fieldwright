@@ -12,7 +12,7 @@
  * under the reference taxon it resolved to while the stored Visit and Detection
  * rows stay exactly as submitted (INV-001).
  *
- * The builder keeps INV-002 and INV-003: a Target list taxon with a recorded
+ * The builder keeps INV-019 and INV-003: a Target list taxon with a recorded
  * Detection is `1` or `0`, an unrecorded taxon is left blank, and an
  * opportunistic Detection fills no cell. The matrix carries no coordinates, so
  * no coordinate obfuscation is applied here: INV-011's role-based withholding
@@ -75,13 +75,14 @@ export class DetectionHistoryGenerator implements ExportGenerator {
 
   /** The Export's Project's detection-history matrix, serialized to CSV. */
   async generate(record: Export): Promise<Uint8Array> {
-    const readyVisitIds = await loadAnalysisReadyVisitIds(
-      this.db,
-      record.projectId,
-    );
     const resolvedTaxaByVisit = await loadResolvedTaxaByVisit(
       this.db,
       record.projectId,
+    );
+    const readyVisitIds = await loadAnalysisReadyVisitIds(
+      this.db,
+      record.projectId,
+      resolvedTaxaByVisit,
     );
     const visits = await this.loadVisits(
       record.projectId,

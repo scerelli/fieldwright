@@ -205,7 +205,8 @@ interface VisitAccumulator {
 /**
  * The taxon each provisional Detection of `projectId`'s Visits is resolved to
  * by a recorded resolution Correction (INV-021), keyed by Visit id then
- * provisional taxon. Corrections are folded in recorded order, so a later
+ * provisional taxon. Corrections are folded in recorded order — `createdAt`
+ * then `id`, so equal `createdAt` still folds deterministically — and a later
  * assignment for the same provisional taxon wins. The stored Visit and
  * Detection rows are never read back mutated — every derived view applies this
  * same fold (INV-001). Shared with `exports` so its detection-history export
@@ -220,7 +221,7 @@ export async function loadResolvedTaxaByVisit(
     .from(correction)
     .innerJoin(visit, eq(correction.visitId, visit.id))
     .where(eq(visit.projectId, projectId))
-    .orderBy(asc(correction.createdAt));
+    .orderBy(asc(correction.createdAt), asc(correction.id));
 
   const resolvedTaxaByVisit = new Map<string, Map<string, string>>();
   for (const row of correctionRows) {
@@ -240,10 +241,15 @@ export async function loadResolvedTaxaByVisit(
  * The ids of `projectId`'s analysis-ready Visits (INV-019 – INV-022), derived
  * from stored state. A Visit with no Detection still yields an accumulator, so
  * a Target list it does not satisfy leaves it out.
+ *
+ * A caller that already holds the folded resolution Corrections (INV-021) —
+ * `exports` renders the same fold — passes them as `resolvedTaxaByVisit`, so
+ * the Project's Corrections are loaded once instead of twice.
  */
 export async function loadAnalysisReadyVisitIds(
   db: NodePgDatabase,
   projectId: string,
+  resolvedTaxaByVisit?: ReadonlyMap<string, ReadonlyMap<string, string>>,
 ): Promise<Set<string>> {
   const [owner] = await db
     .select({
@@ -260,10 +266,12 @@ export async function loadAnalysisReadyVisitIds(
     owner.taxonomicReferenceVersion !== null;
 
   // The recorded resolution Corrections (INV-021) applied in recorded order, so
-  // a later assignment for the same provisional taxon wins. The stored Visit
-  // and Detection rows are never read back mutated — the derived view applies
-  // the Corrections (INV-001).
-  const resolvedTaxaByVisit = await loadResolvedTaxaByVisit(db, projectId);
+  // a later assignment for the same provisional taxon wins. A caller that
+  // already folded them passes the map in, so they are loaded once. The stored
+  // Visit and Detection rows are never read back mutated — the derived view
+  // applies the Corrections (INV-001).
+  const resolvedTaxa =
+    resolvedTaxaByVisit ?? (await loadResolvedTaxaByVisit(db, projectId));
 
   const rows = await db
     .select({
@@ -314,7 +322,7 @@ export async function loadAnalysisReadyVisitIds(
         effort: accumulator.effort,
         protocolDocument: accumulator.protocolDocument,
         detections: accumulator.detections,
-        resolvedTaxa: resolvedTaxaByVisit.get(visitId),
+        resolvedTaxa: resolvedTaxa.get(visitId),
       })
     ) {
       ready.add(visitId);
