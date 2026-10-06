@@ -225,6 +225,54 @@ void main() {
     expect(texts, <String>['Alpine Birds', '2024.1']);
   });
 
+  testWidgets('C5: a Project with no pinned reference carries a badge '
+      '(UX-034)', (tester) async {
+    await tester.pumpWidget(
+      cardHarness(
+        const Project(
+          id: 'p1',
+          name: 'Alpine Birds',
+          validationEnabled: false,
+          sensitiveTaxaObfuscation: true,
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('project_no_reference_p1')), findsOneWidget);
+    expect(find.text('No reference pinned'), findsOneWidget);
+  });
+
+  testWidgets('C5: the no-reference badge offers the pin action (UX-034)', (
+    tester,
+  ) async {
+    var pinned = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: ProjectCard(
+            project: const Project(
+              id: 'p1',
+              name: 'Alpine Birds',
+              validationEnabled: false,
+              sensitiveTaxaObfuscation: true,
+            ),
+            onPinReference: () => pinned = true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('project_pin_reference_p1')));
+    await tester.pumpAndSettle();
+
+    expect(pinned, isTrue);
+  });
+
   testWidgets('C4: with no Project the list shows an empty state with a '
       'create action', (tester) async {
     await tester.pumpWidget(screenHarness(fakeClient(FakeAdapter())));

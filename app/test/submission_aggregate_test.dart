@@ -16,6 +16,7 @@ import 'package:ibis/features/visits/visit.dart';
 import 'package:ibis/outbox/config_sync_client.dart';
 import 'package:ibis/outbox/outbox.dart';
 import 'package:ibis/outbox/sync_client.dart';
+import 'package:ibis/projects/projects_client.dart';
 import 'package:ibis/protocol/protocol.dart';
 import 'package:ibis/protocol_versions/protocol_versions_client.dart';
 import 'package:ibis/store/app_database.dart';
@@ -25,6 +26,7 @@ import 'package:ibis/store/determination_dao.dart';
 import 'package:ibis/store/evidence_dao.dart';
 import 'package:ibis/store/measurement_dao.dart';
 import 'package:ibis/store/outbox_dao.dart';
+import 'package:ibis/store/project_dao.dart';
 import 'package:ibis/store/site_dao.dart';
 import 'package:ibis/store/visit_dao.dart';
 
@@ -125,6 +127,20 @@ const ProtocolDocument _protocolDocument = ProtocolDocument(
     TargetTaxon(taxonRef: 'Aves|Parus|major'),
   ],
 );
+
+/// Pins a Taxonomic reference on `project-1`, so its stored taxon keys resolve
+/// and submit as `taxon` rather than as a `provisionalName` (INV-021).
+Future<void> _seedPinnedProject(AppDatabase database) =>
+    ProjectDao(database).save(
+      const Project(
+        id: 'project-1',
+        name: 'Alpine Birds',
+        validationEnabled: false,
+        sensitiveTaxaObfuscation: true,
+        taxonomicReferenceId: 'it-flora',
+        taxonomicReferenceVersion: '2024.1',
+      ),
+    );
 
 Future<void> _seedProtocolVersion(AppDatabase database) =>
     ConfigDao(database).apply(
@@ -318,79 +334,82 @@ void main() {
     });
   });
 
-  test("a Detection with a revised Determination emits the revision's "
-      'replacesIndex in the POST body, keeping the append-only chain (INV-009)',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    await SiteDao(database).save(_site());
-    final visit = await _endedVisit(database);
-    const turdus = 'Aves|Turdus|merula';
+  test(
+    "a Detection with a revised Determination emits the revision's "
+    'replacesIndex in the POST body, keeping the append-only chain (INV-009)',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      await SiteDao(database).save(_site());
+      await _seedPinnedProject(database);
+      final visit = await _endedVisit(database);
+      const turdus = 'Aves|Turdus|merula';
 
-    await DetectionDao(database).record(
-      Detection(
+      await DetectionDao(database).record(
+        Detection(
+          visitId: visit.id,
+          taxonRef: turdus,
+          detected: true,
+          method: 'visual',
+        ),
+      );
+      final determinations = DeterminationDao(database);
+      await determinations.append(
         visitId: visit.id,
         taxonRef: turdus,
-        detected: true,
-        method: 'visual',
-      ),
-    );
-    final determinations = DeterminationDao(database);
-    await determinations.append(
-      visitId: visit.id,
-      taxonRef: turdus,
-      determination: Determination(
-        id: 'determination-1',
-        taxon: 'Turdus merula',
-        determiner: 'First Determiner',
-        date: DateTime.utc(2026, 4, 1),
-      ),
-    );
-    await determinations.append(
-      visitId: visit.id,
-      taxonRef: turdus,
-      determination: Determination(
-        id: 'determination-2',
-        taxon: 'Turdus merula',
-        determiner: 'Second Determiner',
-        date: DateTime.utc(2026, 5, 1),
-        replacesId: 'determination-1',
-      ),
-    );
+        determination: Determination(
+          id: 'determination-1',
+          taxon: 'Turdus merula',
+          determiner: 'First Determiner',
+          date: DateTime.utc(2026, 4, 1),
+        ),
+      );
+      await determinations.append(
+        visitId: visit.id,
+        taxonRef: turdus,
+        determination: Determination(
+          id: 'determination-2',
+          taxon: 'Turdus merula',
+          determiner: 'Second Determiner',
+          date: DateTime.utc(2026, 5, 1),
+          replacesId: 'determination-1',
+        ),
+      );
 
-    expect(
-      (await determinations.forDetection(
-        visit.id,
-        turdus,
-      )).map((determination) => determination.id),
-      <String>['determination-1', 'determination-2'],
-      reason: 'a revision follows the Determination it replaces (INV-009)',
-    );
+      expect(
+        (await determinations.forDetection(
+          visit.id,
+          turdus,
+        )).map((determination) => determination.id),
+        <String>['determination-1', 'determination-2'],
+        reason: 'a revision follows the Determination it replaces (INV-009)',
+      );
 
-    final adapter = acceptingAdapter();
-    final outbox = _wiredOutbox(database, _syncClient(adapter));
+      final adapter = acceptingAdapter();
+      final outbox = _wiredOutbox(database, _syncClient(adapter));
 
-    final result = await outbox.deliver(
-      visit,
-      clock: () => DateTime.utc(2026, 5, 1, 9),
-    );
+      final result = await outbox.deliver(
+        visit,
+        clock: () => DateTime.utc(2026, 5, 1, 9),
+      );
 
-    expect(result, SyncState.synced);
-    final turdusEntry = (_submission(adapter)['detections'] as List)
-        .cast<Map<String, dynamic>>()
-        .firstWhere((entry) => entry['taxon'] == turdus);
-    final posted = (turdusEntry['determinations'] as List)
-        .cast<Map<String, dynamic>>();
-    expect(posted, hasLength(2));
-    expect(posted[0]['determiner'], 'First Determiner');
-    expect(
-      posted[0].containsKey('replacesIndex'),
-      isFalse,
-      reason: 'a first Determination replaces nothing',
-    );
-    expect(posted[1]['determiner'], 'Second Determiner');
-    expect(posted[1]['replacesIndex'], 0);
-  });
+      expect(result, SyncState.synced);
+      final turdusEntry = (_submission(adapter)['detections'] as List)
+          .cast<Map<String, dynamic>>()
+          .firstWhere((entry) => entry['taxon'] == turdus);
+      final posted = (turdusEntry['determinations'] as List)
+          .cast<Map<String, dynamic>>();
+      expect(posted, hasLength(2));
+      expect(posted[0]['determiner'], 'First Determiner');
+      expect(
+        posted[0].containsKey('replacesIndex'),
+        isFalse,
+        reason: 'a first Determination replaces nothing',
+      );
+      expect(posted[1]['determiner'], 'Second Determiner');
+      expect(posted[1]['replacesIndex'], 0);
+    },
+  );
 
   test('a revision whose replaced Determination is absent from the submission '
       'emits no replacesIndex rather than a dangling index', () {
@@ -431,8 +450,10 @@ void main() {
       projectId: 'project-1',
     );
 
-    final posted = ((payload['detections'] as List).single
-            as Map<String, dynamic>)['determinations'] as List;
+    final posted =
+        ((payload['detections'] as List).single
+                as Map<String, dynamic>)['determinations']
+            as List;
     expect(
       (posted.single as Map<String, dynamic>).containsKey('replacesIndex'),
       isFalse,
@@ -445,6 +466,7 @@ void main() {
       final database = AppDatabase(NativeDatabase.memory());
       addTearDown(database.close);
       await SiteDao(database).save(_site());
+      await _seedPinnedProject(database);
       final visit = await _endedVisit(database);
       const turdus = 'Aves|Turdus|merula';
       const parus = 'Aves|Parus|major';
@@ -588,15 +610,14 @@ void main() {
     },
   );
 
-  test('a Visit with an unrecorded target taxon is not delivered and stays '
-      'retryable; a non-detection counts as recorded (INV-002)', () async {
+  test('a Visit with an unrecorded target taxon is submitted as it stands and '
+      'marked submitted, not blocked (INV-019, INV-022, ADR-0021)', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     await SiteDao(database).save(_site());
     await _seedProtocolVersion(database);
     final visit = await _endedVisit(database);
     const turdus = 'Aves|Turdus|merula';
-    const parus = 'Aves|Parus|major';
     await DetectionDao(database).record(
       Detection(
         visitId: visit.id,
@@ -609,29 +630,6 @@ void main() {
     final adapter = acceptingAdapter();
     final outbox = _wiredOutbox(database, _syncClient(adapter));
     final dao = OutboxDao(database);
-
-    final blocked = await outbox.deliver(
-      visit,
-      clock: () => DateTime.utc(2026, 5, 1, 9),
-    );
-
-    expect(blocked, SyncState.failed);
-    expect(_submitCalls(adapter), 0);
-    expect(
-      (await VisitDao(database).findById(visit.id))!.state,
-      VisitState.ended,
-    );
-    expect(await dao.syncStateOf(visit.id), SyncState.failed);
-    expect(await dao.pendingVisitIds(), contains(visit.id));
-
-    await DetectionDao(database).record(
-      Detection(
-        visitId: visit.id,
-        taxonRef: parus,
-        detected: false,
-        method: 'visual',
-      ),
-    );
 
     final delivered = await outbox.deliver(
       visit,
@@ -647,49 +645,51 @@ void main() {
     expect(await dao.syncStateOf(visit.id), SyncState.synced);
   });
 
-  test('a Visit whose Detection has no method is not delivered and stays '
-      'retryable, because the sync API rejects a null or blank method',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    await SiteDao(database).save(_site());
-    final visit = await _endedVisit(database);
-    const turdus = 'Aves|Turdus|merula';
-    await DetectionDao(database).record(
-      Detection(
-        visitId: visit.id,
-        taxonRef: turdus,
-        detected: true,
-        method: 'visual',
-      ),
-    );
-    // Simulate a Detection persisted before the client schema recorded
-    // methods: the column is nullable with no backfill, so a pre-v12 row
-    // reaches the outbox with a null method.
-    await database.customStatement(
-      'UPDATE detections SET method = NULL WHERE visit_id = ? '
-      'AND taxon_ref = ?',
-      <Object?>[visit.id, turdus],
-    );
+  test(
+    'a Visit whose Detection has no method is not delivered and stays '
+    'retryable, because the sync API rejects a null or blank method',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      await SiteDao(database).save(_site());
+      final visit = await _endedVisit(database);
+      const turdus = 'Aves|Turdus|merula';
+      await DetectionDao(database).record(
+        Detection(
+          visitId: visit.id,
+          taxonRef: turdus,
+          detected: true,
+          method: 'visual',
+        ),
+      );
+      // Simulate a Detection persisted before the client schema recorded
+      // methods: the column is nullable with no backfill, so a pre-v12 row
+      // reaches the outbox with a null method.
+      await database.customStatement(
+        'UPDATE detections SET method = NULL WHERE visit_id = ? '
+        'AND taxon_ref = ?',
+        <Object?>[visit.id, turdus],
+      );
 
-    final adapter = acceptingAdapter();
-    final outbox = _wiredOutbox(database, _syncClient(adapter));
-    final dao = OutboxDao(database);
+      final adapter = acceptingAdapter();
+      final outbox = _wiredOutbox(database, _syncClient(adapter));
+      final dao = OutboxDao(database);
 
-    final result = await outbox.deliver(
-      visit,
-      clock: () => DateTime.utc(2026, 5, 1, 9),
-    );
+      final result = await outbox.deliver(
+        visit,
+        clock: () => DateTime.utc(2026, 5, 1, 9),
+      );
 
-    expect(result, SyncState.failed);
-    expect(_submitCalls(adapter), 0);
-    expect(
-      (await VisitDao(database).findById(visit.id))!.state,
-      VisitState.ended,
-    );
-    expect(await dao.syncStateOf(visit.id), SyncState.failed);
-    expect(await dao.pendingVisitIds(), contains(visit.id));
-  });
+      expect(result, SyncState.failed);
+      expect(_submitCalls(adapter), 0);
+      expect(
+        (await VisitDao(database).findById(visit.id))!.state,
+        VisitState.ended,
+      );
+      expect(await dao.syncStateOf(visit.id), SyncState.failed);
+      expect(await dao.pendingVisitIds(), contains(visit.id));
+    },
+  );
 
   test('a Visit whose Detection has a blank method is likewise refused, since '
       'the sync API rejects an empty method as well as a null one', () async {

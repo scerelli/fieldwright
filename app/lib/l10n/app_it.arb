@@ -173,5 +173,18 @@
   "helpCaptureVisitTitle": "Registra una Visita",
   "helpCaptureVisitBody": "Apri un Progetto e avvia una Visita in un Sito; parte il timer dello sforzo di campionamento. Registra ogni taxon obiettivo come rilevato o non rilevato, aggiungi taxa opportunistici ed Evidenze, poi termina la Visita.",
   "helpSubmitVisitTitle": "Invia la Visita",
-  "helpSubmitVisitBody": "Invia una Visita terminata quando hai connessione. L'invio può essere ritentato senza rischi, la Visita diventa immutabile e un validatore può convalidarla quando il Progetto attiva la convalida."
+  "helpSubmitVisitBody": "Invia una Visita terminata quando hai connessione. L'invio può essere ritentato senza rischi, la Visita diventa immutabile e un validatore può convalidarla quando il Progetto attiva la convalida.",
+  "needsAttentionTitle": "Da completare",
+  "needsAttentionProtocolVersion": "Nessuna versione del Protocollo",
+  "needsAttentionSetProtocolVersion": "Imposta la versione del Protocollo",
+  "needsAttentionSurveyPeriod": "Nessun periodo di indagine",
+  "needsAttentionSetSurveyPeriod": "Imposta il periodo di indagine",
+  "needsAttentionPinnedReference": "Nessun riferimento tassonomico fissato",
+  "needsAttentionPinReference": "Fissa il riferimento",
+  "needsAttentionUnrecordedTargets": "{count, plural, =1{1 taxon obiettivo non registrato} other{{count} taxa obiettivo non registrati}}",
+  "needsAttentionRecordTargets": "Registra i taxa obiettivo",
+  "needsAttentionUnresolvedTaxa": "{count, plural, =1{1 taxon non risolto} other{{count} taxa non risolti}}",
+  "needsAttentionResolveTaxa": "Risolvi i taxa",
+  "provisionalVisit": "Provvisoria",
+  "projectCardNoReference": "Nessun riferimento fissato"
 }
