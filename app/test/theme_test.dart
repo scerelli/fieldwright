@@ -139,4 +139,54 @@ void main() {
       }
     });
   });
+
+  group('the theme exposes the DESIGN.md state colours as IbisTokens', () {
+    testWidgets('detected is #1B5E20 in the light theme', (tester) async {
+      final tokens = await readTokens(tester, buildLightTheme());
+      expect(tokens?.detected, const Color(0xFF1B5E20));
+    });
+
+    testWidgets('detected is #A5D6A7 in the dark theme', (tester) async {
+      final tokens = await readTokens(tester, buildDarkTheme());
+      expect(tokens?.detected, const Color(0xFFA5D6A7));
+    });
+
+    testWidgets('warning is #8A5A00 in the light theme', (tester) async {
+      final tokens = await readTokens(tester, buildLightTheme());
+      expect(tokens?.warning, const Color(0xFF8A5A00));
+    });
+
+    testWidgets('warning is #FFCC80 in the dark theme', (tester) async {
+      final tokens = await readTokens(tester, buildDarkTheme());
+      expect(tokens?.warning, const Color(0xFFFFCC80));
+    });
+
+    testWidgets('outline is #70797C in the light theme', (tester) async {
+      final tokens = await readTokens(tester, buildLightTheme());
+      expect(tokens?.outline, const Color(0xFF70797C));
+    });
+
+    testWidgets('IbisTokens is registered on both themes', (tester) async {
+      expect(await readTokens(tester, buildLightTheme()), isNotNull);
+      expect(await readTokens(tester, buildDarkTheme()), isNotNull);
+    });
+  });
+}
+
+/// Reads the [IbisTokens] extension through `Theme.of(context)`, mirroring how
+/// a component reaches the DESIGN.md state colours.
+Future<IbisTokens?> readTokens(WidgetTester tester, ThemeData theme) async {
+  IbisTokens? tokens;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: theme,
+      home: Builder(
+        builder: (context) {
+          tokens = Theme.of(context).extension<IbisTokens>();
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+  return tokens;
 }
