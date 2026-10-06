@@ -355,7 +355,96 @@ describe('POST /api/v1/visits', () => {
     expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
   });
 
-  it('rejects a Visit for a Project with no pinned Taxonomic reference with 400 and stores no Visit (INV-008)', async () => {
+  it('accepts and stores a Visit with provisional Detections for a Project with no pinned Taxonomic reference (INV-022)', async () => {
+    const refs = await seedReferences(undefined, undefined, null);
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored).toBeDefined();
+    expect(stored!.taxonomicReferenceId).toBeNull();
+    expect(stored!.taxonomicReferenceVersion).toBeNull();
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(storedDetection!.taxon).toBeNull();
+    expect(storedDetection!.provisionalName).toBe('cf. Anthus');
+  });
+
+  it('accepts and stores a Visit with no Survey period or no Protocol version (INV-020, INV-022)', async () => {
+    for (const omitted of ['surveyPeriodId', 'protocolVersionId'] as const) {
+      const refs = await seedReferences();
+      const id = uuidv7();
+      const payload: Record<string, unknown> = { ...validPayload(refs, id) };
+      delete payload[omitted];
+
+      const response = await submitVisit(payload, { cookie });
+
+      expect(response.status, await response.clone().text()).toBe(201);
+      const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+      expect(stored).toBeDefined();
+      if (omitted === 'surveyPeriodId') {
+        expect(stored!.surveyPeriodId).toBeNull();
+      } else {
+        expect(stored!.protocolVersionId).toBeNull();
+      }
+    }
+  });
+
+  it('accepts and stores a Detection with only a provisionalName and no resolved taxon (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = uuidv7();
+
+    const response = await submitVisit(
+      {
+        ...validPayload(refs, id),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+        ],
+      },
+      { cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(stored!.taxon).toBeNull();
+    expect(stored!.provisionalName).toBe('cf. Anthus');
+    expect(stored!.detected).toBe(true);
+  });
+
+  it('records the Project’s pinned reference even when the Visit has no Protocol version or Survey period (INV-021)', async () => {
+    const reference = { id: 'fauna-italiae', version: '2025.2' };
+    const refs = await seedReferences(undefined, undefined, reference);
+    const id = uuidv7();
+    const payload: Record<string, unknown> = { ...validPayload(refs, id) };
+    delete payload.protocolVersionId;
+    delete payload.surveyPeriodId;
+
+    const response = await submitVisit(payload, { cookie });
+
+    expect(response.status, await response.clone().text()).toBe(201);
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored!.protocolVersionId).toBeNull();
+    expect(stored!.surveyPeriodId).toBeNull();
+    expect(stored!.taxonomicReferenceId).toBe(reference.id);
+    expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
+  });
+
+  it('rejects a Detection with a resolved taxon for a Project with no pinned reference (INV-021)', async () => {
     const refs = await seedReferences(undefined, undefined, null);
     const id = uuidv7();
 
@@ -445,7 +534,7 @@ describe('POST /api/v1/visits', () => {
     );
   });
 
-  it('rejects a Sampling effort that omits a field the Protocol version requires with 400 and stores no Visit', async () => {
+  it('stores a Visit whose Sampling effort omits a field the Protocol version requires (readiness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences([
       'start',
       'duration',
@@ -466,9 +555,9 @@ describe('POST /api/v1/visits', () => {
       { cookie },
     );
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
@@ -499,7 +588,7 @@ describe('POST /api/v1/visits', () => {
     expect(rows[0]!.effort).toMatchObject(effort);
   });
 
-  it('rejects a submission with no Detection for a target taxon with 400 and stores no Visit', async () => {
+  it('stores a Visit with no Detection for a target taxon (target completeness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences(undefined, [
       { taxonRef: 'Anthus trivialis' },
       { taxonRef: 'Sylvia borin' },
@@ -508,9 +597,9 @@ describe('POST /api/v1/visits', () => {
 
     const response = await submitVisit(validPayload(refs, id), { cookie });
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
@@ -539,7 +628,7 @@ describe('POST /api/v1/visits', () => {
     expect(nonDetection?.detected).toBe(false);
   });
 
-  it('rejects a submission whose only Detection for a target taxon is opportunistic with 400 and stores no Visit', async () => {
+  it('stores a Visit whose only Detection for a target taxon is opportunistic (target completeness is derived, not enforced at ingest — INV-022)', async () => {
     const refs = await seedReferences(undefined, [
       { taxonRef: 'Vulpes vulpes' },
     ]);
@@ -560,9 +649,9 @@ describe('POST /api/v1/visits', () => {
       { cookie },
     );
 
-    expect(response.status, await response.clone().text()).toBe(400);
+    expect(response.status, await response.clone().text()).toBe(201);
     expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
+      1,
     );
   });
 
