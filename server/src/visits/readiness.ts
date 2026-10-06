@@ -8,13 +8,21 @@
  * provisional Detection (INV-021). A Visit that fails any factor is provisional
  * and excluded from every export (INV-022).
  *
- * Appending the Corrections that resolve a synced Visit's provisional taxa
- * (INV-021) into this derivation is Story #393's sibling #401; this file reads
- * the stored state as it stands.
+ * A synced Visit's provisional taxa are resolved by an append-only Correction
+ * (INV-021); this derivation applies the recorded resolution Corrections to the
+ * stored state, so a resolved Visit becomes analysis-ready while the stored
+ * Visit and Detection rows stay exactly as submitted (INV-001).
  */
-import { eq } from 'drizzle-orm';
+import { BadRequestException } from '@nestjs/common';
+import { asc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { detection, project, protocolVersion, visit } from '../db/schema.js';
+import {
+  correction,
+  detection,
+  project,
+  protocolVersion,
+  visit,
+} from '../db/schema.js';
 import {
   missingRequiredEffortFields,
   missingTargetTaxa,
@@ -23,10 +31,94 @@ import {
   type DetectionTaxon,
 } from './visit-rules.js';
 
+/** The discriminator a resolution Correction's payload carries (INV-021). */
+export const RESOLUTION_CORRECTION_KIND = 'resolution';
+
+/** One provisional taxon resolved to a reference taxon (INV-021). */
+export interface ResolutionTaxonAssignment {
+  /** The provisional taxon as stored on the Detection (GLOSSARY.md). */
+  provisionalName: string;
+  /** The reference taxon it resolves to (INV-021). */
+  taxon: string;
+}
+
+/**
+ * A resolution Correction's typed payload (INV-021): the provisional taxa
+ * resolved to reference taxa and the pinned Taxonomic reference version they
+ * resolved against, stored with the data it resolved. A Correction carrying
+ * this payload never mutates the submitted Visit (INV-001); the derived views
+ * apply it.
+ */
+export interface ResolutionCorrectionPayload {
+  kind: typeof RESOLUTION_CORRECTION_KIND;
+  taxonomicReferenceVersion: string;
+  resolvedTaxa: ResolutionTaxonAssignment[];
+}
+
+/** Whether `value` is a well-formed resolution Correction payload (INV-021). */
+export function isResolutionCorrectionPayload(
+  value: unknown,
+): value is ResolutionCorrectionPayload {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const payload = value as Record<string, unknown>;
+  if (payload.kind !== RESOLUTION_CORRECTION_KIND) {
+    return false;
+  }
+  if (
+    typeof payload.taxonomicReferenceVersion !== 'string' ||
+    payload.taxonomicReferenceVersion.length === 0
+  ) {
+    return false;
+  }
+  if (
+    !Array.isArray(payload.resolvedTaxa) ||
+    payload.resolvedTaxa.length === 0
+  ) {
+    return false;
+  }
+  return payload.resolvedTaxa.every((entry) => {
+    if (typeof entry !== 'object' || entry === null) {
+      return false;
+    }
+    const assignment = entry as Record<string, unknown>;
+    return (
+      typeof assignment.provisionalName === 'string' &&
+      assignment.provisionalName.length > 0 &&
+      typeof assignment.taxon === 'string' &&
+      assignment.taxon.length > 0
+    );
+  });
+}
+
+/**
+ * Rejects a Correction whose payload claims to be a resolution but is
+ * malformed (INV-021). A payload that is not a resolution is left opaque, so
+ * every other Correction is unaffected.
+ */
+export function assertResolutionCorrectionPayload(
+  payload: Record<string, unknown>,
+): void {
+  if (payload.kind !== RESOLUTION_CORRECTION_KIND) {
+    return;
+  }
+  if (!isResolutionCorrectionPayload(payload)) {
+    throw new BadRequestException(
+      'a resolution Correction must carry a non-empty reference version and at least one resolved taxon',
+    );
+  }
+}
+
 /** One Detection's stored state as readiness needs it (INV-021). */
 export interface StoredDetection {
   /** The resolved taxon, or null when the Detection is provisional (INV-021). */
   taxon: string | null;
+  /**
+   * The provisional taxon, or null when the Detection is already resolved
+   * (INV-021).
+   */
+  provisionalName: string | null;
   /** True when the Detection is outside the Target list (INV-003). */
   opportunistic: boolean;
 }
@@ -45,6 +137,11 @@ export interface AnalysisReadinessInput {
   protocolDocument: Record<string, unknown> | null;
   /** The Visit's Detections (INV-019, INV-021). */
   detections: readonly StoredDetection[];
+  /**
+   * The taxon each provisional Detection is resolved to by a recorded
+   * resolution Correction (INV-021), empty when none are applied.
+   */
+  resolvedTaxa?: ReadonlyMap<string, string>;
 }
 
 /**
@@ -65,13 +162,19 @@ export function isAnalysisReady(input: AnalysisReadinessInput): boolean {
   }
 
   const document = input.protocolDocument;
+  const resolvedTaxa = input.resolvedTaxa ?? new Map<string, string>();
   const resolvedDetections: DetectionTaxon[] = [];
   for (const stored of input.detections) {
-    if (stored.taxon === null) {
+    const taxon =
+      stored.taxon ??
+      (stored.provisionalName !== null
+        ? resolvedTaxa.get(stored.provisionalName)
+        : undefined);
+    if (taxon === undefined || taxon === null) {
       return false;
     }
     resolvedDetections.push({
-      taxon: stored.taxon,
+      taxon,
       opportunistic: stored.opportunistic,
     });
   }
@@ -122,6 +225,29 @@ export async function loadAnalysisReadyVisitIds(
     owner.taxonomicReferenceId !== null &&
     owner.taxonomicReferenceVersion !== null;
 
+  // The recorded resolution Corrections (INV-021) applied in recorded order, so
+  // a later assignment for the same provisional taxon wins. The stored Visit
+  // and Detection rows are never read back mutated — the derived view applies
+  // the Corrections (INV-001).
+  const correctionRows = await db
+    .select({ visitId: correction.visitId, payload: correction.payload })
+    .from(correction)
+    .innerJoin(visit, eq(correction.visitId, visit.id))
+    .where(eq(visit.projectId, projectId))
+    .orderBy(asc(correction.createdAt));
+
+  const resolvedTaxaByVisit = new Map<string, Map<string, string>>();
+  for (const row of correctionRows) {
+    if (!isResolutionCorrectionPayload(row.payload)) {
+      continue;
+    }
+    const resolved = resolvedTaxaByVisit.get(row.visitId) ?? new Map();
+    for (const assignment of row.payload.resolvedTaxa) {
+      resolved.set(assignment.provisionalName, assignment.taxon);
+    }
+    resolvedTaxaByVisit.set(row.visitId, resolved);
+  }
+
   const rows = await db
     .select({
       visitId: visit.id,
@@ -131,6 +257,7 @@ export async function loadAnalysisReadyVisitIds(
       protocolDocument: protocolVersion.document,
       detectionId: detection.id,
       detectionTaxon: detection.taxon,
+      detectionProvisionalName: detection.provisionalName,
       detectionOpportunistic: detection.opportunistic,
     })
     .from(visit)
@@ -154,6 +281,7 @@ export async function loadAnalysisReadyVisitIds(
     if (row.detectionId !== null) {
       entry.detections.push({
         taxon: row.detectionTaxon,
+        provisionalName: row.detectionProvisionalName,
         opportunistic: row.detectionOpportunistic ?? false,
       });
     }
@@ -169,6 +297,7 @@ export async function loadAnalysisReadyVisitIds(
         effort: accumulator.effort,
         protocolDocument: accumulator.protocolDocument,
         detections: accumulator.detections,
+        resolvedTaxa: resolvedTaxaByVisit.get(visitId),
       })
     ) {
       ready.add(visitId);

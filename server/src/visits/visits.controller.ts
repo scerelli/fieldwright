@@ -213,6 +213,11 @@ export class ApplyValidationDto {
  * The Correction a collector or validator records against a stored Visit
  * (GLOSSARY.md Correction): the reason and the change payload. The author and
  * the recording time are resolved server-side, so the body carries neither.
+ * A payload that resolves a synced Visit's provisional taxa is a typed
+ * resolution Correction (`ResolutionCorrectionPayload` in `readiness.ts`,
+ * INV-021) carrying the resolved taxa and the pinned Taxonomic reference
+ * version; the endpoint stores it append-only, and a malformed one is refused
+ * with 400 before any row is written. Every other payload stays opaque.
  */
 export class RecordCorrectionDto {
   @IsString()
