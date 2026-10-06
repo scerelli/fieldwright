@@ -5,36 +5,25 @@ import '../../l10n/app_localizations.dart';
 import '../../projects/projects_client.dart';
 import '../../store/project_dao.dart';
 
-/// The create/edit form for a Project's settings (`DOMAIN.md`): its name,
-/// validation, sensitive-taxa obfuscation, and the pinned Taxonomic reference
-/// version.
+/// The create/settings form for a Project (`DOMAIN.md`): its name, its
+/// optional description, validation, sensitive-taxa obfuscation, and the pinned
+/// Taxonomic reference version.
 ///
-/// It runs in one of two modes: creation, through [ProjectsClient], or the
-/// settings surface for an existing Project, through [ProjectDao] — the same
-/// local aggregate creation and the config pull write (`ARCHITECTURE.md`,
-/// ADR-0002). Invalid settings are reported without a request leaving the
-/// device.
+/// It runs in one of two modes: creation, or the settings surface for an
+/// existing Project — both write through [ProjectDao] to the local aggregate
+/// (`ARCHITECTURE.md`, ADR-0002, ADR-0014). Creating a Project is local-first
+/// and makes no network request; invalid settings are reported without anything
+/// leaving the device.
 class ProjectEditor extends StatefulWidget {
   const ProjectEditor({
     super.key,
-    this.client,
-    this.dao,
+    required this.dao,
     this.initial,
     this.onSaved,
-  }) : assert(
-         (client == null) != (dao == null),
-         'ProjectEditor takes exactly one of client (create) or dao (settings)',
-       ),
-       assert(
-         initial == null || dao != null,
-         'Editing an existing Project takes a dao',
-       );
+  });
 
-  /// The create path: the server assigns identity and creator Membership.
-  final ProjectsClient? client;
-
-  /// The settings path: the existing Project is stored in the local aggregate.
-  final ProjectDao? dao;
+  /// The local Project aggregate the editor reads and writes.
+  final ProjectDao dao;
 
   /// The Project being configured on the settings surface, or null when
   /// creating one.
@@ -48,6 +37,7 @@ class ProjectEditor extends StatefulWidget {
 
 class _ProjectEditorState extends State<ProjectEditor> {
   final TextEditingController _name = TextEditingController();
+  final TextEditingController _description = TextEditingController();
   final TextEditingController _referenceId = TextEditingController();
   final TextEditingController _referenceVersion = TextEditingController();
   bool _validationEnabled = false;
@@ -64,6 +54,7 @@ class _ProjectEditorState extends State<ProjectEditor> {
     final initial = widget.initial;
     if (initial != null) {
       _name.text = initial.name;
+      _description.text = initial.description ?? '';
       _referenceId.text = initial.taxonomicReferenceId ?? '';
       _referenceVersion.text = initial.taxonomicReferenceVersion ?? '';
       _validationEnabled = initial.validationEnabled;
@@ -74,9 +65,17 @@ class _ProjectEditorState extends State<ProjectEditor> {
   @override
   void dispose() {
     _name.dispose();
+    _description.dispose();
     _referenceId.dispose();
     _referenceVersion.dispose();
     super.dispose();
+  }
+
+  /// The description to store, trimmed to null when blank so an empty field is
+  /// the same as no description (`UX.md` UX-022).
+  String? get _descriptionValue {
+    final description = _description.text.trim();
+    return description.isEmpty ? null : description;
   }
 
   /// Validates each field and reports its error under that field (`UX.md`
@@ -132,21 +131,22 @@ class _ProjectEditorState extends State<ProjectEditor> {
     final referenceVersion = _referenceVersion.text.trim();
 
     try {
-      final project = await widget.client!.create(
-        CreateProjectInput(
-          name: _name.text.trim(),
-          validationEnabled: _validationEnabled,
-          sensitiveTaxaObfuscation: _sensitiveTaxaObfuscation,
-          taxonomicReferenceId: referenceId.isEmpty ? null : referenceId,
-          taxonomicReferenceVersion: referenceVersion.isEmpty
-              ? null
-              : referenceVersion,
-        ),
+      final project = await widget.dao.create(
+        name: _name.text.trim(),
+        description: _descriptionValue,
+        validationEnabled: _validationEnabled,
+        sensitiveTaxaObfuscation: _sensitiveTaxaObfuscation,
+        taxonomicReferenceId: referenceId.isEmpty ? null : referenceId,
+        taxonomicReferenceVersion: referenceVersion.isEmpty
+            ? null
+            : referenceVersion,
       );
       if (!mounted) return;
       widget.onSaved?.call(project);
       _close();
-    } on ProjectsException {
+    } on Exception catch (_) {
+      // A store failure (an Exception) is reported; a programming Error is not
+      // swallowed (CONVENTIONS.md — fail loud, never guess).
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -162,7 +162,7 @@ class _ProjectEditorState extends State<ProjectEditor> {
     final project = Project(
       id: initial.id,
       name: _name.text.trim(),
-      description: initial.description,
+      description: _descriptionValue,
       validationEnabled: _validationEnabled,
       sensitiveTaxaObfuscation: _sensitiveTaxaObfuscation,
       taxonomicReferenceId: referenceId.isEmpty ? null : referenceId,
@@ -172,7 +172,7 @@ class _ProjectEditorState extends State<ProjectEditor> {
     );
 
     try {
-      await widget.dao!.save(project);
+      await widget.dao.save(project);
     } on Exception catch (_) {
       // A store failure (an Exception) is reported; a programming Error is not
       // swallowed (CONVENTIONS.md — fail loud, never guess).
@@ -217,6 +217,17 @@ class _ProjectEditorState extends State<ProjectEditor> {
             decoration: InputDecoration(
               labelText: l10n.projectEditorName,
               errorText: _nameError,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            key: const Key('project_description'),
+            controller: _description,
+            maxLines: null,
+            minLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: l10n.projectEditorDescription,
             ),
           ),
           const SizedBox(height: 16),

@@ -9,13 +9,13 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:ibis/auth/auth_client.dart';
-import 'package:ibis/auth/auth_provider.dart';
 import 'package:ibis/features/projects/project_editor.dart';
 import 'package:ibis/features/projects/projects_screen.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/projects/projects_client.dart';
 import 'package:ibis/router/app_router.dart';
 import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/database_provider.dart';
 import 'package:ibis/store/project_dao.dart';
 
 /// Fakes the HTTP layer: no request ever leaves the process.
@@ -130,17 +130,18 @@ Future<AuthClient> signedInAuth(FakeHttpAdapter adapter) async {
 RequestOptions projectRequest(FakeHttpAdapter adapter) =>
     adapter.requests.firstWhere((request) => request.path == '/projects');
 
-Future<void> pumpProjects(
-  WidgetTester tester, {
-  required AuthClient auth,
-  required ProjectsClient client,
-}) async {
+AppDatabase openDatabase() {
+  final database = AppDatabase(NativeDatabase.memory());
+  addTearDown(database.close);
+  return database;
+}
+
+/// Runs the create surface over a real in-memory local store: the create path
+/// is local-first and needs no client (`ADR-0014`).
+Future<void> pumpProjects(WidgetTester tester, AppDatabase database) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        authClientProvider.overrideWithValue(auth),
-        projectsClientProvider.overrideWithValue(client),
-      ],
+      overrides: [databaseProvider.overrideWithValue(database)],
       child: MaterialApp(
         localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
           AppLocalizations.delegate,
@@ -153,29 +154,42 @@ Future<void> pumpProjects(
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
 }
 
 Future<void> openEditor(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('create_project')));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
 }
 
 Future<void> fillEditor(
   WidgetTester tester, {
   required String name,
-  required String referenceId,
-  required String referenceVersion,
+  String? description,
+  String referenceId = 'it-flora',
+  String referenceVersion = '2024.1',
 }) async {
   await tester.enterText(find.byKey(const Key('project_name')), name);
-  await tester.enterText(
-    find.byKey(const Key('project_reference_id')),
-    referenceId,
-  );
-  await tester.enterText(
-    find.byKey(const Key('project_reference_version')),
-    referenceVersion,
-  );
+  if (description != null) {
+    await tester.enterText(
+      find.byKey(const Key('project_description')),
+      description,
+    );
+  }
+  if (referenceId.isNotEmpty) {
+    await tester.enterText(
+      find.byKey(const Key('project_reference_id')),
+      referenceId,
+    );
+  }
+  if (referenceVersion.isNotEmpty) {
+    await tester.enterText(
+      find.byKey(const Key('project_reference_version')),
+      referenceVersion,
+    );
+  }
 }
 
 Future<void> saveEditor(WidgetTester tester) async {
@@ -185,6 +199,7 @@ Future<void> saveEditor(WidgetTester tester) async {
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -276,16 +291,11 @@ void main() {
   });
 
   group('create-project surface', () {
-    testWidgets('creating a project adds it to the projects list', (
+    testWidgets('C1: creating a project stores it locally and lists it', (
       tester,
     ) async {
-      final adapter = signedInAdapter();
-      late final AuthClient auth;
-      await tester.runAsync(() async {
-        auth = await signedInAuth(adapter);
-      });
-      final client = projectsWith(adapter, auth);
-      await pumpProjects(tester, auth: auth, client: client);
+      final database = openDatabase();
+      await pumpProjects(tester, database);
 
       await openEditor(tester);
       await fillEditor(
@@ -296,22 +306,17 @@ void main() {
       );
       await saveEditor(tester);
 
-      final request = projectRequest(adapter);
-      expect(request.method, 'POST');
-      expect(request.data['name'], 'Alpine Birds');
-      expect(request.headers['cookie'], contains('session-token-123'));
+      expect(find.text('Alpine Birds'), findsOneWidget);
+      final stored = await ProjectDao(database).all();
+      expect(stored.single.name, 'Alpine Birds');
+      expect(stored.single.taxonomicReferenceVersion, '2024.1');
     });
 
     testWidgets(
-      'the form sends validation, obfuscation and the pinned reference version',
+      'the form stores validation, obfuscation and the pinned reference version',
       (tester) async {
-        final adapter = signedInAdapter();
-        late final AuthClient auth;
-        await tester.runAsync(() async {
-          auth = await signedInAuth(adapter);
-        });
-        final client = projectsWith(adapter, auth);
-        await pumpProjects(tester, auth: auth, client: client);
+        final database = openDatabase();
+        await pumpProjects(tester, database);
 
         await openEditor(tester);
         await fillEditor(
@@ -326,26 +331,20 @@ void main() {
         await tester.pump(const Duration(milliseconds: 500));
         await saveEditor(tester);
 
-        expect(projectRequest(adapter).data, <String, dynamic>{
-          'name': 'Wetland Survey',
-          'validationEnabled': true,
-          'sensitiveTaxaObfuscation': false,
-          'taxonomicReferenceId': 'it-flora',
-          'taxonomicReferenceVersion': '2025.2',
-        });
+        final stored = (await ProjectDao(database).all()).single;
+        expect(stored.name, 'Wetland Survey');
+        expect(stored.validationEnabled, isTrue);
+        expect(stored.sensitiveTaxaObfuscation, isFalse);
+        expect(stored.taxonomicReferenceId, 'it-flora');
+        expect(stored.taxonomicReferenceVersion, '2025.2');
       },
     );
 
     testWidgets(
       'UX-025: an empty name reports under the name field and stores nothing',
       (tester) async {
-        final adapter = signedInAdapter();
-        late final AuthClient auth;
-        await tester.runAsync(() async {
-          auth = await signedInAuth(adapter);
-        });
-        final client = projectsWith(adapter, auth);
-        await pumpProjects(tester, auth: auth, client: client);
+        final database = openDatabase();
+        await pumpProjects(tester, database);
 
         await openEditor(tester);
         await saveEditor(tester);
@@ -354,23 +353,15 @@ void main() {
           find.byKey(const Key('project_name')),
         );
         expect(name.decoration?.errorText, 'Enter a project name.');
-        expect(
-          adapter.requests.where((request) => request.path == '/projects'),
-          isEmpty,
-        );
+        expect(await ProjectDao(database).all(), isEmpty);
       },
     );
 
     testWidgets(
       'UX-025: a reference id with no version reports under the version field',
       (tester) async {
-        final adapter = signedInAdapter();
-        late final AuthClient auth;
-        await tester.runAsync(() async {
-          auth = await signedInAuth(adapter);
-        });
-        final client = projectsWith(adapter, auth);
-        await pumpProjects(tester, auth: auth, client: client);
+        final database = openDatabase();
+        await pumpProjects(tester, database);
 
         await openEditor(tester);
         await fillEditor(
@@ -388,32 +379,22 @@ void main() {
           version.decoration?.errorText,
           'Enter a taxonomic reference version.',
         );
-        expect(
-          adapter.requests.where((request) => request.path == '/projects'),
-          isEmpty,
-        );
+        expect(await ProjectDao(database).all(), isEmpty);
       },
     );
 
     testWidgets(
       'UX-025: a reference version with no id reports under the id field',
       (tester) async {
-        final adapter = signedInAdapter();
-        late final AuthClient auth;
-        await tester.runAsync(() async {
-          auth = await signedInAuth(adapter);
-        });
-        final client = projectsWith(adapter, auth);
-        await pumpProjects(tester, auth: auth, client: client);
+        final database = openDatabase();
+        await pumpProjects(tester, database);
 
         await openEditor(tester);
-        await tester.enterText(
-          find.byKey(const Key('project_name')),
-          'Alpine Birds',
-        );
-        await tester.enterText(
-          find.byKey(const Key('project_reference_version')),
-          '2024.1',
+        await fillEditor(
+          tester,
+          name: 'Alpine Birds',
+          referenceId: '',
+          referenceVersion: '2024.1',
         );
         await saveEditor(tester);
 
@@ -421,23 +402,15 @@ void main() {
           find.byKey(const Key('project_reference_id')),
         );
         expect(id.decoration?.errorText, 'Select a taxonomic reference.');
-        expect(
-          adapter.requests.where((request) => request.path == '/projects'),
-          isEmpty,
-        );
+        expect(await ProjectDao(database).all(), isEmpty);
       },
     );
 
     testWidgets(
-      'C1: the create form saves with only its name and no pinned reference',
+      'C4: the create form saves with only its name and no pinned reference',
       (tester) async {
-        final adapter = signedInAdapter();
-        late final AuthClient auth;
-        await tester.runAsync(() async {
-          auth = await signedInAuth(adapter);
-        });
-        final client = projectsWith(adapter, auth);
-        await pumpProjects(tester, auth: auth, client: client);
+        final database = openDatabase();
+        await pumpProjects(tester, database);
 
         await openEditor(tester);
         await tester.enterText(
@@ -446,31 +419,50 @@ void main() {
         );
         await saveEditor(tester);
 
-        final request = projectRequest(adapter);
-        expect(request.method, 'POST');
-        expect(request.data['name'], 'Bare survey');
-        expect(request.data['taxonomicReferenceId'], isNull);
-        expect(request.data['taxonomicReferenceVersion'], isNull);
+        final stored = (await ProjectDao(database).all()).single;
+        expect(stored.name, 'Bare survey');
+        expect(stored.description, isNull);
+        expect(stored.taxonomicReferenceId, isNull);
+        expect(stored.taxonomicReferenceVersion, isNull);
       },
     );
 
-    testWidgets('C4: the create form name field carries no helper text', (
+    testWidgets('C3: the description is optional and stored when set', (
       tester,
     ) async {
-      final adapter = signedInAdapter();
-      late final AuthClient auth;
-      await tester.runAsync(() async {
-        auth = await signedInAuth(adapter);
-      });
-      final client = projectsWith(adapter, auth);
-      await pumpProjects(tester, auth: auth, client: client);
+      final database = openDatabase();
+      await pumpProjects(tester, database);
+
+      await openEditor(tester);
+      await fillEditor(
+        tester,
+        name: 'Alpine Birds',
+        description: 'Mountain transects',
+      );
+      await saveEditor(tester);
+
+      expect(find.text('Mountain transects'), findsOneWidget);
+      expect(
+        (await ProjectDao(database).all()).single.description,
+        'Mountain transects',
+      );
+    });
+
+    testWidgets('C4: the create form name and description fields carry no '
+        'helper text', (tester) async {
+      final database = openDatabase();
+      await pumpProjects(tester, database);
 
       await openEditor(tester);
 
       final name = tester.widget<TextField>(
         find.byKey(const Key('project_name')),
       );
+      final description = tester.widget<TextField>(
+        find.byKey(const Key('project_description')),
+      );
       expect(name.decoration?.helperText, isNull);
+      expect(description.decoration?.helperText, isNull);
     });
   });
 
@@ -585,9 +577,39 @@ void main() {
     );
 
     testWidgets(
+      'C3: setting a description on an existing Project stores it (UX-022)',
+      (tester) async {
+        final dao = await seededDao(tester);
+
+        await tester.pumpWidget(
+          settingsHarness(ProjectEditor(dao: dao, initial: existing)),
+        );
+
+        final description = tester.widget<TextField>(
+          find.byKey(const Key('project_description')),
+        );
+        expect(description.controller?.text, '');
+
+        await tester.enterText(
+          find.byKey(const Key('project_description')),
+          'A river survey.',
+        );
+        await tester.tap(find.byKey(const Key('save_project')));
+        await tester.pumpAndSettle();
+
+        expect((await dao.findById('p1'))!.description, 'A river survey.');
+      },
+    );
+
+    testWidgets(
       'C3: the Project settings surface is reached only inside its Project '
       '(UX-019)',
       (tester) async {
+        tester.view.physicalSize = const Size(1200, 3000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
         final dao = await seededDao(tester);
         final container = containerWith(dao);
         final router = container.read(goRouterProvider);
