@@ -55,6 +55,17 @@ class VisitReadiness {
   bool get isAnalysisReady => unmet.isEmpty;
 }
 
+/// The target taxa a Protocol version requires a Detection for (INV-004,
+/// GLOSSARY.md › Target list). A document with a Target list uses it; a
+/// document that omits it is in complete-list mode, where the declared
+/// Taxonomic scope — `taxonomicScope.taxa` — defines the required taxa.
+List<TargetTaxon> requiredTargetTaxa(ProtocolDocument document) =>
+    document.targetList ??
+    <TargetTaxon>[
+      for (final taxonRef in document.taxonomicScope.taxa)
+        TargetTaxon(taxonRef: taxonRef),
+    ];
+
 /// Derives whether [visit] is analysis-ready from its stored state plus applied
 /// Corrections (`ARCHITECTURE.md`, ADR-0021): exactly one Survey period and one
 /// Protocol version, its Project's pinned Taxonomic reference, every target
@@ -105,9 +116,10 @@ Set<String> provisionalTaxa(
 }
 
 /// Derives [visitId]'s analysis-readiness from the local store: its stored
-/// state, its Project's pinned reference and Protocol-version Target list, and
-/// its Detections (`ARCHITECTURE.md`, ADR-0021). The needs-attention surface
-/// watches this; submission never does.
+/// state, its Project's pinned reference and its Protocol version's required
+/// target taxa (its Target list, or the declared Taxonomic scope in
+/// complete-list mode), and its Detections (`ARCHITECTURE.md`, ADR-0021). The
+/// needs-attention surface watches this; submission never does.
 final visitReadinessProvider = FutureProvider.family<VisitReadiness, String>((
   ref,
   visitId,
@@ -119,12 +131,12 @@ final visitReadinessProvider = FutureProvider.family<VisitReadiness, String>((
   final project = site == null ? null : await config.project(site.projectId);
   final detections = await ref.watch(detectionDaoProvider).forVisit(visitId);
   final protocolVersionId = visit.protocolVersionId;
-  final targets = protocolVersionId == null
+  final protocolVersion = protocolVersionId == null
+      ? null
+      : await config.protocolVersion(protocolVersionId);
+  final targets = protocolVersion == null
       ? const <TargetTaxon>[]
-      : (await config.protocolVersion(protocolVersionId))
-                ?.document
-                .targetList ??
-            const <TargetTaxon>[];
+      : requiredTargetTaxa(protocolVersion.document);
   return deriveVisitReadiness(
     visit: visit,
     detections: detections,

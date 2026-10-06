@@ -7,6 +7,7 @@ import '../../store/detection_dao.dart';
 import 'detection.dart';
 import 'evidence_capture.dart';
 import 'opportunistic_search.dart';
+import 'submission_readiness.dart';
 import 'taxon_reference.dart';
 
 /// The capture-screen control for marking each target taxon of the Protocol
@@ -38,8 +39,7 @@ class _DetectionListState extends ConsumerState<DetectionList> {
   /// method). Recording is unavailable until one is chosen.
   String? _methodId;
 
-  List<TargetTaxon> get _targets =>
-      widget.protocol.targetList ?? const <TargetTaxon>[];
+  List<TargetTaxon> get _targets => requiredTargetTaxa(widget.protocol);
 
   List<DetectionMethod> get _methods => widget.protocol.detectionMethods;
 
