@@ -135,12 +135,10 @@ Map<String, dynamic> buildSubmitPayload(
       for (final entry in aggregate.detections)
         <String, dynamic>{
           // A Detection carries its resolved `taxon` key, or its explicit
-          // `provisionalName` when the taxon has not resolved (INV-021). The
-          // sync contract is additive and tolerates the server being one
-          // release behind (ARCHITECTURE.md compatibility surface), but the
-          // current server DTO still requires `taxon` and rejects a
-          // `provisionalName` payload (400): end-to-end provisional submission
-          // depends on the server counterpart, Task #393, landing.
+          // `provisionalName` when the taxon has not resolved (INV-021,
+          // GLOSSARY.md › Provisional taxon). The server stores either as it
+          // stands, provisional until an append-only Correction resolves it
+          // (ADR-0021), and the sync contract stays additive-only (ADR-0011).
           if (entry.provisional)
             'provisionalName': entry.detection.taxonRef
           else

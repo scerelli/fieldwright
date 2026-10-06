@@ -33,6 +33,7 @@ import {
   visit,
   type MeasurementProvenance,
 } from '../src/db/schema.js';
+import { loadResolvedTaxaByVisit } from '../src/visits/readiness.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
 import {
   VisitsService,
@@ -1168,7 +1169,7 @@ describe('Visit store', () => {
     ).toHaveLength(0);
   });
 
-  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
+  it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-021)', async () => {
     const refs = await seedReferences();
     const id = randomUUID();
 
@@ -1606,6 +1607,59 @@ describe('Visit store', () => {
       const ready = await visits.analysisReadyVisitIds(refs.projectId);
       expect(ready.has(firstOnly)).toBe(true);
       expect(ready.has(superseded)).toBe(false);
+    });
+
+    it('orders resolution Corrections with equal createdAt by id, so the applied resolution is deterministic (INV-021)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        targetList: [{ taxonRef: 'Anthus trivialis' }],
+      });
+      const author = await seedCollector(refs.projectId);
+      const id = randomUUID();
+      await storeProvisionalVisit(refs, protocolVersionId, id);
+
+      // Both Corrections share a createdAt. The greater id is inserted first, so
+      // insertion order is the reverse of id order: only an `id` tiebreak makes
+      // the fold deterministic, and the greater id is applied last and wins.
+      const greaterId = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+      const lesserId = '00000000-0000-4000-8000-000000000000';
+      const at = new Date('2026-05-01T00:00:00Z');
+      await db.insert(correction).values([
+        {
+          id: greaterId,
+          visitId: id,
+          authorId: author.id,
+          reason: 'greater id',
+          payload: {
+            kind: 'resolution',
+            taxonomicReferenceVersion: '2024.1',
+            resolvedTaxa: [
+              { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+            ],
+          },
+          createdAt: at,
+        },
+        {
+          id: lesserId,
+          visitId: id,
+          authorId: author.id,
+          reason: 'lesser id',
+          payload: {
+            kind: 'resolution',
+            taxonomicReferenceVersion: '2024.1',
+            resolvedTaxa: [
+              { provisionalName: 'cf. Anthus', taxon: 'Anthus pratensis' },
+            ],
+          },
+          createdAt: at,
+        },
+      ]);
+
+      const resolved = await loadResolvedTaxaByVisit(db, refs.projectId);
+      expect(resolved.get(id)?.get('cf. Anthus')).toBe('Anthus trivialis');
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
     });
   });
 });
