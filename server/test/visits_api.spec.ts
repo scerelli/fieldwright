@@ -456,37 +456,59 @@ describe('POST /api/v1/visits', () => {
     );
   });
 
-  it('stores a Visit row with no recorded Taxonomic reference id or version as provisional (ADR-0021)', async () => {
+  it('records a Visit pinned reference as a pair or not at all (ADR-0021, INV-021)', async () => {
     const refs = await seedReferences();
-    const id = uuidv7();
 
+    // A Visit with neither column recorded is provisional and stores as-is.
+    const provisionalId = uuidv7();
     await db.execute(sql`
       insert into visit
         (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
       values
-        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+        (${provisionalId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
     `);
 
-    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
-    expect(stored).toBeDefined();
-    expect(stored!.taxonomicReferenceId).toBeNull();
-    expect(stored!.taxonomicReferenceVersion).toBeNull();
-
-    const partialId = uuidv7();
-    await db.execute(sql`
-      insert into visit
-        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
-      values
-        (${partialId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
-    `);
-
-    const [partial] = await db
+    const [provisional] = await db
       .select()
       .from(visit)
-      .where(eq(visit.id, partialId));
-    expect(partial).toBeDefined();
-    expect(partial!.taxonomicReferenceId).toBe('italy-vascular-flora');
-    expect(partial!.taxonomicReferenceVersion).toBeNull();
+      .where(eq(visit.id, provisionalId));
+    expect(provisional).toBeDefined();
+    expect(provisional!.taxonomicReferenceId).toBeNull();
+    expect(provisional!.taxonomicReferenceVersion).toBeNull();
+
+    // Exactly one of the pair is rejected at the database (visit_reference_pair).
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+      `),
+    ).rejects.toThrow();
+    await expect(
+      db.execute(sql`
+        insert into visit
+          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_version)
+        values
+          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), '2024.1')
+      `),
+    ).rejects.toThrow();
+
+    // The pair recorded together is accepted.
+    const pairedId = uuidv7();
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id, taxonomic_reference_version)
+      values
+        (${pairedId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora', '2024.1')
+    `);
+
+    const [paired] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, pairedId));
+    expect(paired!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(paired!.taxonomicReferenceVersion).toBe('2024.1');
   });
 
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {

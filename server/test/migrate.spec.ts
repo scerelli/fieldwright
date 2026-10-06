@@ -332,4 +332,95 @@ describe('baseline migration', () => {
     expect(rows[0]!.taxonomic_reference_id).toBe('italy-vascular-flora');
     expect(rows[0]!.taxonomic_reference_version).toBe('2024.1');
   }, 30_000);
+
+  it('adds the Visit pinned-reference pair CHECK on a populated database (INV-021)', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    const projectId = randomUUID();
+    const siteId = randomUUID();
+    const visitWithReference = randomUUID();
+    const visitWithoutReference = randomUUID();
+
+    await query(
+      databaseUrl,
+      `insert into "project" (id, name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('${projectId}',
+               'Populated pair project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": false}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+    await query(
+      databaseUrl,
+      `insert into "site" (id, project_id, name) values ('${siteId}', '${projectId}', 'Plot A')`,
+    );
+    // Two existing rows, one on each side of the pair invariant: the CHECK must
+    // preserve both.
+    await query(
+      databaseUrl,
+      `insert into "visit"
+         ("id", "project_id", "site_id", "taxonomic_reference_id", "taxonomic_reference_version", "state", "effort", "started_at", "submitted_at")
+       values
+         ('${visitWithReference}', '${projectId}', '${siteId}', 'italy-vascular-flora', '2024.1', 'submitted', '{}'::jsonb, now(), now()),
+         ('${visitWithoutReference}', '${projectId}', '${siteId}', null, null, 'submitted', '{}'::jsonb, now(), now())`,
+    );
+
+    // Reproduce a database on the pre-0018 schema that already holds the rows:
+    // drop the constraint and un-record the migration so `migrate` re-applies
+    // it (drizzle re-applies from a high-water mark).
+    await query(
+      databaseUrl,
+      `alter table "visit" drop constraint if exists "visit_reference_pair"`,
+    );
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0018_married_black_cat')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    // Every existing row survives the migration.
+    const visits = await query(
+      databaseUrl,
+      `select "id", "taxonomic_reference_id", "taxonomic_reference_version" from "visit"
+       where "id" in ('${visitWithReference}', '${visitWithoutReference}')
+       order by "id"`,
+    );
+    expect(visits).toHaveLength(2);
+
+    // The CHECK now rejects a row that stores exactly one of the pair...
+    await expect(
+      query(
+        databaseUrl,
+        `insert into "visit"
+           ("id", "project_id", "site_id", "taxonomic_reference_id", "taxonomic_reference_version", "state", "effort", "started_at", "submitted_at")
+         values ('${randomUUID()}', '${projectId}', '${siteId}', 'italy-vascular-flora', null, 'submitted', '{}'::jsonb, now(), now())`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      query(
+        databaseUrl,
+        `insert into "visit"
+           ("id", "project_id", "site_id", "taxonomic_reference_id", "taxonomic_reference_version", "state", "effort", "started_at", "submitted_at")
+         values ('${randomUUID()}', '${projectId}', '${siteId}', null, '2024.1', 'submitted', '{}'::jsonb, now(), now())`,
+      ),
+    ).rejects.toThrow();
+
+    // ...and accepts the pair recorded together or both null.
+    const acceptedId = randomUUID();
+    await query(
+      databaseUrl,
+      `insert into "visit"
+         ("id", "project_id", "site_id", "taxonomic_reference_id", "taxonomic_reference_version", "state", "effort", "started_at", "submitted_at")
+       values ('${acceptedId}', '${projectId}', '${siteId}', 'italy-vascular-flora', '2024.1', 'submitted', '{}'::jsonb, now(), now())`,
+    );
+    const [stored] = await query(
+      databaseUrl,
+      `select "taxonomic_reference_id", "taxonomic_reference_version" from "visit" where "id" = '${acceptedId}'`,
+    );
+    expect(stored!.taxonomic_reference_id).toBe('italy-vascular-flora');
+    expect(stored!.taxonomic_reference_version).toBe('2024.1');
+  }, 30_000);
 });
