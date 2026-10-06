@@ -25,7 +25,7 @@
 - **dio 5.11** — HTTP client for the REST API and the submission outbox.
 - **uuid 4.6** — client-generated UUIDv7 identifiers.
 - **sensors_plus 7.1** + **geolocator 14.1** — accelerometer/magnetometer/barometer and location.
-- **connectivity_plus 7.3.2** — network transport state (`none`/wifi/mobile) for the shell's UX-008 offline indicator; a transport type is not a reachability guarantee, so network code stays guarded by timeouts/errors (ADR-0022).
+- **connectivity_plus 7.3.1** — network transport state (`none`/wifi/mobile) for the shell's UX-008 offline indicator; a transport type is not a reachability guarantee, so network code stays guarded by timeouts/errors (ADR-0022).
 - **record 7.1** + **image_picker 1.2** — audio and photo Evidence capture.
 - **freezed 4.0** + **build_runner 2.16** — code generation for models and drift.
 

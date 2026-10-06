@@ -5,10 +5,12 @@ Date: 2026-10-07
 Doc: TECH_STACK.md
 
 ## Decision
-Pin `connectivity_plus` (7.3.2) as the client's network-connectivity source, so the app shell can show UX-008's offline state.
+Pin `connectivity_plus` (7.3.1) as the client's network-connectivity source, so the app shell can show UX-008's offline state.
 
 ## Context
 UX-008 and UX-007 require a persistent, non-modal shell indicator that distinguishes offline from sync-failed, and `docs/brief.md` lists "offline, syncing, sync failed" as states to design. `TECH_STACK.md` pinned no connectivity source and `ARCHITECTURE.md`'s client module map had no connectivity module, so the offline state had no truthful source. The app is offline-first: capture and submission never depend on connectivity, and only delivery waits.
+
+Version 7.3.1, not the latest 7.3.2: 7.3.2 pulls `nm ^0.6.0 → dbus ^0.8.0`, which cannot co-resolve with the pinned `geolocator 14.1` (`geolocator_linux → dbus ^0.7.3`), so `flutter pub get` fails. 7.3.1 (`dbus ^0.7.0`) resolves and its API is unchanged.
 
 ## Alternatives considered
 - `internet_connection_checker_plus` and similar reachability-probing packages — rejected: they perform live reachability probes (themselves network-dependent and battery-costly) where the transport state suffices, adding a heavier surface for a solo developer.
