@@ -34,6 +34,7 @@ import {
   type MeasurementProvenance,
 } from '../src/db/schema.js';
 import { loadResolvedTaxaByVisit } from '../src/visits/readiness.js';
+import { targetTaxaOf } from '../src/visits/visit-rules.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
 import {
   VisitsService,
@@ -1358,6 +1359,32 @@ describe('Visit store', () => {
     expect((await applied()).rows).toEqual(before);
   });
 
+  describe('target taxa derivation (INV-004)', () => {
+    it('derives the required target taxa from the declared taxonomic scope in complete-list mode (INV-004)', () => {
+      expect(
+        targetTaxaOf({
+          protocolId: 'wetland-plants',
+          version: 1,
+          taxonomicScope: { taxa: ['Tracheophyta', 'Bryophyta'] },
+        }),
+      ).toEqual(['Tracheophyta', 'Bryophyta']);
+    });
+
+    it('derives the required target taxa from the Target list when the document declares one (INV-004)', () => {
+      expect(
+        targetTaxaOf({
+          protocolId: 'alpine-birds',
+          version: 1,
+          taxonomicScope: { taxa: ['Aves'] },
+          targetList: [
+            { taxonRef: 'Aves|Turdus|merula' },
+            { taxonRef: 'Aves|Erithacus|rubecula' },
+          ],
+        }),
+      ).toEqual(['Aves|Turdus|merula', 'Aves|Erithacus|rubecula']);
+    });
+  });
+
   describe('analysis-readiness derivation (INV-019 – INV-022)', () => {
     const startedAt = new Date('2026-04-01T08:00:00Z');
     const submittedAt = new Date('2026-04-01T09:00:00Z');
@@ -1504,6 +1531,54 @@ describe('Visit store', () => {
 
       const ready = await visits.analysisReadyVisitIds(refs.projectId);
       expect(ready.has(id)).toBe(false);
+    });
+
+    it('is not analysis-ready when a complete-list Visit records no in-scope target (INV-004, INV-019, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        taxonomicScope: { taxa: ['Anthus trivialis', 'Sylvia borin'] },
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(false);
+    });
+
+    it('is analysis-ready when a complete-list Visit records every in-scope taxon (INV-004, INV-022)', async () => {
+      const refs = await seedReferences();
+      const protocolVersionId = await seedProtocol(refs.projectId, {
+        taxonomicScope: { taxa: ['Anthus trivialis', 'Sylvia borin'] },
+      });
+      const id = randomUUID();
+
+      await visits.storeSubmittedVisit({
+        id,
+        projectId: refs.projectId,
+        siteId: refs.siteId,
+        surveyPeriodId: refs.surveyPeriodId,
+        protocolVersionId,
+        effort: {},
+        startedAt,
+        submittedAt,
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+          { taxon: 'Sylvia borin', detected: false, method: 'audio' },
+        ],
+      });
+
+      const ready = await visits.analysisReadyVisitIds(refs.projectId);
+      expect(ready.has(id)).toBe(true);
     });
 
     it('is not analysis-ready when a required Sampling-effort field is not recorded (INV-005)', async () => {

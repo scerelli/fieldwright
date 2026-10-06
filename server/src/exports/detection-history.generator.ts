@@ -3,16 +3,17 @@
  * (ARCHITECTURE.md, ADR-0008): it is the format generator #46 registers on the
  * `EXPORT_GENERATORS` seam. Given an Export, it loads that Export's Project's
  * **analysis-ready** Visits (INV-022, via the `visits` module's readiness
- * derivation), their Detections and the Target list each Visit's Protocol
- * version declares, builds the detection-history matrix through the injected
- * builder (#311) and serializes it with {@link serializeCsv}. A Visit that is
- * not analysis-ready is excluded, so only analysis-ready Visits enter an
- * export. The resolution Corrections the readiness derivation applies are
- * shared here (INV-021), so a Detection resolved only by a Correction renders
- * under the reference taxon it resolved to while the stored Visit and Detection
- * rows stay exactly as submitted (INV-001).
+ * derivation), their Detections and the target taxa each Visit's Protocol
+ * version declares — its Target list, or, in complete-list mode, the taxa in
+ * its declared taxonomic scope — builds the detection-history matrix through
+ * the injected builder (#311) and serializes it with {@link serializeCsv}. A
+ * Visit that is not analysis-ready is excluded, so only analysis-ready Visits
+ * enter an export. The resolution Corrections the readiness derivation applies
+ * are shared here (INV-021), so a Detection resolved only by a Correction
+ * renders under the reference taxon it resolved to while the stored Visit and
+ * Detection rows stay exactly as submitted (INV-001).
  *
- * The builder keeps INV-019 and INV-003: a Target list taxon with a recorded
+ * The builder keeps INV-019 and INV-003: a target taxon with a recorded
  * Detection is `1` or `0`, an unrecorded taxon is left blank, and an
  * opportunistic Detection fills no cell. The matrix carries no coordinates, so
  * no coordinate obfuscation is applied here: INV-011's role-based withholding

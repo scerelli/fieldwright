@@ -4,9 +4,9 @@
  * never rejected for readiness at ingest, so analysis-readiness is derived from
  * stored state here — the Project's pinned Taxonomic reference (INV-021), the
  * Visit's Survey period and Protocol version (INV-020), its required Sampling
- * effort (INV-005), every Target list taxon recorded (INV-019), and no
- * provisional Detection (INV-021). A Visit that fails any factor is provisional
- * and excluded from every export (INV-022).
+ * effort (INV-005), every required target taxon recorded (INV-004, INV-019),
+ * and no provisional Detection (INV-021). A Visit that fails any factor is
+ * provisional and excluded from every export (INV-022).
  *
  * A synced Visit's provisional taxa are resolved by an append-only Correction
  * (INV-021); this derivation applies the recorded resolution Corrections to the
@@ -147,8 +147,8 @@ export interface AnalysisReadinessInput {
 /**
  * Whether a Visit with `input` is analysis-ready (INV-019 – INV-022): it has
  * the Project's pinned reference, exactly one Survey period and Protocol
- * version, its required effort recorded (INV-005), every Target list taxon
- * recorded (INV-019), and no provisional Detection (INV-021).
+ * version, its required effort recorded (INV-005), every required target taxon
+ * recorded (INV-004, INV-019), and no provisional Detection (INV-021).
  */
 export function isAnalysisReady(input: AnalysisReadinessInput): boolean {
   if (!input.hasPinnedReference) {
