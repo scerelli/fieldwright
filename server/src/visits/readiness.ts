@@ -203,6 +203,40 @@ interface VisitAccumulator {
 }
 
 /**
+ * The taxon each provisional Detection of `projectId`'s Visits is resolved to
+ * by a recorded resolution Correction (INV-021), keyed by Visit id then
+ * provisional taxon. Corrections are folded in recorded order, so a later
+ * assignment for the same provisional taxon wins. The stored Visit and
+ * Detection rows are never read back mutated — every derived view applies this
+ * same fold (INV-001). Shared with `exports` so its detection-history export
+ * renders a resolved Detection, not a blank cell.
+ */
+export async function loadResolvedTaxaByVisit(
+  db: NodePgDatabase,
+  projectId: string,
+): Promise<Map<string, Map<string, string>>> {
+  const correctionRows = await db
+    .select({ visitId: correction.visitId, payload: correction.payload })
+    .from(correction)
+    .innerJoin(visit, eq(correction.visitId, visit.id))
+    .where(eq(visit.projectId, projectId))
+    .orderBy(asc(correction.createdAt));
+
+  const resolvedTaxaByVisit = new Map<string, Map<string, string>>();
+  for (const row of correctionRows) {
+    if (!isResolutionCorrectionPayload(row.payload)) {
+      continue;
+    }
+    const resolved = resolvedTaxaByVisit.get(row.visitId) ?? new Map();
+    for (const assignment of row.payload.resolvedTaxa) {
+      resolved.set(assignment.provisionalName, assignment.taxon);
+    }
+    resolvedTaxaByVisit.set(row.visitId, resolved);
+  }
+  return resolvedTaxaByVisit;
+}
+
+/**
  * The ids of `projectId`'s analysis-ready Visits (INV-019 – INV-022), derived
  * from stored state. A Visit with no Detection still yields an accumulator, so
  * a Target list it does not satisfy leaves it out.
@@ -229,24 +263,7 @@ export async function loadAnalysisReadyVisitIds(
   // a later assignment for the same provisional taxon wins. The stored Visit
   // and Detection rows are never read back mutated — the derived view applies
   // the Corrections (INV-001).
-  const correctionRows = await db
-    .select({ visitId: correction.visitId, payload: correction.payload })
-    .from(correction)
-    .innerJoin(visit, eq(correction.visitId, visit.id))
-    .where(eq(visit.projectId, projectId))
-    .orderBy(asc(correction.createdAt));
-
-  const resolvedTaxaByVisit = new Map<string, Map<string, string>>();
-  for (const row of correctionRows) {
-    if (!isResolutionCorrectionPayload(row.payload)) {
-      continue;
-    }
-    const resolved = resolvedTaxaByVisit.get(row.visitId) ?? new Map();
-    for (const assignment of row.payload.resolvedTaxa) {
-      resolved.set(assignment.provisionalName, assignment.taxon);
-    }
-    resolvedTaxaByVisit.set(row.visitId, resolved);
-  }
+  const resolvedTaxaByVisit = await loadResolvedTaxaByVisit(db, projectId);
 
   const rows = await db
     .select({
