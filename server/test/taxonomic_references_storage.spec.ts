@@ -9,6 +9,7 @@ import {
 import { loadTaxonomicReferencesConfig } from '../src/taxonomic-references/taxonomic-references.config.js';
 import {
   createReferenceVolumeStorage,
+  MalformedReferenceArtifactError,
   type ReferenceStorage,
 } from '../src/taxonomic-references/taxonomic-references.storage.js';
 
@@ -61,12 +62,12 @@ describe('createReferenceVolumeStorage', () => {
     expect(await storage.readArtifact(ARTIFACT.id, '1999.1')).toBeNull();
   });
 
-  it('reports not-found for malformed JSON rather than serving it', async () => {
+  it('rejects malformed JSON with a named error rather than serving it', async () => {
     await writeArtifactAt(ARTIFACT.id, ARTIFACT.version, '{ not json');
 
-    expect(
-      await storage.readArtifact(ARTIFACT.id, ARTIFACT.version),
-    ).toBeNull();
+    await expect(
+      storage.readArtifact(ARTIFACT.id, ARTIFACT.version),
+    ).rejects.toBeInstanceOf(MalformedReferenceArtifactError);
   });
 
   it('reports not-found when the id names a file rather than a directory (ENOTDIR)', async () => {
