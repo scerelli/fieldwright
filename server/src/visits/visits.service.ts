@@ -50,7 +50,10 @@ import {
   type MeasurementProvenance,
   type Visit,
 } from '../db/schema.js';
-import { loadAnalysisReadyVisitIds } from './readiness.js';
+import {
+  assertResolutionCorrectionPayload,
+  loadAnalysisReadyVisitIds,
+} from './readiness.js';
 import {
   assertDetectionTaxonShape,
   assertResolvedDetectionsHaveReference,
@@ -388,12 +391,19 @@ export class VisitsService {
    * `in_progress` or `ended` is not yet stored and is refused, so a refusal
    * stores no row. The Visit row is locked so the existence and state checks
    * stay consistent with a concurrent submission.
+   *
+   * A payload that claims to resolve a synced Visit's provisional taxa is a
+   * resolution Correction (`ResolutionCorrectionPayload`, INV-021): it carries
+   * the resolved taxa and the pinned Taxonomic reference version, is validated
+   * before any insert and stored append-only, and the derived readiness applies
+   * it without mutating the stored rows.
    */
   async recordCorrection(
     personId: string,
     visitId: string,
     input: RecordCorrectionInput,
   ): Promise<Correction> {
+    assertResolutionCorrectionPayload(input.payload);
     return this.db.transaction(async (tx) => {
       const [current] = await tx
         .select()

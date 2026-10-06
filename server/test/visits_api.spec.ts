@@ -824,6 +824,77 @@ describe('POST /api/v1/visits', () => {
     expect(rows[0]!.createdAt).toBeInstanceOf(Date);
   });
 
+  it('records a resolution Correction storing the resolved taxa and the reference version in an append-only row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-resolution@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+    const firstResolution = {
+      kind: 'resolution',
+      taxonomicReferenceVersion: '2024.1',
+      resolvedTaxa: [
+        { provisionalName: 'cf. Anthus', taxon: 'Anthus trivialis' },
+      ],
+    };
+    const secondResolution = {
+      ...firstResolution,
+      resolvedTaxa: [
+        { provisionalName: 'cf. Anthus', taxon: 'Anthus pratensis' },
+      ],
+    };
+
+    const first = await postCorrection(
+      id,
+      { reason: 'resolve cf. Anthus', payload: firstResolution },
+      { cookie: collector.cookie },
+    );
+    expect(first.status, await first.clone().text()).toBe(201);
+
+    const second = await postCorrection(
+      id,
+      { reason: 're-resolve cf. Anthus', payload: secondResolution },
+      { cookie: collector.cookie },
+    );
+    expect(second.status, await second.clone().text()).toBe(201);
+
+    const rows = await db
+      .select()
+      .from(correction)
+      .where(eq(correction.visitId, id))
+      .orderBy(correction.createdAt);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.authorId).toBe(collector.id);
+    expect(rows[0]!.reason).toBe('resolve cf. Anthus');
+    expect(rows[0]!.payload).toEqual(firstResolution);
+    expect(rows[0]!.createdAt).toBeInstanceOf(Date);
+    expect(rows[1]!.payload).toEqual(secondResolution);
+  });
+
+  it('refuses a malformed resolution Correction with 400 and stores no row (INV-021)', async () => {
+    const refs = await seedReferences();
+    const collector = await signUpAndSignIn(
+      'correction-malformed-resolution@example.com',
+    );
+    await addMembership(collector.id, refs.projectId, 'collector');
+    const id = await seedVisit(refs);
+
+    const response = await postCorrection(
+      id,
+      {
+        reason: 'resolve without a version',
+        payload: { kind: 'resolution', resolvedTaxa: [] },
+      },
+      { cookie: collector.cookie },
+    );
+
+    expect(response.status, await response.clone().text()).toBe(400);
+    expect(
+      await db.select().from(correction).where(eq(correction.visitId, id)),
+    ).toHaveLength(0);
+  });
+
   it('records a Correction authored by a validator Membership', async () => {
     const refs = await seedReferences();
     const validator = await signUpAndSignIn('correction-validator@example.com');
