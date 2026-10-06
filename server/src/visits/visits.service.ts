@@ -50,6 +50,7 @@ import {
   type MeasurementProvenance,
   type Visit,
 } from '../db/schema.js';
+import { loadAnalysisReadyVisitIds } from './readiness.js';
 import {
   assertDetectionTaxonShape,
   assertResolvedDetectionsHaveReference,
@@ -531,5 +532,19 @@ export class VisitsService {
       validatorId: current.validatorId,
       validatedAt: current.validatedAt,
     };
+  }
+
+  /**
+   * The ids of a Project's analysis-ready Visits (GLOSSARY.md Analysis-ready,
+   * INV-019 – INV-022), derived from stored state — the Project's pinned
+   * reference, each Visit's Survey period and Protocol version, its required
+   * effort, target completeness and no provisional Detection. The
+   * `exports` module gates on this set so a non-ready Visit never enters an
+   * export. Deriving from the Corrections that resolve a synced Visit's
+   * provisional taxa (INV-021) is Story #393's sibling #401; this reads the
+   * stored state as it stands.
+   */
+  async analysisReadyVisitIds(projectId: string): Promise<Set<string>> {
+    return loadAnalysisReadyVisitIds(this.db, projectId);
   }
 }

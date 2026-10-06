@@ -2,9 +2,12 @@
  * The `csv` {@link ExportGenerator} for the `exports` module
  * (ARCHITECTURE.md, ADR-0008): it is the format generator #46 registers on the
  * `EXPORT_GENERATORS` seam. Given an Export, it loads that Export's Project's
- * Visits, their Detections and the Target list each Visit's Protocol version
- * declares, builds the detection-history matrix through the injected builder
- * (#311) and serializes it with {@link serializeCsv}.
+ * **analysis-ready** Visits (INV-022, via the `visits` module's readiness
+ * derivation), their Detections and the Target list each Visit's Protocol
+ * version declares, builds the detection-history matrix through the injected
+ * builder (#311) and serializes it with {@link serializeCsv}. A Visit that is
+ * not analysis-ready is excluded, so only analysis-ready Visits enter an
+ * export.
  *
  * The builder keeps INV-002 and INV-003: a Target list taxon with a recorded
  * Detection is `1` or `0`, an unrecorded taxon is left blank, and an
@@ -22,6 +25,7 @@ import {
   visit,
   type Export,
 } from '../db/schema.js';
+import { loadAnalysisReadyVisitIds } from '../visits/readiness.js';
 import { targetTaxaOf } from '../visits/visit-rules.js';
 import { serializeCsv } from './csv.js';
 import {
@@ -65,19 +69,26 @@ export class DetectionHistoryGenerator implements ExportGenerator {
 
   /** The Export's Project's detection-history matrix, serialized to CSV. */
   async generate(record: Export): Promise<Uint8Array> {
-    const visits = await this.loadVisits(record.projectId);
+    const readyVisitIds = await loadAnalysisReadyVisitIds(
+      this.db,
+      record.projectId,
+    );
+    const visits = await this.loadVisits(record.projectId, readyVisitIds);
     const matrix = this.buildMatrix(visits);
     const csv = serializeCsv([matrix.header, ...matrix.rows]);
     return new TextEncoder().encode(csv);
   }
 
   /**
-   * Loads a Project's Visits with their Detections and the Protocol version
-   * each references, shaped as the builder's input. A Visit with no Detection
-   * still yields a row (its cells are blank).
+   * Loads a Project's analysis-ready Visits with their Detections and the
+   * Protocol version each references, shaped as the builder's input. A Visit
+   * the readiness derivation excludes (INV-022) is skipped, so a provisional
+   * Visit never reaches the matrix. A Visit with no Detection still yields a
+   * row (its cells are blank).
    */
   private async loadVisits(
     projectId: string,
+    readyVisitIds: ReadonlySet<string>,
   ): Promise<DetectionHistoryVisit[]> {
     const rows = await this.db
       .select({
@@ -100,17 +111,17 @@ export class DetectionHistoryGenerator implements ExportGenerator {
 
     const byVisit = new Map<string, VisitAccumulator>();
     for (const row of rows) {
+      if (!readyVisitIds.has(row.visitId)) {
+        continue;
+      }
       let entry = byVisit.get(row.visitId);
       if (entry === undefined) {
         entry = {
           visitId: row.visitId,
           siteId: row.siteId,
-          // The Visit resolution columns are nullable under ADR-0021. This
-          // generator's inner join already excludes a Visit with no Protocol
-          // version, and the analysis-readiness gate that excludes every other
-          // provisional Visit (INV-022) is Sub-task #400's scope; until then a
-          // row reaching here carries a Survey period, as it did while the
-          // column was NOT NULL.
+          // The Visit resolution columns are nullable under ADR-0021, but the
+          // analysis-readiness derivation (INV-020, INV-022) excludes every
+          // Visit without a Survey period, so a ready row carries one here.
           surveyPeriodId: row.surveyPeriodId!,
           startedAt: row.startedAt,
           targetTaxonRefs: targetTaxaOf(row.document),
