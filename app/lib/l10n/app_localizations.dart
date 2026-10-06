@@ -662,6 +662,12 @@ abstract class AppLocalizations {
   /// **'Project name'**
   String get projectEditorName;
 
+  /// Label of the optional description field in the project editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get projectEditorDescription;
+
   /// Label of the field naming the pinned Taxonomic reference in the project editor.
   ///
   /// In en, this message translates to:

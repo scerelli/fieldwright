@@ -4,10 +4,14 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../projects/projects_client.dart';
+import '../../store/project_dao.dart';
 import '../../widgets/empty_state.dart';
 import 'project_editor.dart';
 
-/// Lists the signed-in person's Projects and lets a creator define a new one.
+/// Lists the stored Projects and lets a creator define a new one.
+///
+/// The list is read from the local store (`ProjectDao`), so it shows a Project
+/// created with no account and survives a relaunch (`UX.md` UX-015, ADR-0014).
 class ProjectsScreen extends ConsumerStatefulWidget {
   const ProjectsScreen({super.key});
 
@@ -16,15 +20,12 @@ class ProjectsScreen extends ConsumerStatefulWidget {
 }
 
 class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
-  final List<Project> _projects = <Project>[];
-
   Future<void> _openEditor() async {
-    final client = ref.read(projectsClientProvider);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProjectEditor(
-          client: client,
-          onSaved: (project) => setState(() => _projects.add(project)),
+          dao: ref.read(projectDaoProvider),
+          onSaved: (_) => ref.invalidate(projectsProvider),
         ),
       ),
     );
@@ -33,6 +34,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final projects = ref.watch(projectsProvider).value ?? const <Project>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -46,7 +48,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
           ),
         ],
       ),
-      body: _projects.isEmpty
+      body: projects.isEmpty
           ? EmptyState(
               title: l10n.projectsEmptyTitle,
               message: l10n.projectsEmptyMessage,
@@ -57,9 +59,9 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
               ),
             )
           : ListView.builder(
-              itemCount: _projects.length,
+              itemCount: projects.length,
               itemBuilder: (context, index) {
-                final project = _projects[index];
+                final project = projects[index];
                 return ProjectCard(
                   key: Key('project_${project.id}'),
                   project: project,

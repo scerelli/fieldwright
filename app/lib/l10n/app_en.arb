@@ -396,6 +396,10 @@
   "@projectEditorName": {
     "description": "Label of the project name field in the project editor."
   },
+  "projectEditorDescription": "Description",
+  "@projectEditorDescription": {
+    "description": "Label of the optional description field in the project editor."
+  },
   "projectEditorReferenceId": "Taxonomic reference",
   "@projectEditorReferenceId": {
     "description": "Label of the field naming the pinned Taxonomic reference in the project editor."
