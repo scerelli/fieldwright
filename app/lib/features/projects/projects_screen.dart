@@ -39,6 +39,12 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
         title: Text(l10n.navProjects),
         actions: [
           IconButton(
+            key: const Key('open_account'),
+            icon: const Icon(Icons.person_outline),
+            tooltip: l10n.navAccount,
+            onPressed: () => context.push('/account'),
+          ),
+          IconButton(
             key: const Key('open_help'),
             icon: const Icon(Icons.help_outline),
             tooltip: l10n.helpOpen,

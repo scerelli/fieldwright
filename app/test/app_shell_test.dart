@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:ibis/app.dart';
+import 'package:ibis/features/account/account_screen.dart';
+import 'package:ibis/features/projects/projects_screen.dart';
+import 'package:ibis/features/sites/sites_screen.dart';
+import 'package:ibis/features/visits/visits_screen.dart';
+import 'package:ibis/router/app_router.dart';
 import 'package:ibis/shell/app_shell.dart';
 
 Future<void> pumpApp(WidgetTester tester) async {
@@ -11,89 +16,59 @@ Future<void> pumpApp(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder navLabel(String label) =>
-    find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
-
 String currentPath(WidgetTester tester) =>
     GoRouterState.of(tester.element(find.byType(AppShell))).uri.path;
 
-int selectedIndex(WidgetTester tester) =>
-    tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
-
 void main() {
-  testWidgets('tapping a destination changes the route and marks it active', (
+  testWidgets('the app opens on the Projects list at /projects', (
     tester,
   ) async {
     await pumpApp(tester);
 
     expect(currentPath(tester), '/projects');
-    expect(selectedIndex(tester), 0);
-
-    await tester.tap(navLabel('Sites'));
-    await tester.pumpAndSettle();
-
-    expect(currentPath(tester), '/sites');
-    expect(selectedIndex(tester), 1);
-
-    await tester.tap(navLabel('Visits'));
-    await tester.pumpAndSettle();
-
-    expect(currentPath(tester), '/visits');
-    expect(selectedIndex(tester), 2);
+    expect(find.byType(ProjectsScreen), findsOneWidget);
   });
 
-  testWidgets(
-    'state entered in a destination survives navigating away and back',
-    (tester) async {
-      await pumpApp(tester);
-
-      await tester.tap(navLabel('Account'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('auth_email')),
-        'field@example.com',
-      );
-      await tester.pump();
-
-      await tester.tap(navLabel('Projects'));
-      await tester.pumpAndSettle();
-      await tester.tap(navLabel('Account'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('field@example.com'), findsOneWidget);
-    },
-  );
-
-  testWidgets('each destination target is at least 48 dp', (tester) async {
-    await pumpApp(tester);
-
-    final targets = find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.byWidgetPredicate((widget) => widget is InkResponse),
-    );
-    expect(targets, findsNWidgets(4));
-
-    for (var i = 0; i < 4; i++) {
-      final size = tester.getSize(targets.at(i));
-      expect(size.width, greaterThanOrEqualTo(48.0));
-      expect(size.height, greaterThanOrEqualTo(48.0));
-    }
-  });
-
-  testWidgets('the same four destinations appear after relaunch', (
+  testWidgets('the Projects list renders no bottom navigation bar', (
     tester,
   ) async {
     await pumpApp(tester);
-    for (final label in ['Projects', 'Sites', 'Visits', 'Account']) {
-      expect(navLabel(label), findsOneWidget);
-    }
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('Account opens from the app bar on the Projects list', (
+    tester,
+  ) async {
     await pumpApp(tester);
 
-    for (final label in ['Projects', 'Sites', 'Visits', 'Account']) {
-      expect(navLabel(label), findsOneWidget);
-    }
+    final account = find.byKey(const Key('open_account'));
+    expect(account, findsOneWidget);
+
+    await tester.tap(account);
+    await tester.pumpAndSettle();
+
+    expect(currentPath(tester), '/account');
+    expect(find.byType(AccountScreen), findsOneWidget);
+  });
+
+  testWidgets('no top-level route lists Sites or Visits across Projects '
+      '(UX-019)', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const IbisApp()),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/sites');
+    await tester.pumpAndSettle();
+    expect(find.byType(SitesScreen), findsNothing);
+
+    router.go('/visits');
+    await tester.pumpAndSettle();
+    expect(find.byType(VisitsScreen), findsNothing);
   });
 }

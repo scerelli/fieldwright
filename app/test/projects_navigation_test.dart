@@ -195,6 +195,7 @@ void main() {
 
       await openProject(tester);
 
+      expect(currentPath(tester), '/projects/p1');
       expect(find.byKey(const Key('open_protocol_version')), findsOneWidget);
       expect(find.byKey(const Key('open_members')), findsOneWidget);
       expect(find.byKey(const Key('open_survey_periods')), findsOneWidget);
