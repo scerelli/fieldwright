@@ -5,20 +5,23 @@
  * single transaction, so a failure leaves no partial record. There is no
  * update path: a later change to a submitted Visit is a Correction.
  *
- * The Visit must reference a Site, a Survey period and a Protocol version
- * (INV-006); the non-null foreign keys reject a reference to a missing row,
- * and an invalid part (a negative count, a Measurement without a method)
- * aborts the whole submission.
+ * A Visit may be captured, ended and submitted with only a Site (ADR-0021); the
+ * ingest stores it as it stands and no longer rejects a submission for a
+ * missing Project pin, Survey period, Protocol version, required Sampling-effort
+ * field or unrecorded target. Analysis-readiness (INV-019 – INV-022) is derived
+ * later, not enforced here. The non-null Site foreign key still rejects a
+ * reference to a missing Site, and an invalid part (a negative count, a
+ * Measurement without a method, a Detection carrying neither or both of a
+ * resolved taxon and a provisional name) aborts the whole submission.
  *
- * Protocol-level rules are enforced in this ingest transaction, which loads
- * the Visit's referenced Protocol version document: required Sampling-effort
- * fields (INV-005) today. Target-taxon completeness (INV-002) and complete-list
- * scope (INV-004) belong here too and are added as their own rules.
- *
- * The transaction also copies the Project's pinned Taxonomic reference id and
- * version onto the Visit (INV-008), so the reference the data was captured
- * against is stored with the data; the NOT NULL columns reject a row stored
- * without it. Resolving taxon names against that reference is the other half of
+ * The transaction records the Project's pinned Taxonomic reference id and
+ * version on the Visit whenever the Project has one, even with no Protocol
+ * version or Survey period, so the reference a resolved taxon was captured
+ * against is stored with the data (INV-008, INV-021); only a Project with no pin
+ * yields null reference columns (INV-020, INV-022). A Detection with a resolved
+ * `taxon` therefore requires the Project to have a pin — resolution without a
+ * stored reference is impossible — while a provisional Detection is accepted
+ * with no pin. Resolving taxon names against that reference is the other half of
  * INV-008 and is deferred until the reference lists and their versioning are
  * decided (DOMAIN.md Open questions).
  */
@@ -48,10 +51,8 @@ import {
   type Visit,
 } from '../db/schema.js';
 import {
-  assertRequiredEffortFields,
-  assertTargetTaxonCompleteness,
-  requiredEffortFieldsOf,
-  targetTaxaOf,
+  assertDetectionTaxonShape,
+  assertResolvedDetectionsHaveReference,
 } from './visit-rules.js';
 
 export interface StoreDeterminationInput {
@@ -64,7 +65,8 @@ export interface StoreDeterminationInput {
 }
 
 export interface StoreDetectionInput {
-  taxon: string;
+  taxon?: string | null;
+  provisionalName?: string | null;
   detected: boolean;
   method: string;
   count?: number | null;
@@ -107,8 +109,8 @@ export interface StoreSubmittedVisitInput {
   id: string;
   projectId: string;
   siteId: string;
-  surveyPeriodId: string;
-  protocolVersionId: string;
+  surveyPeriodId?: string | null;
+  protocolVersionId?: string | null;
   effort: Record<string, unknown>;
   startedAt: Date;
   endedAt?: Date | null;
@@ -152,6 +154,10 @@ export class VisitsService {
     const measurements = input.measurements ?? [];
     const evidenceRows = input.evidence ?? [];
 
+    for (const entry of detections) {
+      assertDetectionTaxonShape(entry);
+    }
+
     assertDetectionIndicesInRange(
       measurements,
       detections.length,
@@ -160,15 +166,17 @@ export class VisitsService {
     assertDetectionIndicesInRange(evidenceRows, detections.length, 'Evidence');
 
     return this.db.transaction(async (tx) => {
-      const [version] = await tx
-        .select({ document: protocolVersion.document })
-        .from(protocolVersion)
-        .where(eq(protocolVersion.id, input.protocolVersionId))
-        .limit(1);
-      if (version === undefined) {
-        throw new BadRequestException(
-          `Protocol version ${input.protocolVersionId} does not exist`,
-        );
+      if (input.protocolVersionId != null) {
+        const [version] = await tx
+          .select({ id: protocolVersion.id })
+          .from(protocolVersion)
+          .where(eq(protocolVersion.id, input.protocolVersionId))
+          .limit(1);
+        if (version === undefined) {
+          throw new BadRequestException(
+            `Protocol version ${input.protocolVersionId} does not exist`,
+          );
+        }
       }
 
       const [owner] = await tx
@@ -184,20 +192,18 @@ export class VisitsService {
           `Project ${input.projectId} does not exist`,
         );
       }
-      if (
-        owner.taxonomicReferenceId === null ||
-        owner.taxonomicReferenceVersion === null
-      ) {
-        throw new BadRequestException(
-          `Project ${input.projectId} has no pinned Taxonomic reference`,
-        );
-      }
 
-      assertRequiredEffortFields(
-        input.effort,
-        requiredEffortFieldsOf(version.document),
-      );
-      assertTargetTaxonCompleteness(detections, targetTaxaOf(version.document));
+      // A Visit is stored as it stands (ADR-0021, INV-022): the ingest does not
+      // reject a provisional Visit for a missing pin, Protocol version or
+      // target. The Project's pinned reference is recorded with the Visit
+      // whenever the Project has one — even with no Protocol version — because
+      // a resolved taxon must carry the reference version it resolved against
+      // (INV-021); a resolved Detection therefore requires a pin, while a
+      // provisional Detection is accepted with no pin.
+      const hasPinnedReference =
+        owner.taxonomicReferenceId != null &&
+        owner.taxonomicReferenceVersion != null;
+      assertResolvedDetectionsHaveReference(detections, hasPinnedReference);
 
       const [created] = await tx
         .insert(visit)
@@ -205,8 +211,8 @@ export class VisitsService {
           id: input.id,
           projectId: input.projectId,
           siteId: input.siteId,
-          surveyPeriodId: input.surveyPeriodId,
-          protocolVersionId: input.protocolVersionId,
+          surveyPeriodId: input.surveyPeriodId ?? null,
+          protocolVersionId: input.protocolVersionId ?? null,
           taxonomicReferenceId: owner.taxonomicReferenceId,
           taxonomicReferenceVersion: owner.taxonomicReferenceVersion,
           state: 'submitted',
@@ -224,7 +230,8 @@ export class VisitsService {
           .values(
             detections.map((entry) => ({
               visitId: created.id,
-              taxon: entry.taxon,
+              taxon: entry.taxon ?? null,
+              provisionalName: entry.provisionalName ?? null,
               detected: entry.detected,
               method: entry.method,
               count: entry.count ?? null,

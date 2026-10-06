@@ -33,7 +33,10 @@ import {
   type MeasurementProvenance,
 } from '../src/db/schema.js';
 import { VisitsModule } from '../src/visits/visits.module.js';
-import { VisitsService } from '../src/visits/visits.service.js';
+import {
+  VisitsService,
+  type StoreDetectionInput,
+} from '../src/visits/visits.service.js';
 
 const serverRoot = fileURLToPath(new URL('..', import.meta.url));
 const drizzleKitBin = fileURLToPath(
@@ -149,14 +152,19 @@ describe('Visit store', () => {
     await container?.stop();
   });
 
-  async function seedReferences(): Promise<SeedReferences> {
+  async function seedReferences(
+    taxonomicReference: { id: string | null; version: string | null } = {
+      id: 'italy-vascular-flora',
+      version: '2024.1',
+    },
+  ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
       .values({
         name: 'Visit store project',
         settings: { validationEnabled: true, sensitiveTaxaObfuscation: false },
-        taxonomicReferenceId: 'italy-vascular-flora',
-        taxonomicReferenceVersion: '2024.1',
+        taxonomicReferenceId: taxonomicReference.id,
+        taxonomicReferenceVersion: taxonomicReference.version,
       })
       .returning();
 
@@ -345,6 +353,157 @@ describe('Visit store', () => {
     expect(photo.detectionId).toBe(byTaxon['Anthus trivialis']!.id);
     const audio = evidenceRows.find((row) => row.kind === 'audio')!;
     expect(audio.detectionId).toBeNull();
+  });
+
+  it('records the Project pin even when the Visit has no Protocol version or Survey period (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    const stored = await visits.storeSubmittedVisit({
+      id,
+      projectId: refs.projectId,
+      siteId: refs.siteId,
+      surveyPeriodId: null,
+      protocolVersionId: null,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+    });
+
+    const [owner] = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, refs.projectId));
+    expect(stored.surveyPeriodId).toBeNull();
+    expect(stored.protocolVersionId).toBeNull();
+    expect(stored.taxonomicReferenceId).toBe(owner!.taxonomicReferenceId);
+    expect(stored.taxonomicReferenceVersion).toBe(
+      owner!.taxonomicReferenceVersion,
+    );
+  });
+
+  it('accepts and stores a Visit with provisional Detections for a Project with no pinned Taxonomic reference (INV-022)', async () => {
+    const refs = await seedReferences({ id: null, version: null });
+    const id = randomUUID();
+
+    const stored = await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+      detections: [
+        { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+      ],
+    });
+
+    expect(stored.taxonomicReferenceId).toBeNull();
+    expect(stored.taxonomicReferenceVersion).toBeNull();
+    const [storedDetection] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(storedDetection!.taxon).toBeNull();
+    expect(storedDetection!.provisionalName).toBe('cf. Anthus');
+  });
+
+  it('rejects a resolved Detection for a Project with no pinned reference (INV-021)', async () => {
+    const refs = await seedReferences({ id: null, version: null });
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { taxon: 'Anthus trivialis', detected: true, method: 'visual' },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
+  });
+
+  it('stores a Detection carrying only a provisionalName and no resolved taxon (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await visits.storeSubmittedVisit({
+      id,
+      ...refs,
+      effort: {},
+      startedAt: new Date('2026-04-01T08:00:00Z'),
+      submittedAt: new Date('2026-04-01T09:00:00Z'),
+      detections: [
+        { provisionalName: 'cf. Anthus', detected: true, method: 'visual' },
+      ],
+    });
+
+    const [stored] = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(stored!.taxon).toBeNull();
+    expect(stored!.provisionalName).toBe('cf. Anthus');
+    expect(stored!.detected).toBe(true);
+  });
+
+  it('rejects a Detection that carries both a taxon and a provisional name, or neither (INV-021)', async () => {
+    const refs = await seedReferences();
+
+    const malformed: StoreDetectionInput[] = [
+      {
+        taxon: 'Anthus trivialis',
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      },
+      { detected: true, method: 'visual' },
+    ];
+
+    for (const entry of malformed) {
+      const id = randomUUID();
+      await expect(
+        visits.storeSubmittedVisit({
+          id,
+          ...refs,
+          effort: {},
+          startedAt: new Date('2026-04-01T08:00:00Z'),
+          submittedAt: new Date('2026-04-01T09:00:00Z'),
+          detections: [entry],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(
+        await db.select().from(visit).where(eq(visit.id, id)),
+      ).toHaveLength(0);
+    }
+  });
+
+  it('rejects a provisional Detection that is not presence-only (INV-021)', async () => {
+    const refs = await seedReferences();
+    const id = randomUUID();
+
+    await expect(
+      visits.storeSubmittedVisit({
+        id,
+        ...refs,
+        effort: {},
+        startedAt: new Date('2026-04-01T08:00:00Z'),
+        submittedAt: new Date('2026-04-01T09:00:00Z'),
+        detections: [
+          { provisionalName: 'cf. Anthus', detected: false, method: 'visual' },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
+      0,
+    );
   });
 
   it('stores a Detection with exactly one of a resolved taxon or a provisional name (INV-021, ADR-0021)', async () => {
@@ -1011,6 +1170,13 @@ describe('Visit store', () => {
   it('backfills the pinned Taxonomic reference on a database that already holds a Visit when the migration applies (INV-008)', async () => {
     const refs = await seedReferences();
     const id = randomUUID();
+
+    // 0011 predates Story #366's nullable Project pin, so a faithful pre-0011
+    // database has a pin on every Project; back-fill any pin left null by a
+    // later test so the migration's `SET NOT NULL` backfill can hold.
+    await db.execute(
+      sql`update "project" set "taxonomic_reference_id" = 'italy-vascular-flora', "taxonomic_reference_version" = '2024.1' where "taxonomic_reference_id" is null`,
+    );
 
     // Reproduce a database on the pre-0011 schema that already holds a
     // submitted Visit: drop the columns the migration adds, and un-record the
