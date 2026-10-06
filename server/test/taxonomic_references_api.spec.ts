@@ -231,6 +231,23 @@ describe('GET /api/v1/taxonomic-references/:id/versions/:version', () => {
     expect(response.status).toBe(404);
   });
 
+  it('rejects a malformed reference file rather than serving it (C2)', async () => {
+    const brokenId = 'broken-reference';
+    const file = join(referenceRoot, brokenId, '1.json');
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, '{ not json', 'utf8');
+
+    try {
+      const response = await get(brokenId, '1', { cookie });
+
+      expect(response.status).toBe(500);
+      const body = (await response.json()) as { message?: string };
+      expect(body.message).toContain(brokenId);
+    } finally {
+      await rm(join(referenceRoot, brokenId), { recursive: true, force: true });
+    }
+  });
+
   it('rejects an unauthenticated read (C3, additive surface is authenticated)', async () => {
     const response = await get(REFERENCE_ID, REFERENCE_VERSION);
 

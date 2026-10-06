@@ -21,11 +21,30 @@ export const REFERENCE_STORAGE = 'REFERENCE_STORAGE';
  */
 export const REFERENCE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+/**
+ * A reference file that is present on the volume but is not a valid artifact:
+ * either its bytes are not JSON, or the JSON is not a `ReferenceArtifact`. The
+ * module names it (ARCHITECTURE.md, ADR-0020) rather than conflating it with an
+ * absent file, so a broken operator import surfaces as a fixable error instead
+ * of a silent 404.
+ */
+export class MalformedReferenceArtifactError extends Error {
+  constructor(
+    readonly id: string,
+    readonly version: string,
+    options?: { cause?: unknown },
+  ) {
+    super(`reference artifact ${id}@${version} is malformed`, options);
+    this.name = 'MalformedReferenceArtifactError';
+  }
+}
+
 export interface ReferenceStorage {
   /**
    * Returns the artifact stored for `id`+`version`, or `null` when the volume
-   * holds no such file. A malformed segment, an absent file, and a file that is
-   * not an artifact are all not-found, so an untrusted path is never a lookup.
+   * holds no such file. A malformed segment and an absent file are both
+   * not-found, so an untrusted path is never a lookup; a file that is present
+   * but not a valid artifact throws `MalformedReferenceArtifactError`.
    */
   readArtifact(id: string, version: string): Promise<ReferenceArtifact | null>;
 }
@@ -53,17 +72,22 @@ export function createReferenceVolumeStorage(root: string): ReferenceStorage {
         throw error;
       }
 
-      return parseReferenceArtifact(parseJson(raw));
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        throw new MalformedReferenceArtifactError(id, version, {
+          cause: error,
+        });
+      }
+
+      const artifact = parseReferenceArtifact(parsed);
+      if (artifact === null) {
+        throw new MalformedReferenceArtifactError(id, version);
+      }
+      return artifact;
     },
   };
-}
-
-function parseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
 }
 
 /**
