@@ -87,7 +87,7 @@ FakeHttpAdapter projectsAdapter() => FakeHttpAdapter((options) async {
       },
     );
   }
-  if (options.path == '/projects/p1/members' && options.method == 'GET') {
+  if (options.path.endsWith('/members') && options.method == 'GET') {
     return jsonResponse(const <dynamic>[]);
   }
   if (options.path == '/survey-periods' && options.method == 'GET') {
@@ -202,7 +202,7 @@ void main() {
       final project = (await ProjectDao(database).all()).single;
       await openProject(tester, project.id);
 
-      expect(currentPath(tester), '/projects/p1');
+      expect(currentPath(tester), '/projects/${project.id}');
       expect(find.byKey(const Key('hub_sites_tab')), findsOneWidget);
       expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
 
