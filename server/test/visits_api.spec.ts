@@ -159,7 +159,7 @@ describe('POST /api/v1/visits', () => {
     settings: ProjectSettings = {
       validationEnabled: true,
       sensitiveTaxaObfuscation: false,
-    }
+    },
   ): Promise<SeedReferences> {
     const [createdProject] = await db
       .insert(project)
@@ -355,31 +355,37 @@ describe('POST /api/v1/visits', () => {
     expect(stored!.taxonomicReferenceVersion).toBe(reference.version);
   });
 
-  it('rejects a Visit row with no recorded Taxonomic reference id or version at the database', async () => {
+  it('stores a Visit row with no recorded Taxonomic reference id or version as provisional (ADR-0021)', async () => {
     const refs = await seedReferences();
     const id = uuidv7();
 
-    await expect(
-      db.execute(sql`
-        insert into visit
-          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
-        values
-          (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
-      `),
-    ).rejects.toThrow();
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at)
+      values
+        (${id}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now())
+    `);
 
-    await expect(
-      db.execute(sql`
-        insert into visit
-          (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
-        values
-          (${uuidv7()}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
-      `),
-    ).rejects.toThrow();
+    const [stored] = await db.select().from(visit).where(eq(visit.id, id));
+    expect(stored).toBeDefined();
+    expect(stored!.taxonomicReferenceId).toBeNull();
+    expect(stored!.taxonomicReferenceVersion).toBeNull();
 
-    expect(await db.select().from(visit).where(eq(visit.id, id))).toHaveLength(
-      0,
-    );
+    const partialId = uuidv7();
+    await db.execute(sql`
+      insert into visit
+        (id, project_id, site_id, survey_period_id, protocol_version_id, state, effort, started_at, submitted_at, taxonomic_reference_id)
+      values
+        (${partialId}, ${refs.projectId}, ${refs.siteId}, ${refs.surveyPeriodId}, ${refs.protocolVersionId}, 'submitted', '{}'::jsonb, now(), now(), 'italy-vascular-flora')
+    `);
+
+    const [partial] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, partialId));
+    expect(partial).toBeDefined();
+    expect(partial!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(partial!.taxonomicReferenceVersion).toBeNull();
   });
 
   it('stores exactly one Visit when the same UUIDv7 is submitted twice', async () => {
@@ -517,9 +523,7 @@ describe('POST /api/v1/visits', () => {
       .select()
       .from(detection)
       .where(eq(detection.visitId, id));
-    const nonDetection = detections.find(
-      (row) => row.taxon === 'Sylvia borin',
-    );
+    const nonDetection = detections.find((row) => row.taxon === 'Sylvia borin');
     expect(nonDetection?.detected).toBe(false);
   });
 
@@ -703,7 +707,9 @@ describe('POST /api/v1/visits', () => {
       },
     };
 
-    const response = await postCorrection(id, body, { cookie: collector.cookie });
+    const response = await postCorrection(id, body, {
+      cookie: collector.cookie,
+    });
 
     expect(response.status, await response.clone().text()).toBe(201);
     const rows = await db
@@ -758,7 +764,9 @@ describe('POST /api/v1/visits', () => {
   it('refuses a Correction against an in_progress or ended Visit with 409 and stores no row', async () => {
     for (const state of ['in_progress', 'ended'] as const) {
       const refs = await seedReferences();
-      const collector = await signUpAndSignIn(`correction-${state}@example.com`);
+      const collector = await signUpAndSignIn(
+        `correction-${state}@example.com`,
+      );
       await addMembership(collector.id, refs.projectId, 'collector');
       const id = await seedVisit(refs, state);
 

@@ -347,6 +347,112 @@ describe('Visit store', () => {
     expect(audio.detectionId).toBeNull();
   });
 
+  it('stores a Detection with exactly one of a resolved taxon or a provisional name (INV-021, ADR-0021)', async () => {
+    const refs = await seedReferences();
+    const id = await storeSubmittedVisit(refs);
+
+    const [resolved] = await db
+      .insert(detection)
+      .values({
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      })
+      .returning();
+    expect(resolved!.taxon).toBe('Anthus trivialis');
+    expect(resolved!.provisionalName).toBeNull();
+
+    const [provisional] = await db
+      .insert(detection)
+      .values({
+        visitId: id,
+        provisionalName: 'cf. Anthus',
+        detected: true,
+        method: 'visual',
+      })
+      .returning();
+    expect(provisional!.taxon).toBeNull();
+    expect(provisional!.provisionalName).toBe('cf. Anthus');
+
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        taxon: 'Sylvia borin',
+        provisionalName: 'cf. Sylvia borin',
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    const rows = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(rows).toHaveLength(2);
+  });
+
+  it('rejects a duplicate effective target taxon per Visit for non-opportunistic Detections (INV-003, ADR-0021)', async () => {
+    const refs = await seedReferences();
+    const id = await storeSubmittedVisit(refs);
+
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Anthus trivialis',
+      detected: true,
+      method: 'visual',
+    });
+
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        taxon: 'Anthus trivialis',
+        detected: false,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    // A provisional name counts against a resolved taxon of the same name.
+    await expect(
+      db.insert(detection).values({
+        visitId: id,
+        provisionalName: 'Anthus trivialis',
+        detected: true,
+        method: 'visual',
+      }),
+    ).rejects.toThrow();
+
+    // Opportunistic Detections are not unique per Visit, and a duplicate
+    // opportunistic taxon does not collide with the resolved target.
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Vulpes vulpes',
+      detected: true,
+      method: 'visual',
+      opportunistic: true,
+    });
+    await db.insert(detection).values({
+      visitId: id,
+      taxon: 'Vulpes vulpes',
+      detected: true,
+      method: 'visual',
+      opportunistic: true,
+    });
+
+    const rows = await db
+      .select()
+      .from(detection)
+      .where(eq(detection.visitId, id));
+    expect(rows).toHaveLength(3);
+  });
+
   it('enforces exactly one Site, Survey period and Protocol version by foreign key', async () => {
     const refs = await seedReferences();
     const bogus = randomUUID();
