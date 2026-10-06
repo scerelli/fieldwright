@@ -6,7 +6,7 @@ Doc: ARCHITECTURE.md
 
 ## Decision
 
-A Visit is captured, ended and submitted with only a Site. While it lacks a Protocol version, a Survey period, its Project's pinned Taxonomic reference, a recorded target, or a resolved taxon, it is **provisional**: the server stores it as it stands (normalized nullable columns; each Detection carries a resolved `taxonRef` or an explicit `provisionalName`), derives analysis-readiness from stored state plus applied Corrections, and excludes non-analysis-ready Visits from every export. Resolution of a synced Visit is an append-only Correction. Submission never depends on analysis-readiness.
+A Visit is captured, ended and submitted with only a Site. While it lacks a Protocol version, a Survey period, its Project's pinned Taxonomic reference, a recorded target, or a resolved taxon, it is **provisional**: the server stores it as it stands (normalized nullable columns; each Detection carries a resolved `taxon` or an explicit `provisionalName`), derives analysis-readiness from stored state plus applied Corrections, and excludes non-analysis-ready Visits from every export. Resolution of a synced Visit is an append-only Correction. Submission never depends on analysis-readiness.
 
 ## Context
 
@@ -22,4 +22,4 @@ ADR-0019 enforced resolution at submission: the server rejected a Visit whose Pr
 
 ## Consequences
 
-The server schema gains nullable `visit` resolution columns and a `detection.provisional_name`, with a forward-only migration; the sync contract is additive (a Detection carries `taxonRef` or `provisionalName`). The `visits` module derives analysis-readiness and `exports` filters on it. Resolution is a Correction, so immutability (INV-001) holds. Revisit if references become always available, if the export gate proves insufficient against client mis-tagging, or if the capture/submission split is restructured.
+The server schema gains nullable `visit` resolution columns and a `detection.provisional_name`, with a forward-only migration; the sync contract is additive (a Detection carries `taxon` or `provisionalName`). The `visits` module derives analysis-readiness and `exports` filters on it. Resolution is a Correction, so immutability (INV-001) holds. Revisit if references become always available, if the export gate proves insufficient against client mis-tagging, or if the capture/submission split is restructured.
