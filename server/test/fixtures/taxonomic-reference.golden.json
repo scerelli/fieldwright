@@ -1,0 +1,11 @@
+{
+  "id": "italy-vascular-flora",
+  "version": "2024.1",
+  "label": "Italy vascular flora",
+  "taxonGroup": "vascular-plants",
+  "taxa": [
+    { "abbreviation": "AchMil", "name": "Achillea millefolium" },
+    { "abbreviation": "QueRob", "name": "Quercus robur" },
+    { "abbreviation": "TarOff", "name": "Taraxacum officinale" }
+  ]
+}
