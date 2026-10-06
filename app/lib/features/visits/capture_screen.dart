@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -10,6 +14,7 @@ import 'detection_list.dart';
 import 'effort_timer.dart';
 import 'measurement.dart';
 import 'sensor_service.dart';
+import 'submission_readiness.dart';
 import 'visit.dart';
 import 'visit_recovery.dart';
 
@@ -40,7 +45,7 @@ class CaptureScreen extends ConsumerWidget {
   }
 }
 
-class _CaptureView extends ConsumerWidget {
+class _CaptureView extends ConsumerStatefulWidget {
   const _CaptureView({required this.visit, this.protocol, this.clock});
 
   final Visit visit;
@@ -48,7 +53,20 @@ class _CaptureView extends ConsumerWidget {
   final DateTime Function()? clock;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CaptureView> createState() => _CaptureViewState();
+}
+
+class _CaptureViewState extends ConsumerState<_CaptureView> {
+  /// Anchors the Detection list so the needs-attention "Record targets" action
+  /// can bring it into view.
+  final GlobalKey _detectionListKey = GlobalKey();
+
+  Visit get visit => widget.visit;
+  ProtocolDocument? get protocol => widget.protocol;
+  DateTime Function()? get clock => widget.clock;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final stateLabel = switch (visit.state) {
       VisitState.inProgress => l10n.visitStateInProgress,
@@ -57,6 +75,8 @@ class _CaptureView extends ConsumerWidget {
     };
     final visitCovariates =
         protocol?.visitCovariates ?? const <CovariateDefinition>[];
+    final readiness = ref.watch(visitReadinessProvider(visit.id)).value;
+    final isProvisional = readiness != null && !readiness.isAnalysisReady;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,7 +114,18 @@ class _CaptureView extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(l10n.captureState(stateLabel), key: const Key('capture_state')),
+          Row(
+            children: [
+              Text(
+                l10n.captureState(stateLabel),
+                key: const Key('capture_state'),
+              ),
+              if (isProvisional) ...[
+                const SizedBox(width: 8),
+                const ProvisionalVisitMarker(),
+              ],
+            ],
+          ),
           const SizedBox(height: 8),
           SyncIndicator(
             visitId: visit.id,
@@ -132,16 +163,204 @@ class _CaptureView extends ConsumerWidget {
           ),
           if (protocol != null) ...[
             const SizedBox(height: 16),
-            DetectionList(protocol: protocol!, visitId: visit.id),
+            KeyedSubtree(
+              key: _detectionListKey,
+              child: DetectionList(protocol: protocol!, visitId: visit.id),
+            ),
           ],
           if (visitCovariates.isNotEmpty) ...[
             const SizedBox(height: 16),
             VisitCovariates(visitId: visit.id, definitions: visitCovariates),
           ],
+          if (readiness != null && !readiness.isAnalysisReady) ...[
+            const SizedBox(height: 24),
+            NeedsAttention(
+              readiness: readiness,
+              onAction: (requirement) =>
+                  _openRequirement(readiness, requirement),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  /// Carries out [requirement]'s action: the configuration requirements open
+  /// the Project surface that clears them, and "Record targets" scrolls the
+  /// Detection list — which renders above this surface — into view so the
+  /// unrecorded targets can be marked (UX-035).
+  void _openRequirement(
+    VisitReadiness readiness,
+    ReadinessRequirement requirement,
+  ) {
+    switch (requirement) {
+      case ReadinessRequirement.unrecordedTargets:
+        final detectionList = _detectionListKey.currentContext;
+        if (detectionList != null) {
+          unawaited(
+            Scrollable.ensureVisible(
+              detectionList,
+              duration: const Duration(milliseconds: 200),
+            ),
+          );
+        }
+      case ReadinessRequirement.protocolVersion:
+      case ReadinessRequirement.surveyPeriod:
+      case ReadinessRequirement.pinnedReference:
+      case ReadinessRequirement.unresolvedTaxa:
+        final projectId = readiness.projectId;
+        if (projectId == null) return;
+        context.push(switch (requirement) {
+          ReadinessRequirement.protocolVersion =>
+            '/projects/$projectId/protocol',
+          ReadinessRequirement.surveyPeriod =>
+            '/projects/$projectId/survey-periods',
+          _ => '/projects/$projectId/settings',
+        });
+    }
+  }
+}
+
+/// The dashed-outline marker a not analysis-ready Visit carries wherever its
+/// state is shown, so "not resolved" reads the same everywhere it appears as a
+/// provisional taxon or hidden coordinates do (`DESIGN.md` § Component
+/// conventions, UX-033). Drawn in the `outline` token, never like a resolved
+/// state.
+class ProvisionalVisitMarker extends StatelessWidget {
+  const ProvisionalVisitMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.outline;
+    return CustomPaint(
+      key: const Key('provisional_visit_marker'),
+      painter: _DashedOutlinePainter(color: color),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Text(
+          AppLocalizations.of(context).provisionalVisit,
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(color: color),
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints a dashed rounded outline in [color] around its child, the
+/// `outline`-token marker provisional Visits, taxa and hidden coordinates all
+/// share (`DESIGN.md` § Component conventions).
+class _DashedOutlinePainter extends CustomPainter {
+  const _DashedOutlinePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
+      );
+    canvas.drawPath(
+      _dash(path, dash: 6, gap: 4),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DashedOutlinePainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// Breaks [source] into a dashed path: [dash] on, [gap] off, per contour.
+Path _dash(Path source, {required double dash, required double gap}) {
+  final result = Path();
+  for (final metric in source.computeMetrics()) {
+    var distance = 0.0;
+    while (distance < metric.length) {
+      final next = math.min(distance + dash, metric.length);
+      result.addPath(metric.extractPath(distance, next), Offset.zero);
+      distance = next + gap;
+    }
+  }
+  return result;
+}
+
+/// The non-blocking submission-readiness surface (`ARCHITECTURE.md` `capture`
+/// module): a card per requirement a Visit does not yet meet, each naming the
+/// requirement and offering the action that clears it (UX-035). It never blocks
+/// capture, ending or submission; the Visit submits as it stands and is held
+/// out of every export until it clears (INV-022, ADR-0021).
+class NeedsAttention extends StatelessWidget {
+  const NeedsAttention({super.key, required this.readiness, this.onAction});
+
+  final VisitReadiness readiness;
+
+  /// Invoked with a requirement whose action was tapped; the action that
+  /// clears it lives in the caller's configuration surfaces.
+  final ValueChanged<ReadinessRequirement>? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    if (readiness.isAnalysisReady) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.needsAttentionTitle,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        for (final requirement in readiness.unmet)
+          Card(
+            key: Key('needs_attention_${requirement.name}'),
+            child: ListTile(
+              leading: Icon(
+                Icons.error_outline,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              title: Text(_label(l10n, requirement)),
+              trailing: TextButton(
+                key: Key('needs_attention_action_${requirement.name}'),
+                onPressed: onAction == null
+                    ? null
+                    : () => onAction!(requirement),
+                child: Text(_action(l10n, requirement)),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _label(
+    AppLocalizations l10n,
+    ReadinessRequirement requirement,
+  ) => switch (requirement) {
+    ReadinessRequirement.protocolVersion => l10n.needsAttentionProtocolVersion,
+    ReadinessRequirement.surveyPeriod => l10n.needsAttentionSurveyPeriod,
+    ReadinessRequirement.pinnedReference => l10n.needsAttentionPinnedReference,
+    ReadinessRequirement.unrecordedTargets =>
+      l10n.needsAttentionUnrecordedTargets(readiness.unrecordedTargetCount),
+    ReadinessRequirement.unresolvedTaxa => l10n.needsAttentionUnresolvedTaxa(
+      readiness.provisionalTaxonCount,
+    ),
+  };
+
+  String _action(AppLocalizations l10n, ReadinessRequirement requirement) =>
+      switch (requirement) {
+        ReadinessRequirement.protocolVersion =>
+          l10n.needsAttentionSetProtocolVersion,
+        ReadinessRequirement.surveyPeriod => l10n.needsAttentionSetSurveyPeriod,
+        ReadinessRequirement.pinnedReference => l10n.needsAttentionPinReference,
+        ReadinessRequirement.unrecordedTargets =>
+          l10n.needsAttentionRecordTargets,
+        ReadinessRequirement.unresolvedTaxa => l10n.needsAttentionResolveTaxa,
+      };
 }
 
 /// The capture screen control for the Visit's `observers` Sampling-effort

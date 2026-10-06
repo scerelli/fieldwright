@@ -48,10 +48,18 @@ class SubmittedDetection {
   const SubmittedDetection({
     required this.detection,
     this.determinations = const <Determination>[],
+    this.provisional = false,
   });
 
   final Detection detection;
   final List<Determination> determinations;
+
+  /// Whether this Detection's taxon is provisional — not yet resolved against
+  /// the Project's pinned Taxonomic reference (GLOSSARY.md › Provisional taxon,
+  /// INV-021). The submission carries it as `provisionalName` rather than a
+  /// resolved `taxon` key, and the server stores it as it stands, provisional
+  /// until an append-only Correction resolves it (ADR-0021).
+  final bool provisional;
 }
 
 /// The whole Visit aggregate a submission carries (`DOMAIN.md` › Visit): the
@@ -126,7 +134,17 @@ Map<String, dynamic> buildSubmitPayload(
     'detections': <Map<String, dynamic>>[
       for (final entry in aggregate.detections)
         <String, dynamic>{
-          'taxon': entry.detection.taxonRef,
+          // A Detection carries its resolved `taxon` key, or its explicit
+          // `provisionalName` when the taxon has not resolved (INV-021). The
+          // sync contract is additive and tolerates the server being one
+          // release behind (ARCHITECTURE.md compatibility surface), but the
+          // current server DTO still requires `taxon` and rejects a
+          // `provisionalName` payload (400): end-to-end provisional submission
+          // depends on the server counterpart, Task #393, landing.
+          if (entry.provisional)
+            'provisionalName': entry.detection.taxonRef
+          else
+            'taxon': entry.detection.taxonRef,
           'detected': entry.detection.detected,
           'method': entry.detection.method,
           if (entry.detection.count != null) 'count': entry.detection.count,

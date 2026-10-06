@@ -65,6 +65,8 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   project: project,
                   onTap: () =>
                       context.go('/projects/${project.id}', extra: project),
+                  onPinReference: () =>
+                      context.push('/projects/${project.id}/settings'),
                 );
               },
             ),
@@ -82,13 +84,24 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
 /// Taxonomic reference version as basic info, plus the authored description
 /// when one is set.
 class ProjectCard extends StatelessWidget {
-  const ProjectCard({super.key, required this.project, this.onTap});
+  const ProjectCard({
+    super.key,
+    required this.project,
+    this.onTap,
+    this.onPinReference,
+  });
 
   final Project project;
   final VoidCallback? onTap;
 
+  /// The pin/download action the UX-034 badge offers; null renders the badge
+  /// as plain text (a card outside the list, e.g. a snapshot). The Projects
+  /// list wires it to the Project settings surface.
+  final VoidCallback? onPinReference;
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final description = project.description?.trim();
     final bodyStyle = Theme.of(context).textTheme.bodyLarge;
 
@@ -99,6 +112,28 @@ class ProjectCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (project.taxonomicReferenceId == null)
+              // UX-034: a Project with no pinned reference carries a
+              // non-blocking badge that offers the pin action — never a modal;
+              // capture and submission go on with provisional taxa until one is
+              // pinned.
+              Padding(
+                key: Key('project_no_reference_${project.id}'),
+                padding: const EdgeInsets.only(top: 4),
+                child: onPinReference == null
+                    ? Text(
+                        l10n.projectCardNoReference,
+                        style: bodyStyle?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      )
+                    : TextButton.icon(
+                        key: Key('project_pin_reference_${project.id}'),
+                        onPressed: onPinReference,
+                        icon: const Icon(Icons.link_outlined, size: 16),
+                        label: Text(l10n.projectCardNoReference),
+                      ),
+              ),
             if (project.taxonomicReferenceVersion != null)
               Text(project.taxonomicReferenceVersion!, style: bodyStyle),
             if (description != null && description.isNotEmpty)
