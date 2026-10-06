@@ -339,6 +339,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not create the project. Try again.';
 
   @override
+  String get projectEditorReferenceIdHelper =>
+      'The checklist the Project\'s taxon names resolve against.';
+
+  @override
+  String get projectEditorReferenceVersionHelper =>
+      'The exact checklist version pinned to the Project; taxon names resolve against it before submission.';
+
+  @override
+  String get projectEditorSaveFailed =>
+      'Could not save the project. Try again.';
+
+  @override
+  String get projectSettingsNotFound => 'This Project is not on this device.';
+
+  @override
+  String get projectSettingsTitle => 'Project settings';
+
+  @override
   String get protocolVersionTitle => 'Protocol version';
 
   @override
@@ -550,4 +568,59 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpSubmitVisitBody =>
       'Submit an ended Visit when you have a connection. Submission is safe to retry, the Visit becomes immutable, and a validator may validate it when the Project enables validation.';
+
+  @override
+  String get needsAttentionTitle => 'Needs attention';
+
+  @override
+  String get needsAttentionProtocolVersion => 'No Protocol version';
+
+  @override
+  String get needsAttentionSetProtocolVersion => 'Set Protocol version';
+
+  @override
+  String get needsAttentionSurveyPeriod => 'No Survey period';
+
+  @override
+  String get needsAttentionSetSurveyPeriod => 'Set Survey period';
+
+  @override
+  String get needsAttentionPinnedReference => 'No pinned reference';
+
+  @override
+  String get needsAttentionPinReference => 'Pin reference';
+
+  @override
+  String needsAttentionUnrecordedTargets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count targets not recorded',
+      one: '1 target not recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsAttentionRecordTargets => 'Record targets';
+
+  @override
+  String needsAttentionUnresolvedTaxa(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count taxa unresolved',
+      one: '1 taxon unresolved',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsAttentionResolveTaxa => 'Resolve taxa';
+
+  @override
+  String get provisionalVisit => 'Provisional';
+
+  @override
+  String get projectCardNoReference => 'No reference pinned';
 }

@@ -1,6 +1,6 @@
 {
-  "id": "1260b787-40d2-4ce5-8372-d64686ec0ab8",
-  "prevId": "33ee7396-62b1-401c-8b9c-8ba8b728305c",
+  "id": "aaf05101-f536-4a15-8e18-fafef85dcf9c",
+  "prevId": "1260b787-40d2-4ce5-8372-d64686ec0ab8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -210,7 +210,13 @@
           "name": "taxon",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "provisional_name": {
+          "name": "provisional_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "detected": {
           "name": "detected",
@@ -249,9 +255,9 @@
               "nulls": "last"
             },
             {
-              "expression": "taxon",
-              "isExpression": false,
+              "expression": "coalesce(\"taxon\", \"provisional_name\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
@@ -284,6 +290,10 @@
         "detection_count_non_negative": {
           "name": "detection_count_non_negative",
           "value": "\"detection\".\"count\" is null or \"detection\".\"count\" >= 0"
+        },
+        "detection_taxon_exactly_one": {
+          "name": "detection_taxon_exactly_one",
+          "value": "(\"detection\".\"taxon\" is null) <> (\"detection\".\"provisional_name\" is null)"
         }
       },
       "isRLSEnabled": false
@@ -1212,25 +1222,25 @@
           "name": "survey_period_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "protocol_version_id": {
           "name": "protocol_version_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "taxonomic_reference_id": {
           "name": "taxonomic_reference_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "taxonomic_reference_version": {
           "name": "taxonomic_reference_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "state": {
           "name": "state",

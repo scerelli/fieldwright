@@ -13,12 +13,15 @@ import 'package:ibis/auth/auth_client.dart';
 import 'package:ibis/auth/auth_provider.dart';
 import 'package:ibis/features/sites/site.dart';
 import 'package:ibis/features/visits/capture_screen.dart';
+import 'package:ibis/features/visits/detection.dart';
 import 'package:ibis/features/visits/visit.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/outbox/outbox.dart';
 import 'package:ibis/outbox/sync_client.dart';
 import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/config_dao.dart';
 import 'package:ibis/store/database_provider.dart';
+import 'package:ibis/store/detection_dao.dart';
 import 'package:ibis/store/outbox_dao.dart';
 import 'package:ibis/store/site_dao.dart';
 import 'package:ibis/store/visit_dao.dart';
@@ -337,6 +340,117 @@ void main() {
     await database.close();
 
     expect(state, SyncState.queued);
+  });
+
+  test('the submission payload sends a Detection\'s resolved taxon key when '
+      'it has one and its provisionalName when it does not (INV-021)', () {
+    final visit = Visit(
+      id: 'visit-1',
+      siteId: 'site-1',
+      surveyPeriodId: 'survey-period-1',
+      protocolVersionId: 'protocol-version-1',
+      state: VisitState.ended,
+      effort: SamplingEffort(
+        startedAt: DateTime.utc(2026, 5, 1, 7),
+        endedAt: DateTime.utc(2026, 5, 1, 8),
+      ),
+    );
+    final payload = buildSubmitPayload(
+      SubmissionAggregate(
+        visit: visit,
+        detections: <SubmittedDetection>[
+          const SubmittedDetection(
+            detection: Detection(
+              visitId: 'visit-1',
+              taxonRef: 'Aves|Turdus|merula',
+              detected: true,
+              method: 'visual',
+            ),
+          ),
+          const SubmittedDetection(
+            detection: Detection.opportunistic(
+              visitId: 'visit-1',
+              taxonRef: 'Turdus merula',
+              method: 'visual',
+            ),
+            provisional: true,
+          ),
+        ],
+      ),
+      projectId: 'project-1',
+    );
+
+    final detections = (payload['detections'] as List)
+        .cast<Map<String, dynamic>>();
+    expect(
+      detections.singleWhere((entry) => entry.containsKey('taxon')),
+      containsPair('taxon', 'Aves|Turdus|merula'),
+    );
+    expect(
+      detections.singleWhere((entry) => entry.containsKey('provisionalName')),
+      containsPair('provisionalName', 'Turdus merula'),
+    );
+    expect(
+      detections.any(
+        (entry) =>
+            entry.containsKey('taxon') == false &&
+            entry.containsKey('provisionalName') == false,
+      ),
+      isFalse,
+      reason: 'every Detection carries exactly one of taxon or provisionalName',
+    );
+  });
+
+  test('a Visit with no Protocol version, no pinned reference and a '
+      'provisional Detection is submitted and queued like any other '
+      '(INV-022, UX-032)', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    await SiteDao(database).save(_site());
+    final visits = VisitDao(database);
+    // Only a Site: no Survey period and no Protocol version (INV-020).
+    final started = await visits.startVisit(siteId: 'site-1');
+    final ended = await visits.endVisit(started);
+    await DetectionDao(database).record(
+      Detection(
+        visitId: ended.id,
+        taxonRef: 'Turdus merula',
+        detected: true,
+        method: 'visual',
+      ),
+    );
+
+    final adapter = acceptingAdapter();
+    final outbox = Outbox(
+      OutboxDao(database),
+      client: _syncClient(adapter, _authWith(adapter)),
+      visits: visits,
+      sites: SiteDao(database),
+      config: ConfigDao(database),
+      detections: DetectionDao(database),
+    );
+
+    await outbox.submit(ended);
+    expect(await OutboxDao(database).syncStateOf(ended.id), SyncState.queued);
+
+    final result = await outbox.deliver(ended);
+
+    expect(result, SyncState.synced);
+    expect((await visits.findById(ended.id))!.state, VisitState.submitted);
+    final submitted =
+        (adapter.requests
+                    .firstWhere(
+                      (request) => request.path == SyncClient.submitPath,
+                    )
+                    .data!
+                as Map)
+            .cast<String, dynamic>();
+    expect(submitted['protocolVersionId'], isNull);
+    expect(submitted['surveyPeriodId'], isNull);
+    expect(
+      (submitted['detections'] as List).cast<Map<String, dynamic>>().single,
+      containsPair('provisionalName', 'Turdus merula'),
+    );
   });
 
   group('SyncClient', () {
@@ -662,41 +776,40 @@ void main() {
       expect((await visitDao.findById(second.id))!.state, VisitState.submitted);
     });
 
-    test('a Visit whose Site is missing does not block a later queued Visit',
-        () async {
-      final database = AppDatabase(NativeDatabase.memory());
-      addTearDown(database.close);
-      await SiteDao(database).save(_site());
-      final visitDao = VisitDao(database);
-      final orphan = await visitDao.startVisit(
-        siteId: 'site-missing',
-        surveyPeriodId: 'survey-period-1',
-        protocolVersionId: 'protocol-version-1',
-      );
-      final orphanEnded = await visitDao.endVisit(orphan);
-      final healthy = await _endedVisit(database);
-      final adapter = acceptingAdapter();
-      final outbox = _outbox(
-        database,
-        _syncClient(adapter, _authWith(adapter)),
-      );
-      final dao = OutboxDao(database);
-      await dao.enqueue(
-        orphanEnded.id,
-        queuedAt: DateTime.utc(2026, 1, 1),
-      );
-      await dao.enqueue(healthy.id, queuedAt: DateTime.utc(2026, 1, 2));
+    test(
+      'a Visit whose Site is missing does not block a later queued Visit',
+      () async {
+        final database = AppDatabase(NativeDatabase.memory());
+        addTearDown(database.close);
+        await SiteDao(database).save(_site());
+        final visitDao = VisitDao(database);
+        final orphan = await visitDao.startVisit(
+          siteId: 'site-missing',
+          surveyPeriodId: 'survey-period-1',
+          protocolVersionId: 'protocol-version-1',
+        );
+        final orphanEnded = await visitDao.endVisit(orphan);
+        final healthy = await _endedVisit(database);
+        final adapter = acceptingAdapter();
+        final outbox = _outbox(
+          database,
+          _syncClient(adapter, _authWith(adapter)),
+        );
+        final dao = OutboxDao(database);
+        await dao.enqueue(orphanEnded.id, queuedAt: DateTime.utc(2026, 1, 1));
+        await dao.enqueue(healthy.id, queuedAt: DateTime.utc(2026, 1, 2));
 
-      await outbox.flush();
+        await outbox.flush();
 
-      expect(
-        (await visitDao.findById(healthy.id))!.state,
-        VisitState.submitted,
-      );
-      expect(await dao.syncStateOf(healthy.id), SyncState.synced);
-      expect(await dao.syncStateOf(orphanEnded.id), SyncState.failed);
-      expect(_submitCalls(adapter), 1);
-    });
+        expect(
+          (await visitDao.findById(healthy.id))!.state,
+          VisitState.submitted,
+        );
+        expect(await dao.syncStateOf(healthy.id), SyncState.synced);
+        expect(await dao.syncStateOf(orphanEnded.id), SyncState.failed);
+        expect(_submitCalls(adapter), 1);
+      },
+    );
 
     test('delivering a Visit whose Site is missing is a local error', () async {
       final database = AppDatabase(NativeDatabase.memory());

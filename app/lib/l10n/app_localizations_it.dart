@@ -347,6 +347,25 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile creare il progetto. Riprova.';
 
   @override
+  String get projectEditorReferenceIdHelper =>
+      'La checklist rispetto a cui vengono risolti i nomi dei taxa del progetto.';
+
+  @override
+  String get projectEditorReferenceVersionHelper =>
+      'La versione esatta della checklist fissata al progetto; i nomi dei taxa vengono risolti rispetto ad essa prima dell\'invio.';
+
+  @override
+  String get projectEditorSaveFailed =>
+      'Impossibile salvare il progetto. Riprova.';
+
+  @override
+  String get projectSettingsNotFound =>
+      'Questo progetto non è su questo dispositivo.';
+
+  @override
+  String get projectSettingsTitle => 'Impostazioni del progetto';
+
+  @override
   String get protocolVersionTitle => 'Versione del protocollo';
 
   @override
@@ -559,4 +578,61 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get helpSubmitVisitBody =>
       'Invia una Visita terminata quando hai connessione. L\'invio può essere ritentato senza rischi, la Visita diventa immutabile e un validatore può convalidarla quando il Progetto attiva la convalida.';
+
+  @override
+  String get needsAttentionTitle => 'Da completare';
+
+  @override
+  String get needsAttentionProtocolVersion => 'Nessuna versione del Protocollo';
+
+  @override
+  String get needsAttentionSetProtocolVersion =>
+      'Imposta la versione del Protocollo';
+
+  @override
+  String get needsAttentionSurveyPeriod => 'Nessun periodo di indagine';
+
+  @override
+  String get needsAttentionSetSurveyPeriod => 'Imposta il periodo di indagine';
+
+  @override
+  String get needsAttentionPinnedReference =>
+      'Nessun riferimento tassonomico fissato';
+
+  @override
+  String get needsAttentionPinReference => 'Fissa il riferimento';
+
+  @override
+  String needsAttentionUnrecordedTargets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count taxa obiettivo non registrati',
+      one: '1 taxon obiettivo non registrato',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsAttentionRecordTargets => 'Registra i taxa obiettivo';
+
+  @override
+  String needsAttentionUnresolvedTaxa(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count taxa non risolti',
+      one: '1 taxon non risolto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get needsAttentionResolveTaxa => 'Risolvi i taxa';
+
+  @override
+  String get provisionalVisit => 'Provvisoria';
+
+  @override
+  String get projectCardNoReference => 'Nessun riferimento fissato';
 }

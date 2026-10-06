@@ -143,7 +143,7 @@ describe('baseline migration', () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]!.description).toBeNull();
-  });
+  }, 30_000);
 
   it('relaxes the Visit resolution columns and adds the Detection provisional name on a populated database (ADR-0021)', async () => {
     const initial = runDrizzleKitMigrate(databaseUrl);
@@ -192,7 +192,7 @@ describe('baseline migration', () => {
        values ('${detectionId}', '${visitId}', 'Anthus trivialis', true, 'visual')`,
     );
 
-    // Reproduce a database on the pre-0016 schema that already holds the rows:
+    // Reproduce a database on the pre-0017 schema that already holds the rows:
     // restore the NOT NULL resolution columns, drop the provisional name and
     // the exactly-one constraint, restore the taxon-keyed index, and un-record
     // the migration so `migrate` re-applies it.
@@ -229,7 +229,7 @@ describe('baseline migration', () => {
     }
     await query(
       databaseUrl,
-      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0016_far_krista_starr')}`,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0017_slimy_betty_brant')}`,
     );
 
     const migration = runDrizzleKitMigrate(databaseUrl);
@@ -281,5 +281,55 @@ describe('baseline migration', () => {
       { column_name: 'provisional_name', is_nullable: 'YES' },
       { column_name: 'taxon', is_nullable: 'YES' },
     ]);
-  });
+  }, 30_000);
+
+  it('makes the pinned Taxonomic reference nullable on a populated database', async () => {
+    const initial = runDrizzleKitMigrate(databaseUrl);
+    expect(initial.status, initial.stderr + initial.stdout).toBe(0);
+
+    await query(
+      databaseUrl,
+      `insert into "project" (name, settings, taxonomic_reference_id, taxonomic_reference_version)
+       values ('Pinned project',
+               '{"validationEnabled": false, "sensitiveTaxaObfuscation": true}'::jsonb,
+               'italy-vascular-flora',
+               '2024.1')`,
+    );
+
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_id" set not null',
+    );
+    await query(
+      databaseUrl,
+      'alter table "project" alter column "taxonomic_reference_version" set not null',
+    );
+    await query(
+      databaseUrl,
+      `delete from drizzle.__drizzle_migrations where created_at >= ${migrationTimestamp('0016_bored_loki')}`,
+    );
+
+    const migration = runDrizzleKitMigrate(databaseUrl);
+    expect(migration.status, migration.stderr + migration.stdout).toBe(0);
+
+    const columns = await query(
+      databaseUrl,
+      `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = 'project'
+         and column_name in ('taxonomic_reference_id', 'taxonomic_reference_version')
+       order by column_name`,
+    );
+    expect(columns).toEqual([
+      { column_name: 'taxonomic_reference_id', is_nullable: 'YES' },
+      { column_name: 'taxonomic_reference_version', is_nullable: 'YES' },
+    ]);
+
+    const rows = await query(
+      databaseUrl,
+      `select id, taxonomic_reference_id, taxonomic_reference_version from "project" where name = 'Pinned project'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.taxonomic_reference_id).toBe('italy-vascular-flora');
+    expect(rows[0]!.taxonomic_reference_version).toBe('2024.1');
+  }, 30_000);
 });

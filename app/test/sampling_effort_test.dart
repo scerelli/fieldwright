@@ -379,7 +379,7 @@ CREATE TABLE visits (
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.data['user_version'], 17);
+      expect(version.data['user_version'], 19);
 
       final columns = await database
           .customSelect('PRAGMA table_info(visits)')

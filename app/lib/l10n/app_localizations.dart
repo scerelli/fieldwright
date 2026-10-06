@@ -716,6 +716,36 @@ abstract class AppLocalizations {
   /// **'Could not create the project. Try again.'**
   String get projectEditorCreateFailed;
 
+  /// Helper text under the pinned Taxonomic reference id field (UX-026).
+  ///
+  /// In en, this message translates to:
+  /// **'The checklist the Project\'s taxon names resolve against.'**
+  String get projectEditorReferenceIdHelper;
+
+  /// Helper text under the pinned Taxonomic reference version field (UX-026).
+  ///
+  /// In en, this message translates to:
+  /// **'The exact checklist version pinned to the Project; taxon names resolve against it before submission.'**
+  String get projectEditorReferenceVersionHelper;
+
+  /// Error shown when saving an existing project's settings fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the project. Try again.'**
+  String get projectEditorSaveFailed;
+
+  /// Shown when the Project settings surface cannot find its Project in the local store.
+  ///
+  /// In en, this message translates to:
+  /// **'This Project is not on this device.'**
+  String get projectSettingsNotFound;
+
+  /// Title of the project settings surface and the Project hub entry that opens it.
+  ///
+  /// In en, this message translates to:
+  /// **'Project settings'**
+  String get projectSettingsTitle;
+
   /// Heading of the read-only view of a frozen Protocol version.
   ///
   /// In en, this message translates to:
@@ -1111,6 +1141,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Submit an ended Visit when you have a connection. Submission is safe to retry, the Visit becomes immutable, and a validator may validate it when the Project enables validation.'**
   String get helpSubmitVisitBody;
+
+  /// Heading of the non-blocking submission-readiness card list (UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get needsAttentionTitle;
+
+  /// Needs-attention item: the Visit has no Protocol version attached (INV-020).
+  ///
+  /// In en, this message translates to:
+  /// **'No Protocol version'**
+  String get needsAttentionProtocolVersion;
+
+  /// Action that clears the missing Protocol version requirement (UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Set Protocol version'**
+  String get needsAttentionSetProtocolVersion;
+
+  /// Needs-attention item: the Visit has no Survey period attached (INV-020).
+  ///
+  /// In en, this message translates to:
+  /// **'No Survey period'**
+  String get needsAttentionSurveyPeriod;
+
+  /// Action that clears the missing Survey period requirement (UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Set Survey period'**
+  String get needsAttentionSetSurveyPeriod;
+
+  /// Needs-attention item: the Project has no pinned Taxonomic reference (INV-021).
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned reference'**
+  String get needsAttentionPinnedReference;
+
+  /// Action that clears the missing pinned reference requirement (UX-034, UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Pin reference'**
+  String get needsAttentionPinReference;
+
+  /// Needs-attention item: target taxa with no Detection (INV-019).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 target not recorded} other{{count} targets not recorded}}'**
+  String needsAttentionUnrecordedTargets(int count);
+
+  /// Action that clears the unrecorded-targets requirement (UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Record targets'**
+  String get needsAttentionRecordTargets;
+
+  /// Needs-attention item: provisional taxa not yet resolved (INV-021).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 taxon unresolved} other{{count} taxa unresolved}}'**
+  String needsAttentionUnresolvedTaxa(int count);
+
+  /// Action that clears the unresolved-taxa requirement (UX-035).
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve taxa'**
+  String get needsAttentionResolveTaxa;
+
+  /// Label of the dashed outline marker a not analysis-ready Visit carries (UX-033).
+  ///
+  /// In en, this message translates to:
+  /// **'Provisional'**
+  String get provisionalVisit;
+
+  /// Project-card badge when the Project has no pinned Taxonomic reference (UX-034).
+  ///
+  /// In en, this message translates to:
+  /// **'No reference pinned'**
+  String get projectCardNoReference;
 }
 
 class _AppLocalizationsDelegate

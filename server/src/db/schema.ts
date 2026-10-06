@@ -96,14 +96,16 @@ export interface ProjectSettings {
  * Project (DOMAIN.md): the container a creator sets up. Its Memberships,
  * Protocol versions, Survey periods and Sites are scoped to it. `description`
  * is optional authored text that travels to the Project's members (ADR-0016).
+ * The pinned Taxonomic reference id and version are nullable until the creator
+ * chooses one, so a Project exists before its reference is defined.
  */
 export const project = pgTable('project', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   description: text('description'),
   settings: jsonb('settings').$type<ProjectSettings>().notNull(),
-  taxonomicReferenceId: text('taxonomic_reference_id').notNull(),
-  taxonomicReferenceVersion: text('taxonomic_reference_version').notNull(),
+  taxonomicReferenceId: text('taxonomic_reference_id'),
+  taxonomicReferenceVersion: text('taxonomic_reference_version'),
 });
 
 export type Project = typeof project.$inferSelect;

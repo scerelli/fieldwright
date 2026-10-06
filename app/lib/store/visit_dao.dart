@@ -15,8 +15,8 @@ class VisitDao {
 
   Future<Visit> startVisit({
     required String siteId,
-    required String surveyPeriodId,
-    required String protocolVersionId,
+    String? surveyPeriodId,
+    String? protocolVersionId,
     String? id,
     DateTime? now,
   }) async {
@@ -113,10 +113,11 @@ class VisitDao {
   /// cached in the local store. Empty when the version is not cached, so the
   /// server stays the authority for a Visit it has never seen a protocol for.
   Future<List<SamplingEffortField>> requiredEffortFieldsFor(Visit visit) async {
-    final row =
-        await (_database.select(_database.protocolVersions)
-              ..where((table) => table.id.equals(visit.protocolVersionId)))
-            .getSingleOrNull();
+    final protocolVersionId = visit.protocolVersionId;
+    if (protocolVersionId == null) return const <SamplingEffortField>[];
+    final row = await (_database.select(
+      _database.protocolVersions,
+    )..where((table) => table.id.equals(protocolVersionId))).getSingleOrNull();
     if (row == null) return const <SamplingEffortField>[];
     final document = ProtocolDocument.fromJson(
       jsonDecode(row.document) as Map<String, dynamic>,
@@ -164,8 +165,8 @@ class VisitDao {
   VisitsCompanion _toCompanion(Visit visit) => VisitsCompanion.insert(
     id: visit.id,
     siteId: visit.siteId,
-    surveyPeriodId: visit.surveyPeriodId,
-    protocolVersionId: visit.protocolVersionId,
+    surveyPeriodId: Value(visit.surveyPeriodId),
+    protocolVersionId: Value(visit.protocolVersionId),
     state: visit.state,
     effortStartedAt: visit.effort.startedAt,
     effortEndedAt: Value(visit.effort.endedAt),

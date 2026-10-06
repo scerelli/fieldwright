@@ -42,19 +42,23 @@ export class CreateProjectDto implements CreateProjectInput {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @IsBoolean()
-  validationEnabled!: boolean;
+  validationEnabled?: boolean;
 
+  @IsOptional()
   @IsBoolean()
-  sensitiveTaxaObfuscation!: boolean;
+  sensitiveTaxaObfuscation?: boolean;
 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  taxonomicReferenceId!: string;
+  taxonomicReferenceId?: string;
 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  taxonomicReferenceVersion!: string;
+  taxonomicReferenceVersion?: string;
 }
 
 export class AddMemberDto implements AddMemberInput {

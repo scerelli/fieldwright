@@ -50,9 +50,13 @@ class Visits extends Table {
 
   TextColumn get siteId => text()();
 
-  TextColumn get surveyPeriodId => text()();
+  /// The Survey period attached to the Visit, or null while a Visit starts and
+  /// is captured with only a Site (INV-020).
+  TextColumn get surveyPeriodId => text().nullable()();
 
-  TextColumn get protocolVersionId => text()();
+  /// The Protocol version attached to the Visit, or null while a Visit starts
+  /// and is captured with only a Site (INV-020).
+  TextColumn get protocolVersionId => text().nullable()();
 
   TextColumn get state => textEnum<VisitState>()();
 
@@ -192,9 +196,11 @@ class Projects extends Table {
 
   BoolColumn get sensitiveTaxaObfuscation => boolean()();
 
-  TextColumn get taxonomicReferenceId => text()();
+  /// The pinned Taxonomic reference is chosen after the Project is created
+  /// (`DOMAIN.md` Project aggregate), so both columns are null until one is set.
+  TextColumn get taxonomicReferenceId => text().nullable()();
 
-  TextColumn get taxonomicReferenceVersion => text()();
+  TextColumn get taxonomicReferenceVersion => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -296,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
     : super(NativeDatabase.createInBackground(File(path)));
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -431,6 +437,28 @@ class AppDatabase extends _$AppDatabase {
         if (await _hasTable('projects') &&
             !await _hasColumn('projects', 'description')) {
           await migrator.addColumn(projects, projects.description);
+        }
+      }
+      if (from < 18) {
+        // The pinned Taxonomic reference is chosen after the Project is created
+        // (`DOMAIN.md` Project aggregate), so its columns become nullable.
+        // SQLite cannot relax a NOT NULL constraint in place, so recreate the
+        // table from the current schema and copy every column across, keeping
+        // each Project (INV-015); a store whose `projects` was already created
+        // nullable by an earlier branch is recreated identically.
+        await migrator.alterTable(TableMigration(projects));
+      }
+      if (from < 19) {
+        // A Visit starts and is captured with only a Site: its Survey period
+        // and Protocol version are attached later, before the Visit is
+        // analysis-ready (`DOMAIN.md` INV-020). SQLite cannot relax a NOT NULL
+        // constraint in place, so recreate the table from the current schema
+        // and copy every column across, keeping each Visit (INV-020); a store
+        // whose `visits` was already created nullable by an earlier branch is
+        // recreated identically, and one that predates `visits` altogether is
+        // left to the creation branch above.
+        if (await _hasTable('visits')) {
+          await migrator.alterTable(TableMigration(visits));
         }
       }
     },

@@ -4,6 +4,7 @@
  * Membership so a Project never exists without its creator.
  */
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -24,10 +25,10 @@ import {
 export interface CreateProjectInput {
   name: string;
   description?: string;
-  validationEnabled: boolean;
-  sensitiveTaxaObfuscation: boolean;
-  taxonomicReferenceId: string;
-  taxonomicReferenceVersion: string;
+  validationEnabled?: boolean;
+  sensitiveTaxaObfuscation?: boolean;
+  taxonomicReferenceId?: string | null;
+  taxonomicReferenceVersion?: string | null;
 }
 
 /**
@@ -56,6 +57,18 @@ export class ProjectsService {
   constructor(@Inject(DATABASE) private readonly db: NodePgDatabase) {}
 
   async create(personId: string, input: CreateProjectInput): Promise<Project> {
+    const hasReferenceId =
+      input.taxonomicReferenceId !== undefined &&
+      input.taxonomicReferenceId !== null;
+    const hasReferenceVersion =
+      input.taxonomicReferenceVersion !== undefined &&
+      input.taxonomicReferenceVersion !== null;
+    if (hasReferenceId !== hasReferenceVersion) {
+      throw new BadRequestException(
+        'taxonomicReferenceId and taxonomicReferenceVersion must be provided together',
+      );
+    }
+
     return this.db.transaction(async (tx) => {
       const [created] = await tx
         .insert(project)
@@ -63,11 +76,11 @@ export class ProjectsService {
           name: input.name,
           description: input.description ?? null,
           settings: {
-            validationEnabled: input.validationEnabled,
-            sensitiveTaxaObfuscation: input.sensitiveTaxaObfuscation,
+            validationEnabled: input.validationEnabled ?? false,
+            sensitiveTaxaObfuscation: input.sensitiveTaxaObfuscation ?? true,
           },
-          taxonomicReferenceId: input.taxonomicReferenceId,
-          taxonomicReferenceVersion: input.taxonomicReferenceVersion,
+          taxonomicReferenceId: input.taxonomicReferenceId ?? null,
+          taxonomicReferenceVersion: input.taxonomicReferenceVersion ?? null,
         })
         .returning();
 
