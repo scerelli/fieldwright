@@ -133,7 +133,7 @@ are ordered alphabetically and each identifier belongs to exactly one term.
 
 ## Taxonomic reference
 - code: `TaxonomicReference`
-- definition: The versioned external checklist taxon names resolve against. A Project pins one version, recorded with the data; until one is pinned, Detections hold provisional taxa and a submitted Visit is provisional, held out of every export.
+- definition: The versioned external checklist taxon names resolve against. A Project pins one version — a reference id and version pair — recorded on a Visit whenever the Project has one; a resolved Detection requires it. Until one is pinned, Detections hold provisional taxa and a submitted Visit is provisional, held out of every export.
 - concept: DOMAIN.md › Project (aggregate)
 - avoid: species list, taxonomy
 
