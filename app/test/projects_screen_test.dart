@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,9 @@ import 'package:ibis/auth/auth_client.dart';
 import 'package:ibis/features/projects/projects_screen.dart';
 import 'package:ibis/l10n/app_localizations.dart';
 import 'package:ibis/projects/projects_client.dart';
+import 'package:ibis/store/app_database.dart';
+import 'package:ibis/store/database_provider.dart';
+import 'package:ibis/store/project_dao.dart';
 
 Project project({
   String id = 'p1',
@@ -37,10 +41,10 @@ Widget cardHarness(Project value) => MaterialApp(
   home: Scaffold(body: ProjectCard(project: value)),
 );
 
-/// Fakes the create request so a Project can reach the list without a server:
-/// `POST /projects` echoes the submitted name and reference under a fresh id.
-class FakeAdapter implements HttpClientAdapter {
-  int _next = 1;
+/// Records every request. A create must write locally and reach it never
+/// (`ADR-0014`).
+class RecordingAdapter implements HttpClientAdapter {
+  final List<RequestOptions> requests = <RequestOptions>[];
 
   @override
   Future<ResponseBody> fetch(
@@ -48,25 +52,7 @@ class FakeAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    if (options.path == '/projects' && options.method == 'POST') {
-      final body = (options.data! as Map).cast<String, dynamic>();
-      return ResponseBody.fromString(
-        jsonEncode(<String, dynamic>{
-          'id': 'p${_next++}',
-          'name': body['name'],
-          'settings': <String, dynamic>{
-            'validationEnabled': body['validationEnabled'],
-            'sensitiveTaxaObfuscation': body['sensitiveTaxaObfuscation'],
-          },
-          'taxonomicReferenceId': body['taxonomicReferenceId'],
-          'taxonomicReferenceVersion': body['taxonomicReferenceVersion'],
-        }),
-        201,
-        headers: <String, List<String>>{
-          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-        },
-      );
-    }
+    requests.add(options);
     return ResponseBody.fromString(
       jsonEncode(<String, dynamic>{'message': 'not found'}),
       404,
@@ -80,7 +66,7 @@ class FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-ProjectsClient fakeClient(FakeAdapter adapter) {
+ProjectsClient recordingClient(RecordingAdapter adapter) {
   final dio = Dio(BaseOptions(baseUrl: 'http://test.local'))
     ..httpClientAdapter = adapter;
   return ProjectsClient(
@@ -90,9 +76,15 @@ ProjectsClient fakeClient(FakeAdapter adapter) {
   );
 }
 
-/// Runs the screen under the routes it navigates to, with the create client
-/// faked.
-Widget screenHarness(ProjectsClient client) {
+AppDatabase openDatabase() {
+  final database = AppDatabase(NativeDatabase.memory());
+  addTearDown(database.close);
+  return database;
+}
+
+/// Runs the screen under the routes it navigates to, over a real in-memory
+/// local store. A [client] is supplied only to witness that no request is made.
+Widget screenHarness(AppDatabase database, {ProjectsClient? client}) {
   final router = GoRouter(
     initialLocation: '/',
     routes: <RouteBase>[
@@ -113,7 +105,10 @@ Widget screenHarness(ProjectsClient client) {
     ],
   );
   return ProviderScope(
-    overrides: [projectsClientProvider.overrideWithValue(client)],
+    overrides: [
+      databaseProvider.overrideWithValue(database),
+      if (client != null) projectsClientProvider.overrideWithValue(client),
+    ],
     child: MaterialApp.router(
       routerConfig: router,
       localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
@@ -125,7 +120,7 @@ Widget screenHarness(ProjectsClient client) {
   );
 }
 
-/// Lets the real HTTP future complete without hanging the test.
+/// Lets the local write and the provider reload settle.
 Future<void> flush(WidgetTester tester) async {
   await tester.runAsync(
     () => Future<void>.delayed(const Duration(milliseconds: 50)),
@@ -135,18 +130,34 @@ Future<void> flush(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> createProject(WidgetTester tester, String name) async {
+Future<void> createProject(
+  WidgetTester tester,
+  String name, {
+  String? description,
+  String referenceId = 'it-flora',
+  String referenceVersion = '2024.1',
+}) async {
   await tester.tap(find.byKey(const Key('create_project')));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('project_name')), name);
-  await tester.enterText(
-    find.byKey(const Key('project_reference_id')),
-    'it-flora',
-  );
-  await tester.enterText(
-    find.byKey(const Key('project_reference_version')),
-    '2024.1',
-  );
+  if (description != null) {
+    await tester.enterText(
+      find.byKey(const Key('project_description')),
+      description,
+    );
+  }
+  if (referenceId.isNotEmpty) {
+    await tester.enterText(
+      find.byKey(const Key('project_reference_id')),
+      referenceId,
+    );
+  }
+  if (referenceVersion.isNotEmpty) {
+    await tester.enterText(
+      find.byKey(const Key('project_reference_version')),
+      referenceVersion,
+    );
+  }
   await tester.tap(find.byKey(const Key('save_project')));
   await flush(tester);
 }
@@ -160,18 +171,6 @@ void main() {
     expect(find.byType(Card), findsOneWidget);
     expect(find.text('Alpine Birds'), findsOneWidget);
     expect(find.text('2024.1'), findsOneWidget);
-  });
-
-  testWidgets('C1: the list renders one card per Project', (tester) async {
-    await tester.pumpWidget(screenHarness(fakeClient(FakeAdapter())));
-    await tester.pumpAndSettle();
-
-    await createProject(tester, 'Alpine Birds');
-    await createProject(tester, 'River Survey');
-
-    expect(find.byType(ProjectCard), findsNWidgets(2));
-    expect(find.text('Alpine Birds'), findsOneWidget);
-    expect(find.text('River Survey'), findsOneWidget);
   });
 
   testWidgets('C2: a card shows the authored description when set', (
@@ -273,9 +272,96 @@ void main() {
     expect(pinned, isTrue);
   });
 
+  testWidgets('C1: creating a Project with no signed-in person stores it '
+      'locally, lists it, and makes no network request (UX-015, INV-016, '
+      'ADR-0014)', (tester) async {
+    final database = openDatabase();
+    final adapter = RecordingAdapter();
+    await tester.pumpWidget(
+      screenHarness(database, client: recordingClient(adapter)),
+    );
+    await tester.pumpAndSettle();
+
+    await createProject(tester, 'Alpine Birds');
+
+    expect(find.text('Alpine Birds'), findsOneWidget);
+    expect(find.byType(ProjectCard), findsOneWidget);
+    expect(adapter.requests, isEmpty);
+
+    final stored = await ProjectDao(database).all();
+    expect(stored.single.name, 'Alpine Birds');
+  });
+
+  testWidgets('C2: the list shows a stored Project on load (reopen, INV-015)', (
+    tester,
+  ) async {
+    final database = openDatabase();
+    await ProjectDao(database).save(project());
+
+    await tester.pumpWidget(screenHarness(database));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProjectCard), findsOneWidget);
+    expect(find.text('Alpine Birds'), findsOneWidget);
+    expect(find.text('2024.1'), findsOneWidget);
+  });
+
+  testWidgets('C1: the list renders one card per stored Project', (
+    tester,
+  ) async {
+    final database = openDatabase();
+    await tester.pumpWidget(screenHarness(database));
+    await tester.pumpAndSettle();
+
+    await createProject(tester, 'Alpine Birds');
+    await createProject(tester, 'River Survey');
+
+    expect(find.byType(ProjectCard), findsNWidgets(2));
+    expect(find.text('Alpine Birds'), findsOneWidget);
+    expect(find.text('River Survey'), findsOneWidget);
+  });
+
+  testWidgets('C3: setting a description stores it and the card shows it '
+      '(UX-022)', (tester) async {
+    final database = openDatabase();
+    await tester.pumpWidget(screenHarness(database));
+    await tester.pumpAndSettle();
+
+    await createProject(
+      tester,
+      'Alpine Birds',
+      description: 'Mountain transects',
+    );
+
+    expect(find.text('Mountain transects'), findsOneWidget);
+
+    final stored = await ProjectDao(database).all();
+    expect(stored.single.description, 'Mountain transects');
+  });
+
+  testWidgets('C4: create succeeds with only a name and no pinned reference '
+      '(UX-026)', (tester) async {
+    final database = openDatabase();
+    await tester.pumpWidget(screenHarness(database));
+    await tester.pumpAndSettle();
+
+    await createProject(
+      tester,
+      'Bare survey',
+      referenceId: '',
+      referenceVersion: '',
+    );
+
+    expect(find.text('Bare survey'), findsOneWidget);
+
+    final stored = await ProjectDao(database).all();
+    expect(stored.single.taxonomicReferenceId, isNull);
+    expect(stored.single.taxonomicReferenceVersion, isNull);
+  });
+
   testWidgets('C4: with no Project the list shows an empty state with a '
       'create action', (tester) async {
-    await tester.pumpWidget(screenHarness(fakeClient(FakeAdapter())));
+    await tester.pumpWidget(screenHarness(openDatabase()));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('create_project_empty')), findsOneWidget);
@@ -284,7 +370,7 @@ void main() {
   testWidgets('C4: the empty-state create action opens the project editor', (
     tester,
   ) async {
-    await tester.pumpWidget(screenHarness(fakeClient(FakeAdapter())));
+    await tester.pumpWidget(screenHarness(openDatabase()));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('create_project_empty')));

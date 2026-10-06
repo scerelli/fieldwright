@@ -316,6 +316,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get projectEditorName => 'Nome del progetto';
 
   @override
+  String get projectEditorDescription => 'Descrizione';
+
+  @override
   String get projectEditorReferenceId => 'Riferimento tassonomico';
 
   @override
