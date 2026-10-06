@@ -2,46 +2,79 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-// Placeholder seed; the brand palette is settled at /design (DESIGN.md is
-// currently deferred).
-const Color kSeedColor = Color(0xFF2E7D32);
+// DESIGN.md § Color — Light. Critical text is the near-black onSurface pair,
+// never the accent, so it clears UX-002's 7:1; onSurfaceVariant carries the
+// secondary text.
+const Color kLightPrimary = Color(0xFF00695C);
+const Color kLightOnPrimary = Color(0xFFFFFFFF);
+const Color kLightSecondary = Color(0xFF3A6EA5);
+const Color kLightBackground = Color(0xFFF6F8F9);
+const Color kLightSurface = Color(0xFFFFFFFF);
+const Color kLightOnSurface = Color(0xFF14181A);
+const Color kLightOnSurfaceVariant = Color(0xFF444B4E);
+const Color kLightOutline = Color(0xFF70797C);
+const Color kLightError = Color(0xFFB3261E);
 
-// The dark theme follows VS Code's Material Dark palette (equinusocio's
-// Material Theme): blue-grey surfaces with a teal primary. The light theme
-// above keeps the seed-based scheme.
+// DESIGN.md § Color — Dark.
 const Color kDarkPrimary = Color(0xFF80CBC4);
+const Color kDarkOnPrimary = Color(0xFF003731);
 const Color kDarkSecondary = Color(0xFF4DD0E1);
 const Color kDarkTertiary = Color(0xFFC792EA);
 const Color kDarkSurface = Color(0xFF263238);
-const Color kDarkOnSurface = Color(0xFFEEFFFF);
+const Color kDarkOnSurface = Color(0xFFE3E9EA);
+const Color kDarkError = Color(0xFFF2B8B5);
 
-ThemeData buildLightTheme() => FlexThemeData.light(
-  keyColors: FlexKeyColors(keyPrimary: kSeedColor),
-  useMaterial3: true,
+/// DESIGN.md § Typography — Inter, with tabular figures for counts, effort and
+/// coordinates so digits line up when scanned and compared.
+const String kFontFamily = 'Inter';
+const List<FontFeature> kTabularFigures = <FontFeature>[
+  FontFeature.tabularFigures(),
+];
+
+TextTheme _withNumericFigures(TextTheme text) => text.copyWith(
+  bodyMedium: text.bodyMedium?.copyWith(fontFeatures: kTabularFigures),
 );
 
-ThemeData buildDarkTheme() => FlexThemeData.dark(
-  keyColors: FlexKeyColors(
-    keyPrimary: kDarkPrimary,
-    keepPrimary: true,
-    keySecondary: kDarkSecondary,
-    useSecondary: true,
-    keepSecondary: true,
-    keyTertiary: kDarkTertiary,
-    useTertiary: true,
-    keepTertiary: true,
-  ),
-  primary: kDarkPrimary,
-  primaryLightRef: kDarkPrimary,
-  secondary: kDarkSecondary,
-  secondaryLightRef: kDarkSecondary,
-  tertiary: kDarkTertiary,
-  tertiaryLightRef: kDarkTertiary,
-  surface: kDarkSurface,
-  scaffoldBackground: kDarkSurface,
-  onSurface: kDarkOnSurface,
-  useMaterial3: true,
-);
+ThemeData buildLightTheme() {
+  final base = FlexThemeData.light(
+    primary: kLightPrimary,
+    onPrimary: kLightOnPrimary,
+    secondary: kLightSecondary,
+    surface: kLightSurface,
+    onSurface: kLightOnSurface,
+    scaffoldBackground: kLightBackground,
+    error: kLightError,
+    fontFamily: kFontFamily,
+    fixedColorStyle: FlexFixedColorStyle.seeded,
+    useMaterial3: true,
+  );
+  return base.copyWith(
+    colorScheme: base.colorScheme.copyWith(
+      onSurfaceVariant: kLightOnSurfaceVariant,
+      outline: kLightOutline,
+    ),
+    textTheme: _withNumericFigures(base.textTheme),
+  );
+}
+
+ThemeData buildDarkTheme() {
+  final base = FlexThemeData.dark(
+    primary: kDarkPrimary,
+    primaryLightRef: kDarkPrimary,
+    onPrimary: kDarkOnPrimary,
+    secondary: kDarkSecondary,
+    secondaryLightRef: kDarkSecondary,
+    tertiary: kDarkTertiary,
+    tertiaryLightRef: kDarkTertiary,
+    surface: kDarkSurface,
+    onSurface: kDarkOnSurface,
+    scaffoldBackground: kDarkSurface,
+    error: kDarkError,
+    fontFamily: kFontFamily,
+    useMaterial3: true,
+  );
+  return base.copyWith(textTheme: _withNumericFigures(base.textTheme));
+}
 
 final appLightThemeProvider = Provider<ThemeData>((ref) => buildLightTheme());
 
