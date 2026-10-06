@@ -105,7 +105,13 @@ export class DetectionHistoryGenerator implements ExportGenerator {
         entry = {
           visitId: row.visitId,
           siteId: row.siteId,
-          surveyPeriodId: row.surveyPeriodId,
+          // The Visit resolution columns are nullable under ADR-0021. This
+          // generator's inner join already excludes a Visit with no Protocol
+          // version, and the analysis-readiness gate that excludes every other
+          // provisional Visit (INV-022) is Sub-task #400's scope; until then a
+          // row reaching here carries a Survey period, as it did while the
+          // column was NOT NULL.
+          surveyPeriodId: row.surveyPeriodId!,
           startedAt: row.startedAt,
           targetTaxonRefs: targetTaxaOf(row.document),
           detections: [],
