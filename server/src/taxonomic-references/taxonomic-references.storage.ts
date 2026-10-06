@@ -47,7 +47,7 @@ export function createReferenceVolumeStorage(root: string): ReferenceStorage {
       try {
         raw = await readFile(join(root, id, `${version}.json`), 'utf8');
       } catch (error) {
-        if (hasCode(error, 'ENOENT')) {
+        if (isNotFound(error)) {
           return null;
         }
         throw error;
@@ -64,6 +64,16 @@ function parseJson(raw: string): unknown {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether a filesystem error means the artifact is simply not there. Beyond
+ * ENOENT, an operator who left a file where a directory (or the reverse) is
+ * expected makes the path unreachable too, so it is not-found rather than a
+ * 500.
+ */
+function isNotFound(error: unknown): boolean {
+  return ['ENOENT', 'ENOTDIR', 'EISDIR'].some((code) => hasCode(error, code));
 }
 
 function hasCode(error: unknown, code: string): boolean {
