@@ -4,7 +4,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../projects/projects_client.dart';
+import '../../store/project_dao.dart';
 import '../../widgets/empty_state.dart';
+import '../sites/sites_screen.dart';
+import '../visits/visits_screen.dart';
 import 'project_editor.dart';
 
 /// Lists the signed-in person's Projects and lets a creator define a new one.
@@ -152,54 +155,102 @@ class ProjectCard extends StatelessWidget {
   }
 }
 
-/// The entry point to a Project's configuration surfaces (`ARCHITECTURE.md`):
-/// its Protocol version, Members and Survey periods (`DOMAIN.md`).
+/// The Project hub (`ADR-0015`): the open Project's Sites and Visits sit behind
+/// two tabs, its configuration behind an overflow, and its name in the app bar
+/// (`UX.md` UX-019, UX-020).
 ///
-/// Opened from a Project in the Projects list; each entry routes to the
+/// Opened from a Project in the Projects list; each config entry routes to the
 /// matching sub-screen, which navigates back here.
-class ProjectDetailScreen extends StatelessWidget {
+class ProjectDetailScreen extends ConsumerStatefulWidget {
   const ProjectDetailScreen({super.key, required this.projectId, this.project});
 
   final String projectId;
 
   /// The Project when the entry point supplied it; a deep link falls back to
-  /// the generic Projects title.
+  /// resolving it from the local store.
   final Project? project;
+
+  @override
+  ConsumerState<ProjectDetailScreen> createState() =>
+      _ProjectDetailScreenState();
+}
+
+class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
+  Project? _stored;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.project == null) _load();
+  }
+
+  Future<void> _load() async {
+    final project = await ref
+        .read(projectDaoProvider)
+        .findById(widget.projectId);
+    if (!mounted) return;
+    setState(() => _stored = project);
+  }
+
+  void _openConfig(String section) {
+    context.go(
+      '/projects/${widget.projectId}/$section',
+      extra: widget.project ?? _stored,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final project = widget.project ?? _stored;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(project?.name ?? l10n.navProjects)),
-      body: ListView(
-        children: [
-          ListTile(
-            key: const Key('open_protocol_version'),
-            leading: const Icon(Icons.description_outlined),
-            title: Text(l10n.protocolVersionTitle),
-            onTap: () => context.go('/projects/$projectId/protocol'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: project == null ? null : Text(project.name),
+          actions: [
+            IconButton(
+              key: const Key('open_project_settings'),
+              icon: const Icon(Icons.tune_outlined),
+              tooltip: l10n.projectSettingsTitle,
+              onPressed: () => _openConfig('settings'),
+            ),
+            PopupMenuButton<String>(
+              key: const Key('project_config_overflow'),
+              onSelected: _openConfig,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: const Key('open_protocol_version'),
+                  value: 'protocol',
+                  child: Text(l10n.protocolVersionTitle),
+                ),
+                PopupMenuItem(
+                  key: const Key('open_members'),
+                  value: 'members',
+                  child: Text(l10n.membersTitle),
+                ),
+                PopupMenuItem(
+                  key: const Key('open_survey_periods'),
+                  value: 'survey-periods',
+                  child: Text(l10n.surveyPeriodsTitle),
+                ),
+              ],
+            ),
+          ],
+          bottom: TabBar(
+            tabs: [
+              Tab(key: const Key('hub_sites_tab'), text: l10n.navSites),
+              Tab(key: const Key('hub_visits_tab'), text: l10n.navVisits),
+            ],
           ),
-          ListTile(
-            key: const Key('open_members'),
-            leading: const Icon(Icons.people_outline),
-            title: Text(l10n.membersTitle),
-            onTap: () => context.go('/projects/$projectId/members'),
-          ),
-          ListTile(
-            key: const Key('open_survey_periods'),
-            leading: const Icon(Icons.date_range_outlined),
-            title: Text(l10n.surveyPeriodsTitle),
-            onTap: () => context.go('/projects/$projectId/survey-periods'),
-          ),
-          ListTile(
-            key: const Key('open_project_settings'),
-            leading: const Icon(Icons.tune_outlined),
-            title: Text(l10n.projectSettingsTitle),
-            onTap: () =>
-                context.go('/projects/$projectId/settings', extra: project),
-          ),
-        ],
+        ),
+        body: TabBarView(
+          children: [
+            SitesScreen(projectId: widget.projectId, embedded: true),
+            VisitsScreen(projectId: widget.projectId, embedded: true),
+          ],
+        ),
       ),
     );
   }
