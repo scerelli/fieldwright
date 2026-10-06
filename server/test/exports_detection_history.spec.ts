@@ -22,12 +22,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../src/db/database.module.js';
 import { DATABASE, DATABASE_POOL } from '../src/db/database.provider.js';
 import {
+  correction,
   detection,
   exportRecord,
   project,
   protocolVersion,
   site,
   surveyPeriod,
+  user,
   visit,
   type Export,
 } from '../src/db/schema.js';
@@ -97,6 +99,35 @@ interface GateProject {
   nonReadyVisitIds: string[];
 }
 
+/**
+ * A Project whose only analysis-ready Visit became ready through a resolution
+ * Correction (INV-021): one Detection holds a provisional taxon a resolution
+ * Correction resolves to a Target list taxon, alongside a Detection that records
+ * a non-detection for another target. A second Visit references a Protocol
+ * version whose Target list contributes a third, unrecorded column, so the
+ * export must distinguish `0` (the recorded non-detection) from blank (the
+ * unrecorded target) (INV-019).
+ */
+interface CorrectionProject {
+  projectId: string;
+  resolvedVisitId: string;
+  resolvedTaxon: string;
+  nonDetectedTaxon: string;
+  unrecordedTaxon: string;
+}
+
+/**
+ * A Project with a Detection already storing a resolved `taxon` while a
+ * resolution Correction also resolves a provisional taxon for the same Visit:
+ * the stored value must win and the correction must leave it unchanged
+ * (INV-001, INV-021).
+ */
+interface StoredTaxonProject {
+  projectId: string;
+  visitId: string;
+  storedTaxon: string;
+}
+
 function runDrizzleKitMigrate(databaseUrl: string) {
   return spawnSync(process.execPath, [drizzleKitBin, 'migrate'], {
     cwd: serverRoot,
@@ -134,6 +165,8 @@ describe('detection-history CSV golden fixture', () => {
   let worker: ReturnType<typeof createExportWorker>;
   let protocolVersionId: string;
   let gate: GateProject;
+  let correctionProject: CorrectionProject;
+  let storedTaxonProject: StoredTaxonProject;
 
   beforeAll(async () => {
     postgres = await new PostgreSqlContainer('postgis/postgis:18-3.6').start();
@@ -170,6 +203,8 @@ describe('detection-history CSV golden fixture', () => {
 
     protocolVersionId = await seedGoldenProject();
     gate = await seedGateProject();
+    correctionProject = await seedCorrectionProject();
+    storedTaxonProject = await seedStoredTaxonProject();
   }, 240_000);
 
   beforeEach(async () => {
@@ -471,6 +506,248 @@ describe('detection-history CSV golden fixture', () => {
     };
   }
 
+  /** Inserts a Better Auth `user` to author a Correction (the FK target). */
+  async function seedCorrectionAuthor(): Promise<{ id: string }> {
+    const [author] = await db
+      .insert(user)
+      .values({
+        id: randomUUID(),
+        name: 'Correction author',
+        email: `${randomUUID()}@example.test`,
+        emailVerified: false,
+      })
+      .returning();
+    return author!;
+  }
+
+  /**
+   * Seeds a Project whose one analysis-ready Visit became ready through a
+   * resolution Correction (INV-021): a provisional Detection is resolved by the
+   * Correction to a Target list taxon, and another target records a
+   * non-detection. A second Visit's Protocol version declares a third target the
+   * resolved Visit does not record, contributing a blank column (INV-019).
+   */
+  async function seedCorrectionProject(): Promise<CorrectionProject> {
+    const resolvedTaxon = 'Aves|Anthus|trivialis';
+    const nonDetectedTaxon = 'Aves|Anthus|pratensis';
+    const unrecordedTaxon = 'Aves|Anthus|campestris';
+    const provisionalName = 'cf. Anthus trivialis';
+
+    const [created] = await db
+      .insert(project)
+      .values({
+        name: 'Resolution correction project',
+        settings: { validationEnabled: false, sensitiveTaxaObfuscation: false },
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      })
+      .returning();
+
+    const [resolvedProtocol] = await db
+      .insert(protocolVersion)
+      .values({
+        projectId: created!.id,
+        protocolId: 'correction-protocol',
+        version: 1,
+        document: {
+          protocolId: 'correction-protocol',
+          version: 1,
+          targetList: [
+            { taxonRef: resolvedTaxon },
+            { taxonRef: nonDetectedTaxon },
+          ],
+        },
+      })
+      .returning();
+
+    const [unrecordedProtocol] = await db
+      .insert(protocolVersion)
+      .values({
+        projectId: created!.id,
+        protocolId: 'unrecorded-protocol',
+        version: 1,
+        document: {
+          protocolId: 'unrecorded-protocol',
+          version: 1,
+          targetList: [{ taxonRef: unrecordedTaxon }],
+        },
+      })
+      .returning();
+
+    const [correctionSite] = await db
+      .insert(site)
+      .values({ projectId: created!.id, name: 'Correction plot' })
+      .returning();
+
+    const [period] = await db
+      .insert(surveyPeriod)
+      .values({
+        projectId: created!.id,
+        name: 'Correction period',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      })
+      .returning();
+
+    const base = {
+      projectId: created!.id,
+      siteId: correctionSite!.id,
+      surveyPeriodId: period!.id,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+      state: 'submitted' as const,
+      effort: {},
+      submittedAt: new Date('2024-01-05T09:00:00.000Z'),
+    };
+
+    const resolvedVisitId = randomUUID();
+    const unrecordedVisitId = randomUUID();
+
+    await db.insert(visit).values([
+      {
+        ...base,
+        id: resolvedVisitId,
+        protocolVersionId: resolvedProtocol!.id,
+        startedAt: new Date('2024-01-01T08:00:00.000Z'),
+      },
+      {
+        ...base,
+        id: unrecordedVisitId,
+        protocolVersionId: unrecordedProtocol!.id,
+        startedAt: new Date('2024-01-02T08:00:00.000Z'),
+      },
+    ]);
+
+    await db.insert(detection).values([
+      {
+        visitId: resolvedVisitId,
+        provisionalName,
+        detected: true,
+        method: 'visual',
+      },
+      {
+        visitId: resolvedVisitId,
+        taxon: nonDetectedTaxon,
+        detected: false,
+        method: 'visual',
+      },
+      {
+        visitId: unrecordedVisitId,
+        taxon: unrecordedTaxon,
+        detected: true,
+        method: 'visual',
+      },
+    ]);
+
+    const author = await seedCorrectionAuthor();
+    await db.insert(correction).values({
+      visitId: resolvedVisitId,
+      authorId: author.id,
+      reason: `resolve ${provisionalName}`,
+      payload: {
+        kind: 'resolution',
+        taxonomicReferenceVersion: '2024.1',
+        resolvedTaxa: [{ provisionalName, taxon: resolvedTaxon }],
+      },
+    });
+
+    return {
+      projectId: created!.id,
+      resolvedVisitId,
+      resolvedTaxon,
+      nonDetectedTaxon,
+      unrecordedTaxon,
+    };
+  }
+
+  /**
+   * Seeds a Project with one Detection already storing a resolved `taxon` and a
+   * second holding a provisional taxon, plus a resolution Correction for the
+   * provisional one: the stored taxon must be unchanged while the provisional
+   * one resolves (INV-001, INV-021).
+   */
+  async function seedStoredTaxonProject(): Promise<StoredTaxonProject> {
+    const storedTaxon = 'Aves|Turdus|merula';
+    const provisionalTaxon = 'Aves|Erithacus|rubecula';
+    const provisionalName = 'cf. Erithacus rubecula';
+
+    const [created] = await db
+      .insert(project)
+      .values({
+        name: 'Stored taxon project',
+        settings: { validationEnabled: false, sensitiveTaxaObfuscation: false },
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      })
+      .returning();
+
+    const [protocol] = await db
+      .insert(protocolVersion)
+      .values({
+        projectId: created!.id,
+        protocolId: 'stored-taxon-protocol',
+        version: 1,
+        document: {
+          protocolId: 'stored-taxon-protocol',
+          version: 1,
+          targetList: [
+            { taxonRef: storedTaxon },
+            { taxonRef: provisionalTaxon },
+          ],
+        },
+      })
+      .returning();
+
+    const [storedSite] = await db
+      .insert(site)
+      .values({ projectId: created!.id, name: 'Stored plot' })
+      .returning();
+
+    const [period] = await db
+      .insert(surveyPeriod)
+      .values({
+        projectId: created!.id,
+        name: 'Stored period',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      })
+      .returning();
+
+    const visitId = randomUUID();
+    await db.insert(visit).values({
+      id: visitId,
+      projectId: created!.id,
+      siteId: storedSite!.id,
+      surveyPeriodId: period!.id,
+      protocolVersionId: protocol!.id,
+      taxonomicReferenceId: 'italy-vascular-flora',
+      taxonomicReferenceVersion: '2024.1',
+      state: 'submitted',
+      effort: {},
+      startedAt: new Date('2024-01-01T08:00:00.000Z'),
+      submittedAt: new Date('2024-01-05T09:00:00.000Z'),
+    });
+
+    await db.insert(detection).values([
+      { visitId, taxon: storedTaxon, detected: true, method: 'visual' },
+      { visitId, provisionalName, detected: true, method: 'visual' },
+    ]);
+
+    const author = await seedCorrectionAuthor();
+    await db.insert(correction).values({
+      visitId,
+      authorId: author.id,
+      reason: `resolve ${provisionalName}`,
+      payload: {
+        kind: 'resolution',
+        taxonomicReferenceVersion: '2024.1',
+        resolvedTaxa: [{ provisionalName, taxon: provisionalTaxon }],
+      },
+    });
+
+    return { projectId: created!.id, visitId, storedTaxon };
+  }
+
   /** Processes a `csv` Export for `projectId` and returns its decoded bytes. */
   async function processProjectCsvExport(projectId: string): Promise<string> {
     const [record] = await db
@@ -498,6 +775,21 @@ describe('detection-history CSV golden fixture', () => {
     const header = lines[0]!.split(',');
     const index = header.indexOf('visit_id');
     return lines.slice(1).map((line) => line.split(',')[index]!);
+  }
+
+  /** The CSV row for `visitId`, keyed by column name. */
+  function csvRowFor(csv: string, visitId: string): Map<string, string> {
+    const lines = csv.split('\r\n').filter((line) => line.length > 0);
+    const header = lines[0]!.split(',');
+    const visitIndex = header.indexOf('visit_id');
+    const row = lines
+      .slice(1)
+      .map((line) => line.split(','))
+      .find((cells) => cells[visitIndex] === visitId);
+    if (row === undefined) {
+      throw new Error(`no detection-history row for visit ${visitId}`);
+    }
+    return new Map(header.map((column, index) => [column, row[index]!]));
   }
 
   async function processCsvExport(): Promise<{
@@ -571,5 +863,31 @@ describe('detection-history CSV golden fixture', () => {
     for (const nonReadyVisitId of gate.nonReadyVisitIds) {
       expect(ids).not.toContain(nonReadyVisitId);
     }
+  }, 30_000);
+
+  it('renders a Detection resolved only by a resolution Correction under its resolved taxon (C1, INV-021)', async () => {
+    const csv = await processProjectCsvExport(correctionProject.projectId);
+    const row = csvRowFor(csv, correctionProject.resolvedVisitId);
+
+    expect(row.get(correctionProject.resolvedTaxon)).toBe('1');
+    expect(row.get(correctionProject.resolvedTaxon)).not.toBe('');
+  }, 30_000);
+
+  it('leaves a Detection already storing a resolved taxon unchanged by a resolution Correction (C2, INV-001, INV-021)', async () => {
+    const csv = await processProjectCsvExport(storedTaxonProject.projectId);
+    const row = csvRowFor(csv, storedTaxonProject.visitId);
+
+    expect(row.get(storedTaxonProject.storedTaxon)).toBe('1');
+  }, 30_000);
+
+  it('exports a resolved non-detection as 0, distinct from an unrecorded target (C3, INV-019, INV-021)', async () => {
+    const csv = await processProjectCsvExport(correctionProject.projectId);
+    const row = csvRowFor(csv, correctionProject.resolvedVisitId);
+
+    expect(row.get(correctionProject.nonDetectedTaxon)).toBe('0');
+    expect(row.get(correctionProject.unrecordedTaxon)).toBe('');
+    expect(row.get(correctionProject.nonDetectedTaxon)).not.toBe(
+      row.get(correctionProject.unrecordedTaxon),
+    );
   }, 30_000);
 });

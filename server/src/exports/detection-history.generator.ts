@@ -7,7 +7,10 @@
  * version declares, builds the detection-history matrix through the injected
  * builder (#311) and serializes it with {@link serializeCsv}. A Visit that is
  * not analysis-ready is excluded, so only analysis-ready Visits enter an
- * export.
+ * export. The resolution Corrections the readiness derivation applies are
+ * shared here (INV-021), so a Detection resolved only by a Correction renders
+ * under the reference taxon it resolved to while the stored Visit and Detection
+ * rows stay exactly as submitted (INV-001).
  *
  * The builder keeps INV-002 and INV-003: a Target list taxon with a recorded
  * Detection is `1` or `0`, an unrecorded taxon is left blank, and an
@@ -25,7 +28,10 @@ import {
   visit,
   type Export,
 } from '../db/schema.js';
-import { loadAnalysisReadyVisitIds } from '../visits/readiness.js';
+import {
+  loadAnalysisReadyVisitIds,
+  loadResolvedTaxaByVisit,
+} from '../visits/readiness.js';
 import { targetTaxaOf } from '../visits/visit-rules.js';
 import { serializeCsv } from './csv.js';
 import {
@@ -73,7 +79,15 @@ export class DetectionHistoryGenerator implements ExportGenerator {
       this.db,
       record.projectId,
     );
-    const visits = await this.loadVisits(record.projectId, readyVisitIds);
+    const resolvedTaxaByVisit = await loadResolvedTaxaByVisit(
+      this.db,
+      record.projectId,
+    );
+    const visits = await this.loadVisits(
+      record.projectId,
+      readyVisitIds,
+      resolvedTaxaByVisit,
+    );
     const matrix = this.buildMatrix(visits);
     const csv = serializeCsv([matrix.header, ...matrix.rows]);
     return new TextEncoder().encode(csv);
@@ -89,6 +103,7 @@ export class DetectionHistoryGenerator implements ExportGenerator {
   private async loadVisits(
     projectId: string,
     readyVisitIds: ReadonlySet<string>,
+    resolvedTaxaByVisit: ReadonlyMap<string, ReadonlyMap<string, string>>,
   ): Promise<DetectionHistoryVisit[]> {
     const rows = await this.db
       .select({
@@ -98,6 +113,7 @@ export class DetectionHistoryGenerator implements ExportGenerator {
         startedAt: visit.startedAt,
         document: protocolVersion.document,
         detectionTaxon: detection.taxon,
+        detectionProvisionalName: detection.provisionalName,
         detectionDetected: detection.detected,
         detectionOpportunistic: detection.opportunistic,
       })
@@ -129,9 +145,20 @@ export class DetectionHistoryGenerator implements ExportGenerator {
         };
         byVisit.set(row.visitId, entry);
       }
-      if (row.detectionTaxon !== null) {
+      // The stored taxon wins (INV-001); a null one is provisional and the
+      // resolution fold shared with the readiness derivation supplies the
+      // reference taxon it resolved to (INV-021). A ready Visit has no
+      // unresolved provisional Detection, so the fold always supplies one.
+      const taxon =
+        row.detectionTaxon ??
+        (row.detectionProvisionalName !== null
+          ? resolvedTaxaByVisit
+              .get(row.visitId)
+              ?.get(row.detectionProvisionalName)
+          : undefined);
+      if (taxon !== undefined && taxon !== null) {
         entry.detections.push({
-          taxon: row.detectionTaxon,
+          taxon,
           detected: row.detectionDetected ?? false,
           opportunistic: row.detectionOpportunistic ?? false,
         });
