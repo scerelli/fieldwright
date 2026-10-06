@@ -409,6 +409,28 @@ describe('Visit store', () => {
     expect(storedDetection!.provisionalName).toBe('cf. Anthus');
   });
 
+  it("records the Project's pinned reference id and version as a pair on a Visit insert, or stores both null (INV-021)", async () => {
+    const pinned = await seedReferences();
+    const pinnedId = await storeSubmittedVisit(pinned);
+
+    const [pinnedVisit] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, pinnedId));
+    expect(pinnedVisit!.taxonomicReferenceId).toBe('italy-vascular-flora');
+    expect(pinnedVisit!.taxonomicReferenceVersion).toBe('2024.1');
+
+    const unpinned = await seedReferences({ id: null, version: null });
+    const unpinnedId = await storeSubmittedVisit(unpinned);
+
+    const [unpinnedVisit] = await db
+      .select()
+      .from(visit)
+      .where(eq(visit.id, unpinnedId));
+    expect(unpinnedVisit!.taxonomicReferenceId).toBeNull();
+    expect(unpinnedVisit!.taxonomicReferenceVersion).toBeNull();
+  });
+
   it('rejects a resolved Detection for a Project with no pinned reference (INV-021)', async () => {
     const refs = await seedReferences({ id: null, version: null });
     const id = randomUUID();
@@ -1131,6 +1153,67 @@ describe('Visit store', () => {
     expect(
       await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
     ).toHaveLength(0);
+  });
+
+  it('rejects a Visit that stores exactly one of the pinned reference id and version at the database (INV-021)', async () => {
+    const refs = await seedReferences();
+    const startedAt = new Date('2026-04-01T08:00:00Z');
+    const submittedAt = new Date('2026-04-01T09:00:00Z');
+
+    const halfPairs = [
+      {
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: null,
+      },
+      {
+        taxonomicReferenceId: null,
+        taxonomicReferenceVersion: '2024.1',
+      },
+    ];
+    for (const reference of halfPairs) {
+      await expect(
+        db.insert(visit).values({
+          id: randomUUID(),
+          ...refs,
+          ...reference,
+          state: 'submitted',
+          effort: {},
+          startedAt,
+          submittedAt,
+        }),
+      ).rejects.toThrow();
+    }
+
+    // The pair is recorded together or not at all: both columns or neither.
+    const wholePairs = [
+      {
+        taxonomicReferenceId: 'italy-vascular-flora',
+        taxonomicReferenceVersion: '2024.1',
+      },
+      { taxonomicReferenceId: null, taxonomicReferenceVersion: null },
+    ];
+    for (const reference of wholePairs) {
+      const [stored] = await db
+        .insert(visit)
+        .values({
+          id: randomUUID(),
+          ...refs,
+          ...reference,
+          state: 'submitted',
+          effort: {},
+          startedAt,
+          submittedAt,
+        })
+        .returning();
+      expect(stored!.taxonomicReferenceId).toBe(reference.taxonomicReferenceId);
+      expect(stored!.taxonomicReferenceVersion).toBe(
+        reference.taxonomicReferenceVersion,
+      );
+    }
+
+    expect(
+      await db.select().from(visit).where(eq(visit.siteId, refs.siteId)),
+    ).toHaveLength(2);
   });
 
   it('rejects a Measurement whose Provenance has no method at the database', async () => {
