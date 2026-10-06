@@ -13,7 +13,7 @@ import 'taxon_reference.dart';
 /// detected or not detected (UX-003). A target with no Detection shows a
 /// visibly distinct "not recorded" state; the [detectionNextUnrecorded] button
 /// brings the next unrecorded target into view in one tap (UX-004). The Visit
-/// is reported incomplete while any target is unrecorded (INV-002).
+/// is reported incomplete while any target is unrecorded (INV-019).
 class DetectionList extends ConsumerStatefulWidget {
   const DetectionList({
     super.key,

@@ -87,7 +87,7 @@ describe('detection-history matrix', () => {
     expect(matrix.rows[1]!.slice(0, 2)).toEqual(['site-2', 'period-2']);
   });
 
-  it('maps a TargetList taxon Detection to 1 when detected and 0 when not (C4, INV-002)', () => {
+  it('maps a TargetList taxon Detection to 1 when detected and 0 when not (C4, INV-019)', () => {
     const matrix = buildDetectionHistoryMatrix([
       visit(
         'visit-1',

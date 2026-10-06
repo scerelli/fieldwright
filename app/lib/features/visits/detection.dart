@@ -3,7 +3,7 @@ import '../../protocol/protocol.dart';
 /// The record that one taxon was detected, or searched for and not detected,
 /// in one Visit (DOMAIN.md › Detection). A non-detection is a Detection with
 /// [detected] false — never a missing record. A target taxon with no Detection
-/// at all is "not recorded", a state distinct from "not detected" (INV-002).
+/// at all is "not recorded", a state distinct from "not detected" (INV-019).
 ///
 /// Identity is within its Visit: the pair of [visitId] and [taxonRef].
 class Detection {
@@ -75,7 +75,7 @@ class Detection {
 }
 
 /// The target taxa for which [detections] holds no record — the "not
-/// recorded" targets of a Visit (INV-002). A Detection with `detected = false`
+/// recorded" targets of a Visit (INV-019). A Detection with `detected = false`
 /// counts as recorded. An opportunistic Detection never records a target: it
 /// was not searched for under the Protocol, so it can never imply a
 /// non-detection of a target (INV-003).
@@ -93,8 +93,8 @@ List<TargetTaxon> unrecordedTargets(
   ];
 }
 
-/// Whether every target taxon has a Detection, so the Visit may be submitted
-/// (INV-002).
+/// Whether every target taxon has a Detection — the target-completeness factor
+/// of analysis-readiness (INV-019, INV-022).
 bool allTargetsRecorded(
   List<TargetTaxon> targets,
   List<Detection> detections,

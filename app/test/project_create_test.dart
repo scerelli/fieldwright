@@ -517,7 +517,7 @@ void main() {
 
     testWidgets(
       'C1: pinning a Taxonomic reference version on an existing Project '
-      'stores it (INV-008)',
+      'stores it (INV-021)',
       (tester) async {
         final dao = await seededDao(tester);
         Project? saved;
