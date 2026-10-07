@@ -13,17 +13,32 @@ import 'site_editor.dart';
 import 'sites_map.dart';
 
 class SitesScreen extends ConsumerStatefulWidget {
-  const SitesScreen({super.key, this.projectId, this.protocol});
+  const SitesScreen({
+    super.key,
+    this.projectId,
+    this.protocol,
+    this.embedded = false,
+  });
 
   final String? projectId;
   final ProtocolDocument? protocol;
+
+  /// When embedded in the Project hub the screen renders its content inside the
+  /// hub's own app bar and tabs, so it keeps its site actions in the body and
+  /// omits its standalone app bar.
+  final bool embedded;
 
   @override
   ConsumerState<SitesScreen> createState() => _SitesScreenState();
 }
 
 class _SitesScreenState extends ConsumerState<SitesScreen> {
-  final List<Site> _sites = <Site>[];
+  void _refresh() {
+    final projectId = widget.projectId;
+    if (projectId != null) {
+      ref.invalidate(projectSitesProvider(projectId));
+    }
+  }
 
   Future<void> _openEditor() async {
     final projectId = widget.projectId;
@@ -34,7 +49,7 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
         builder: (_) => SiteEditor(
           dao: dao,
           projectId: projectId,
-          onSaved: (site) => setState(() => _sites.add(site)),
+          onSaved: (_) => _refresh(),
         ),
       ),
     );
@@ -53,13 +68,13 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     if (projectId == null) return;
     final l10n = AppLocalizations.of(context);
     try {
-      final site = await createFieldSite(
+      await createFieldSite(
         locationService: ref.read(locationServiceProvider),
         dao: ref.read(siteDaoProvider),
         projectId: projectId,
       );
       if (!mounted) return;
-      setState(() => _sites.add(site));
+      _refresh();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -90,10 +105,7 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
     final updated = site.copyWith(covariates: covariates);
     await dao.save(updated);
     if (!mounted) return;
-    setState(() {
-      final index = _sites.indexWhere((candidate) => candidate.id == site.id);
-      if (index != -1) _sites[index] = updated;
-    });
+    _refresh();
   }
 
   String _geometryLabel(AppLocalizations l10n, SiteGeometry geometry) =>
@@ -103,53 +115,69 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
         PolygonGeometry() => l10n.siteGeometryPolygon,
       };
 
+  List<Widget> _actions(AppLocalizations l10n) => [
+    IconButton(
+      key: const Key('create_site_here'),
+      onPressed: _createHere,
+      tooltip: l10n.sitesCreateHere,
+      icon: const Icon(Icons.my_location_outlined),
+    ),
+    IconButton(
+      key: const Key('open_sites_map'),
+      onPressed: _openMap,
+      icon: const Icon(Icons.map_outlined),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasProject = widget.projectId != null;
+    final projectId = widget.projectId;
+    final hasProject = projectId != null;
+    final sites = hasProject
+        ? ref.watch(projectSitesProvider(projectId)).value ?? const <Site>[]
+        : const <Site>[];
+
+    final content = !hasProject
+        ? EmptyState(
+            title: l10n.projectsEmptyTitle,
+            message: l10n.projectsEmptyMessage,
+          )
+        : sites.isEmpty
+        ? EmptyState(
+            title: l10n.sitesEmptyTitle,
+            message: l10n.sitesEmptyMessage,
+          )
+        : ListView.builder(
+            itemCount: sites.length,
+            itemBuilder: (context, index) {
+              final site = sites[index];
+              return ListTile(
+                key: Key('site_${site.id}'),
+                leading: const Icon(Icons.place_outlined),
+                title: Text(_geometryLabel(l10n, site.geometry)),
+                onTap: widget.protocol == null
+                    ? null
+                    : () => _openCovariates(site),
+              );
+            },
+          );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.navSites),
-        actions: [
-          if (hasProject)
-            IconButton(
-              key: const Key('create_site_here'),
-              onPressed: _createHere,
-              tooltip: l10n.sitesCreateHere,
-              icon: const Icon(Icons.my_location_outlined),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(l10n.navSites),
+              actions: hasProject ? _actions(l10n) : null,
             ),
-          if (hasProject)
-            IconButton(
-              key: const Key('open_sites_map'),
-              onPressed: _openMap,
-              icon: const Icon(Icons.map_outlined),
-            ),
-        ],
-      ),
-      body: !hasProject
-          ? EmptyState(
-              title: l10n.projectsEmptyTitle,
-              message: l10n.projectsEmptyMessage,
+      body: widget.embedded && hasProject
+          ? Column(
+              children: [
+                Row(children: _actions(l10n)),
+                Expanded(child: content),
+              ],
             )
-          : _sites.isEmpty
-          ? EmptyState(
-              title: l10n.sitesEmptyTitle,
-              message: l10n.sitesEmptyMessage,
-            )
-          : ListView.builder(
-              itemCount: _sites.length,
-              itemBuilder: (context, index) {
-                final site = _sites[index];
-                return ListTile(
-                  leading: const Icon(Icons.place_outlined),
-                  title: Text(_geometryLabel(l10n, site.geometry)),
-                  onTap: widget.protocol == null
-                      ? null
-                      : () => _openCovariates(site),
-                );
-              },
-            ),
+          : content,
       floatingActionButton: hasProject
           ? FloatingActionButton(
               onPressed: _openEditor,

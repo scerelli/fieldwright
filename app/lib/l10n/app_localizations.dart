@@ -1100,6 +1100,18 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get syncIndicatorRetry;
 
+  /// Shell system-state indicator label when the device has no network connection (UX-007, UX-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get systemStateOffline;
+
+  /// Shell system-state indicator label while the person is not signed in, so local-only work is never mistaken for synced (UX-008, UX-016).
+  ///
+  /// In en, this message translates to:
+  /// **'Local only — sign up to sync'**
+  String get systemStateUnlinked;
+
   /// Title of the in-app manual screen (UX-023).
   ///
   /// In en, this message translates to:

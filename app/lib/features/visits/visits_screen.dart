@@ -17,11 +17,16 @@ class VisitsScreen extends ConsumerStatefulWidget {
     this.projectId,
     this.surveyPeriodId,
     this.protocolVersionId,
+    this.embedded = false,
   });
 
   final String? projectId;
   final String? surveyPeriodId;
   final String? protocolVersionId;
+
+  /// When embedded in the Project hub the screen renders inside the hub's own
+  /// app bar and tabs, so it omits its standalone app bar.
+  final bool embedded;
 
   @override
   ConsumerState<VisitsScreen> createState() => _VisitsScreenState();
@@ -98,7 +103,7 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
 
     if (!_configured) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.navVisits)),
+        appBar: widget.embedded ? null : AppBar(title: Text(l10n.navVisits)),
         body: EmptyState(
           title: l10n.visitsEmptyTitle,
           message: l10n.visitsEmptyMessage,
@@ -109,9 +114,13 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
     final sites =
         ref.watch(projectSitesProvider(widget.projectId!)).value ??
         const <Site>[];
+    final siteIds = sites.map((site) => site.id).toSet();
+    final visits = _visits
+        .where((visit) => siteIds.contains(visit.siteId))
+        .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navVisits)),
+      appBar: widget.embedded ? null : AppBar(title: Text(l10n.navVisits)),
       body: ListView(
         children: [
           _heading(l10n.visitsSitesHeading),
@@ -130,10 +139,10 @@ class _VisitsScreenState extends ConsumerState<VisitsScreen> {
                 ),
               ),
           _heading(l10n.visitsListHeading),
-          if (_visits.isEmpty)
+          if (visits.isEmpty)
             ListTile(title: Text(l10n.visitsEmptyMessage))
           else
-            for (final visit in _visits)
+            for (final visit in visits)
               ListTile(
                 key: Key('visit_${visit.id}'),
                 leading: Icon(_stateIcon(visit.state)),

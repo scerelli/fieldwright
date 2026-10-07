@@ -693,6 +693,14 @@
   "@syncIndicatorRetry": {
     "description": "Button that re-queues a Visit whose delivery failed (UX-008)."
   },
+  "systemStateOffline": "Offline",
+  "@systemStateOffline": {
+    "description": "Shell system-state indicator label when the device has no network connection (UX-007, UX-008)."
+  },
+  "systemStateUnlinked": "Local only — sign up to sync",
+  "@systemStateUnlinked": {
+    "description": "Shell system-state indicator label while the person is not signed in, so local-only work is never mistaken for synced (UX-008, UX-016)."
+  },
   "helpTitle": "Manual",
   "@helpTitle": {
     "description": "Title of the in-app manual screen (UX-023)."

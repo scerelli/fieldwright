@@ -4,9 +4,6 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:ibis/app.dart';
 
-Finder navLabel(String label) =>
-    find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
-
 void main() {
   testWidgets('the shell renders in Italian when the device locale is it', (
     tester,
@@ -16,10 +13,6 @@ void main() {
 
     await tester.pumpWidget(const ProviderScope(child: IbisApp()));
     await tester.pumpAndSettle();
-
-    for (final label in ['Progetti', 'Siti', 'Visite', 'Account']) {
-      expect(navLabel(label), findsOneWidget);
-    }
 
     expect(find.widgetWithText(AppBar, 'Progetti'), findsOneWidget);
     expect(find.text('Nessun progetto'), findsOneWidget);

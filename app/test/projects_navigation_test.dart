@@ -87,7 +87,7 @@ FakeHttpAdapter projectsAdapter() => FakeHttpAdapter((options) async {
       },
     );
   }
-  if (options.path == '/projects/p1/members' && options.method == 'GET') {
+  if (options.path.endsWith('/members') && options.method == 'GET') {
     return jsonResponse(const <dynamic>[]);
   }
   if (options.path == '/survey-periods' && options.method == 'GET') {
@@ -181,6 +181,12 @@ Future<void> openProject(WidgetTester tester, String projectId) async {
   await tester.pumpAndSettle();
 }
 
+/// Opens the hub's Project-config overflow menu.
+Future<void> openOverflow(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('project_config_overflow')));
+  await tester.pumpAndSettle();
+}
+
 String currentPath(WidgetTester tester) =>
     GoRouterState.of(tester.element(find.byType(AppShell))).uri.path;
 
@@ -196,6 +202,11 @@ void main() {
       final project = (await ProjectDao(database).all()).single;
       await openProject(tester, project.id);
 
+      expect(currentPath(tester), '/projects/${project.id}');
+      expect(find.byKey(const Key('hub_sites_tab')), findsOneWidget);
+      expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
+
+      await openOverflow(tester);
       expect(find.byKey(const Key('open_protocol_version')), findsOneWidget);
       expect(find.byKey(const Key('open_members')), findsOneWidget);
       expect(find.byKey(const Key('open_survey_periods')), findsOneWidget);
@@ -207,6 +218,8 @@ void main() {
 
       await tester.pageBack();
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
+      await openOverflow(tester);
       await tester.tap(find.byKey(const Key('open_members')));
       await flush(tester);
       expect(currentPath(tester), '/projects/${project.id}/members');
@@ -214,6 +227,8 @@ void main() {
 
       await tester.pageBack();
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
+      await openOverflow(tester);
       await tester.tap(find.byKey(const Key('open_survey_periods')));
       await flush(tester);
       expect(currentPath(tester), '/projects/${project.id}/survey-periods');
@@ -229,17 +244,26 @@ void main() {
     final project = (await ProjectDao(database).all()).single;
     await openProject(tester, project.id);
 
+    await openOverflow(tester);
     await tester.tap(find.byKey(const Key('open_protocol_version')));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('open_members')), findsOneWidget);
+    expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
 
+    await openOverflow(tester);
     await tester.tap(find.byKey(const Key('open_members')));
     await flush(tester);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('open_survey_periods')), findsOneWidget);
+    expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
+
+    await openOverflow(tester);
+    await tester.tap(find.byKey(const Key('open_survey_periods')));
+    await flush(tester);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('hub_visits_tab')), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
