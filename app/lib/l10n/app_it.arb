@@ -167,6 +167,8 @@
   "syncIndicatorSynced": "Sincronizzata",
   "syncIndicatorFailed": "Sincronizzazione non riuscita",
   "syncIndicatorRetry": "Riprova",
+  "systemStateOffline": "Offline",
+  "systemStateUnlinked": "Solo locale — accedi per sincronizzare",
   "helpTitle": "Manuale",
   "helpOpen": "Apri il manuale",
   "helpCreateProjectTitle": "Crea un Progetto",

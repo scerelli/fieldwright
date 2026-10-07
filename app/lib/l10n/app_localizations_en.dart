@@ -546,6 +546,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncIndicatorRetry => 'Retry';
 
   @override
+  String get systemStateOffline => 'Offline';
+
+  @override
+  String get systemStateUnlinked => 'Local only — sign up to sync';
+
+  @override
   String get helpTitle => 'Manual';
 
   @override

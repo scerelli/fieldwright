@@ -4,6 +4,16 @@ import 'package:material_ui/material_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../outbox/outbox.dart';
 import '../store/database_provider.dart';
+import '../store/outbox_dao.dart';
+
+/// The aggregate outbox sync state across every Visit, kept live by the local
+/// store's change stream, so the shell can report a submission in flight or
+/// failed without subscribing per Visit (UX-008).
+final outboxSyncSummaryProvider = StreamProvider<OutboxSummary>((ref) async* {
+  final dao = ref.watch(outboxDaoProvider);
+  yield await dao.summary();
+  yield* dao.changes;
+});
 
 /// The sync state recorded for [visitId], read from the outbox in the local
 /// store so the indicator reflects the Visit's delivery state rather than an
@@ -49,8 +59,14 @@ class SyncIndicatorView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final (label, color) = switch (state) {
-      SyncState.queued => (l10n.syncIndicatorQueued, colorScheme.onSurfaceVariant),
-      SyncState.syncing => (l10n.syncIndicatorSyncing, colorScheme.onSurfaceVariant),
+      SyncState.queued => (
+        l10n.syncIndicatorQueued,
+        colorScheme.onSurfaceVariant,
+      ),
+      SyncState.syncing => (
+        l10n.syncIndicatorSyncing,
+        colorScheme.onSurfaceVariant,
+      ),
       SyncState.synced => (l10n.syncIndicatorSynced, colorScheme.primary),
       SyncState.failed => (l10n.syncIndicatorFailed, colorScheme.error),
     };
@@ -84,7 +100,9 @@ class SyncIndicatorView extends StatelessWidget {
         children: [
           leading,
           const SizedBox(width: 8),
-          Expanded(child: Text(label, style: TextStyle(color: color))),
+          Expanded(
+            child: Text(label, style: TextStyle(color: color)),
+          ),
           if (state == SyncState.failed && onRetry != null)
             TextButton(
               key: const Key('sync_indicator_retry'),
